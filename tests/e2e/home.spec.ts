@@ -285,7 +285,7 @@ test("vocabulary expression library explains and saves collocations and phrasal 
   await page.getByRole("button", { name: "Useful expressions" }).click();
   const library = page.getByRole("region", { name: "Collocations, phrasal verbs, and common expressions" });
   await expect(library).toBeVisible();
-  await expect(library.getByText("make a decision")).toBeVisible();
+  await expect(library.getByRole("heading", { name: "make a decision" })).toBeVisible();
   await expect(library.getByText("collocation", { exact: true }).first()).toBeVisible();
   await expect(library.getByText("Choose what to do after thinking about the options.")).toBeVisible();
   await library.getByRole("button", { name: "Save expression: make a decision" }).click();
