@@ -508,3 +508,45 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .phoneme-issue code { white-space: normal; overflow-wrap: anywhere; }
 .phoneme-issue small { display: block; margin-top: 5px; }
 @media (max-width: 520px) { .phoneme-assessment { grid-template-columns: minmax(0, 1fr); } .phoneme-record-controls { justify-content: stretch; } .phoneme-record-controls button { width: 100%; min-height: 42px; } }
+
+
+/* Global save-to-vocabulary action for selected text */
+.vocabulary-selection-action, .vocabulary-selection-panel {
+  position: fixed; z-index: 10000; width: min(320px, calc(100vw - 24px));
+  border: 1px solid #dfe5d7; border-radius: 12px; background: #fff;
+  box-shadow: 0 12px 38px #263b2526;
+}
+.vocabulary-selection-action { display: flex; align-items: center; gap: 3px; width: auto; max-width: calc(100vw - 24px); padding: 5px; }
+.vocabulary-selection-action button, .vocabulary-selection-actions button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px;
+  padding: 0 11px; border: 0; border-radius: 8px; background: var(--green); color: #fff;
+  font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.vocabulary-selection-action button span { font-size: 16px; line-height: 1; }
+.vocabulary-selection-action .vocabulary-selection-dismiss { width: 30px; padding: 0; background: transparent; color: var(--muted); font-size: 18px; }
+.vocabulary-selection-panel { display: grid; gap: 12px; padding: 15px; }
+.vocabulary-selection-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.vocabulary-selection-heading > div { display: grid; gap: 6px; min-width: 0; }
+.vocabulary-selection-heading strong { overflow-wrap: anywhere; font-size: 14px; }
+.vocabulary-selection-heading > button { border: 0; background: transparent; color: var(--muted); font-size: 20px; cursor: pointer; }
+.vocabulary-selection-panel label { display: grid; gap: 5px; color: var(--ink); font-size: 11px; font-weight: 700; }
+.vocabulary-selection-panel label span { color: var(--muted); font-weight: 400; }
+.vocabulary-selection-panel input, .vocabulary-selection-panel textarea {
+  width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px;
+  outline: none; background: #fff; color: var(--ink); font-size: 12px; font-weight: 400;
+}
+.vocabulary-selection-panel textarea { resize: vertical; }
+.vocabulary-selection-panel input:focus, .vocabulary-selection-panel textarea:focus { border-color: #91a686; box-shadow: 0 0 0 3px #e9efe5; }
+.vocabulary-selection-actions { display: flex; justify-content: flex-end; gap: 7px; }
+.vocabulary-selection-actions .vocabulary-selection-cancel { border: 1px solid var(--line); background: #fff; color: var(--muted); }
+.vocabulary-selection-status {
+  position: fixed; right: 18px; bottom: 18px; z-index: 10001; display: flex; align-items: center; gap: 12px;
+  max-width: min(420px, calc(100vw - 24px)); margin: 0; padding: 12px 14px; border: 1px solid #dfe5d7;
+  border-radius: 10px; background: #fff; color: var(--green-dark); box-shadow: 0 8px 30px #263b251c;
+  font-size: 12px; line-height: 1.5;
+}
+.vocabulary-selection-status button { flex-shrink: 0; border: 0; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; }
+@media (max-width: 520px) {
+  .vocabulary-selection-action, .vocabulary-selection-panel { left: 12px !important; right: 12px; width: auto; }
+  .vocabulary-selection-status { right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
