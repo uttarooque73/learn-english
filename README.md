@@ -11,6 +11,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Create a responsive shared application shell and navigation.
 - [x] Build the overview dashboard and practice, vocabulary, and progress pages.
 - [x] Add responsive styling and clear empty/coming-soon states.
+- [ ] Ensure the entire application is mobile-first and fully usable on phones, including navigation, practice chat, forms, cards, and dashboards.
 - [x] Document local setup and the implementation roadmap.
 - [x] Connect the Practice Room to Ollama through a streaming Next.js Route Handler.
 - [x] Add scenario selection, streaming chat UI, input validation, and actionable connection errors.
@@ -72,6 +73,21 @@ npm run test:e2e      # Playwright browser/UI tests
 
 For interactive test development, run `npm run test:watch`.
 
+### Responsive UI and mobile support
+
+**Requirement:** SpeakUp AI must be comfortable to use on a phone as well as on a desktop. Responsive behavior is a product requirement, not an optional polish task.
+
+Acceptance criteria:
+- Use a mobile-first layout and responsive CSS breakpoints; verify narrow screens around 320–390 CSS pixels as well as tablet and desktop widths.
+- Include the correct viewport metadata and prevent horizontal page overflow.
+- Make navigation usable on small screens (for example, a compact menu or mobile navigation pattern).
+- Keep chat messages readable and the message composer usable when the on-screen keyboard is open; controls must not be clipped or require horizontal scrolling.
+- Ensure buttons, links, inputs, and scenario cards have comfortable touch targets and spacing.
+- Scale headings, spacing, cards, and page layouts for small screens while preserving readable contrast and text sizes.
+- Respect safe-area insets where needed and avoid fixed elements covering important content.
+- Add or update Playwright UI tests for key mobile flows, including navigation and sending a chat message. Run the tests at a phone-sized viewport, not only desktop.
+- Before marking responsive work complete, manually verify the home, practice, vocabulary, and progress pages on a phone or browser device emulation.
+
 ### Testing strategy
 - **Unit tests:** Vitest + React Testing Library. Test individual components, helpers, and isolated behavior.
 - **Integration tests:** Vitest. Test how app components and application modules work together; add API/route-handler and persistence integration tests when those features are implemented.
@@ -86,10 +102,11 @@ GitHub Actions runs on every push to `main` and every pull request targeting `ma
 **Definition of done for each phase**
 1. Implement the complete phase scope.
 2. Add or update unit, integration, and UI tests for the behavior introduced; if a test category is not applicable, document why.
-3. Run all applicable quality checks locally and fix failures.
-4. Never claim a check passed unless it was actually run and passed.
-5. Update this README when setup, architecture, commands, or behavior changes.
-6. Commit the completed phase once, with a descriptive commit message. Do not split a single phase into a series of partial feature commits.
+3. For any UI change, verify responsive behavior on mobile and desktop and add mobile-viewport UI coverage where appropriate.
+4. Run all applicable quality checks locally and fix failures.
+5. Never claim a check passed unless it was actually run and passed.
+6. Update this README when setup, architecture, commands, or behavior changes.
+7. Commit the completed phase once, with a descriptive commit message. Do not split a single phase into a series of partial feature commits.
 
 CI runs on push/PR, not at the moment of a local commit. Do not treat a commit as verified until the relevant CI checks have completed successfully. Configure branch protection in GitHub repository settings if you want GitHub to block merging when required checks fail.
 
