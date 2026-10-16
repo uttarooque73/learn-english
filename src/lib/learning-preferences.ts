@@ -1,10 +1,12 @@
 export type EnglishLevel = "Beginner" | "Intermediate" | "Advanced";
 export type FeedbackStyle = "gentle" | "balanced" | "detailed";
+export type FeedbackTiming = "immediate" | "end";
 
 export type LearningPreferences = {
   englishLevel: EnglishLevel;
   dailyGoalMinutes: number;
   feedbackStyle: FeedbackStyle;
+  feedbackTiming: FeedbackTiming;
   preferredTopics: string[];
   largerText: boolean;
   reducedMotion: boolean;
@@ -14,6 +16,7 @@ export const DEFAULT_LEARNING_PREFERENCES: LearningPreferences = {
   englishLevel: "Beginner",
   dailyGoalMinutes: 10,
   feedbackStyle: "balanced",
+  feedbackTiming: "end",
   preferredTopics: ["Everyday life", "At work"],
   largerText: false,
   reducedMotion: false,
@@ -42,11 +45,13 @@ export function getLearningPreferences(): LearningPreferences {
     const value = parsed as Record<string, unknown>;
     const levels: EnglishLevel[] = ["Beginner", "Intermediate", "Advanced"];
     const styles: FeedbackStyle[] = ["gentle", "balanced", "detailed"];
+    const timings: FeedbackTiming[] = ["immediate", "end"];
     const goal = Number(value.dailyGoalMinutes);
     return {
       englishLevel: levels.includes(value.englishLevel as EnglishLevel) ? value.englishLevel as EnglishLevel : "Beginner",
       dailyGoalMinutes: [5, 10, 15, 20, 30].includes(goal) ? goal : 10,
       feedbackStyle: styles.includes(value.feedbackStyle as FeedbackStyle) ? value.feedbackStyle as FeedbackStyle : "balanced",
+      feedbackTiming: timings.includes(value.feedbackTiming as FeedbackTiming) ? value.feedbackTiming as FeedbackTiming : "end",
       preferredTopics: Array.isArray(value.preferredTopics)
         ? value.preferredTopics.filter((topic): topic is string => typeof topic === "string" && (LEARNING_TOPICS as readonly string[]).includes(topic)).slice(0, 10)
         : [...DEFAULT_LEARNING_PREFERENCES.preferredTopics],
@@ -64,6 +69,7 @@ export function saveLearningPreferences(preferences: LearningPreferences): void 
     englishLevel: ["Beginner", "Intermediate", "Advanced"].includes(preferences.englishLevel) ? preferences.englishLevel : "Beginner",
     dailyGoalMinutes: [5, 10, 15, 20, 30].includes(preferences.dailyGoalMinutes) ? preferences.dailyGoalMinutes : 10,
     feedbackStyle: ["gentle", "balanced", "detailed"].includes(preferences.feedbackStyle) ? preferences.feedbackStyle : "balanced",
+    feedbackTiming: ["immediate", "end"].includes(preferences.feedbackTiming) ? preferences.feedbackTiming : "end",
     preferredTopics: preferences.preferredTopics.filter((topic) => (LEARNING_TOPICS as readonly string[]).includes(topic)).slice(0, 10),
     largerText: Boolean(preferences.largerText),
     reducedMotion: Boolean(preferences.reducedMotion),
