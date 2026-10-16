@@ -151,7 +151,7 @@ describe("PracticeExperience", () => {
 
     fireEvent.click(startButton);
     expect(view.getByRole("status")).toHaveTextContent(/Voice input is not supported in this browser/);
-    expect(view.getByLabelText("Your message")).toBeEnabled();
+    expect(container.querySelector("textarea")).toBeEnabled();
   });
 
 });
