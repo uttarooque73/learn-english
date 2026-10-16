@@ -120,3 +120,25 @@ test("learning preferences save and persist personalization and accessibility ch
   await page.waitForTimeout(1000);
   await expect(page.getByRole("progressbar", { name: "Daily practice goal" })).toHaveAttribute("aria-valuemax", "15");
 });
+
+test("vocabulary review schedules the next review from learner recall", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("speakup:vocabulary:v1", JSON.stringify([{
+      id: "review-word-1",
+      phrase: "hands-on experience",
+      meaning: "Practical experience doing something.",
+      example: "I have hands-on experience with this tool.",
+      savedAt: "2026-10-15T12:00:00.000Z",
+      status: "learning"
+    }]));
+  });
+  await page.goto("/vocabulary");
+  await expect(page.getByRole("heading", { name: "Your word bank" })).toBeVisible();
+  await page.getByRole("button", { name: /Review due/ }).click();
+  await expect(page.getByRole("heading", { name: "hands-on experience" })).toBeVisible();
+  await page.getByRole("button", { name: "Reveal meaning" }).click();
+  await expect(page.getByText("Practical experience doing something.")).toBeVisible();
+  await page.getByRole("button", { name: "Got it · 3 days" }).click();
+  await expect(page.getByRole("heading", { name: "You're all caught up" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Review due/ })).toContainText("0");
+});
