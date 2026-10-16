@@ -58,6 +58,15 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Validate summary requests and bound output lists on the server; add API tests.
 - [ ] Persist generated summaries with saved conversations and show them in session history.
 
+### Phase 7 — Personalized learning and accessibility
+- [x] Add a Learning preferences page for English level, daily practice goal, feedback style, and preferred topics.
+- [x] Save preferences locally with safe defaults and validate values before using them.
+- [x] Apply saved English level, feedback style, and preferred topics to the local AI tutor prompt.
+- [x] Add larger-text and reduced-motion options that apply across the app.
+- [x] Add keyboard-friendly native form controls, visible focus treatment, responsive layouts, and accessible status messages.
+- [x] Add integration and browser tests for preference-driven tutor behavior and persistence.
+- [ ] Track daily practice time against the selected goal on the overview and progress pages.
+
 **Current limitations:** Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -261,10 +270,10 @@ Next.js Route Handlers (/api/*)
 - [ ] Use transparent indicators rather than claiming a precise English-proficiency score without a validated assessment.
 
 ### 9. Personalization and Accessibility
-- [ ] Configure English level, goals, and preferred topics.
-- [ ] Choose feedback style: gentle, balanced, or detailed.
+- [x] Configure English level, daily goal, and preferred topics.
+- [x] Choose feedback style: gentle, balanced, or detailed.
 - [ ] Configure AI response speed and voice where supported.
-- [ ] Support keyboard-only interaction and readable contrast.
+- [x] Add accessible native controls, keyboard focus styling, larger text, and reduced motion.
 - [ ] Provide clear microphone-permission and browser-compatibility messages.
 - [ ] Allow users to delete individual sessions or all saved practice data.
 
