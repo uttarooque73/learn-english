@@ -6,7 +6,6 @@ import { applyAccessibilityPreferences, getLearningPreferences } from "@/lib/lea
 export function PreferenceInitializer() {
   useEffect(() => {
     applyAccessibilityPreferences(getLearningPreferences());
-    document.documentElement.dataset.appHydrated = "true";
   }, []);
   return null;
 }
