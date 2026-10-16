@@ -26,6 +26,8 @@ describe("POST /api/feedback", () => {
       originalSentence: "I go to work yesterday.",
       correctedSentence: "I went to work yesterday.",
       explanation: "Use the past tense for a completed action.",
+      issues: [{ original: "I go", corrected: "I went", category: "grammar", importance: "important", explanation: "Use past tense for yesterday." }],
+      practicePrompt: "Tell me one more thing you did yesterday using past tense.",
       tips: ["Use went, not go, for yesterday."],
       pronunciationTip: "Say the final consonants clearly.",
       vocabulary: [{ phrase: "completed action", meaning: "An action that has finished.", example: "I finished the report." }],
