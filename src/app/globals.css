@@ -185,3 +185,42 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #9
 .roleplay-settings>label{display:flex;align-items:center;gap:10px;color:#777a70;font-size:11px;font-weight:600;white-space:nowrap}
 .roleplay-settings select{min-height:39px;min-width:145px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit}
 @media(max-width:600px){.roleplay-settings{align-items:stretch;flex-direction:column;gap:12px;padding:14px}.roleplay-settings>label{align-items:stretch;flex-direction:column;gap:6px}.roleplay-settings select{width:100%}}
+
+
+/* Phase 5: fluency and confidence exercises */
+.fluency-intro{display:flex;align-items:center;justify-content:space-between;gap:26px;margin-bottom:24px;padding:27px 32px;border-radius:16px;background:#425c40;color:#fff}
+.fluency-intro .intro-label{color:#d4dfcb}
+.fluency-intro h2{margin:17px 0 10px;font-family:Manrope,sans-serif;font-size:30px;font-weight:600;letter-spacing:-1.2px;line-height:1.2}
+.fluency-intro h2 em{font-style:normal;color:#d9e6c7}
+.fluency-intro p{max-width:470px;margin:0;color:#d8dfd2;font-size:11px;line-height:1.8}
+.fluency-intro-art{display:flex;align-items:center;justify-content:center;gap:8px;min-width:270px;color:#d9e6c7}
+.fluency-intro-art span{display:grid;place-items:center;width:35px;height:35px;border:1px solid #a8b9a0;border-radius:50%;font-family:Manrope,sans-serif;font-weight:700}
+.fluency-intro-art small{margin-left:-5px;font-size:9px;color:#fff}
+.fluency-intro-art i{font-style:normal;color:#a8b9a0}
+.fluency-exercise-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.fluency-exercise-card{display:flex;align-items:flex-start;flex-direction:column;gap:9px;min-height:150px;padding:17px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+.fluency-exercise-card:hover,.fluency-exercise-card.active{border-color:#9aaf8e;background:#f3f6ef}
+.fluency-card-icon{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#e5ecdf;color:var(--green);font-size:16px}
+.fluency-exercise-card strong{font-family:Manrope,sans-serif;font-size:12px}
+.fluency-exercise-card>span:last-child{color:#85877d;font-size:10px;line-height:1.65}
+.fluency-prompt-card{padding:24px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.fluency-prompt-header{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.fluency-prompt-header h2{margin:7px 0 0;font-family:Manrope,sans-serif;font-size:19px;letter-spacing:-.4px}
+.fluency-timer{padding:8px 12px;border-radius:9px;background:#edf1e9;color:var(--green-dark);font-family:Manrope,sans-serif;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.fluency-timer.urgent{background:#fff0e7;color:#a54d25}
+.fluency-prompt-text{margin:18px 0 22px;padding:17px 18px;border-left:3px solid #9aad8c;border-radius:0 9px 9px 0;background:#f5f6f1;font-family:Manrope,sans-serif;font-size:15px;line-height:1.7}
+.fluency-response-label{display:block;margin-bottom:8px;color:#65695e;font-size:11px;font-weight:700}
+.fluency-prompt-card textarea{display:block;width:100%;min-height:145px;padding:13px;border:1px solid #e4e6dd;border-radius:9px;background:#fff;color:var(--ink);font:inherit;font-size:12px;line-height:1.8;resize:vertical}
+.fluency-prompt-card textarea:focus{outline:2px solid #c5d3bc;outline-offset:1px}
+.fluency-response-meta{display:flex;justify-content:space-between;gap:10px;margin-top:8px;color:#898b81;font-size:10px}
+.filler-note{margin-top:11px;color:#898b81;font-size:10px;line-height:1.7}
+.fluency-timer-actions,.fluency-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:18px}
+.fluency-actions{justify-content:flex-end;padding-top:16px;border-top:1px solid #f0f0eb}
+.button-primary{min-height:38px;padding:0 14px;border:1px solid var(--green);border-radius:8px;background:var(--green);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
+.button-primary:disabled{opacity:.45;cursor:not-allowed}
+.fluency-reflection{margin-top:18px;padding:15px 16px;border-radius:10px;background:#f0f4ed}
+.fluency-reflection strong{font-family:Manrope,sans-serif;font-size:12px;color:var(--green-dark)}
+.fluency-reflection p{margin:7px 0 0;color:#6f7568;font-size:11px;line-height:1.8}
+.fluency-disclaimer{margin:13px 2px 0;color:#999b91;font-size:10px;line-height:1.7}
+@media(max-width:950px){.fluency-exercise-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fluency-intro-art{min-width:220px}}
+@media(max-width:650px){.fluency-intro{align-items:flex-start;flex-direction:column;padding:23px 20px}.fluency-intro h2{font-size:26px}.fluency-intro-art{min-width:0;gap:7px}.fluency-exercise-grid{grid-template-columns:1fr}.fluency-exercise-card{min-height:0}.fluency-prompt-card{padding:17px}.fluency-prompt-header h2{font-size:17px}.fluency-prompt-text{font-size:13px}.fluency-response-meta{flex-direction:column}.fluency-actions{justify-content:stretch}.fluency-actions>*{flex:1;justify-content:center}}

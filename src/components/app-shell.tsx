@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-type PageKey = "home" | "practice" | "vocabulary" | "progress";
+type PageKey = "home" | "practice" | "vocabulary" | "progress" | "fluency";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
   { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
   { key: "vocabulary", label: "Vocabulary", href: "/vocabulary", icon: "Aa" },
   { key: "progress", label: "My progress", href: "/progress", icon: "↗" },
+  { key: "fluency", label: "Fluency exercises", href: "/fluency", icon: "◷" },
 ];
 
 export function AppShell({

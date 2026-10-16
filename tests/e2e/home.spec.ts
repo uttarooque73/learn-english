@@ -29,3 +29,22 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
   await expect(page.getByRole("button", { name: /Explain a technical concept/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Restaurant conversation/ })).toBeVisible();
 });
+
+
+test("fluency page offers timed speaking and filler-word awareness exercises", async ({ page }) => {
+  await page.goto("/fluency");
+
+  await expect(page.getByRole("heading", { name: "Fluency & confidence" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Daily speaking prompt/ })).toBeVisible();
+
+  await page.getByRole("button", { name: /One-minute talk/ }).click();
+  await expect(page.getByRole("timer")).toHaveAttribute("aria-label", "60 seconds remaining");
+  await page.getByRole("button", { name: "Start 1-minute timer" }).click();
+  await expect(page.getByRole("button", { name: "Pause timer" })).toBeVisible();
+
+  await page.getByRole("button", { name: /Filler-word awareness/ }).click();
+  await page.getByLabel("Your response").fill("Um, I like this tool, you know, because it helps.");
+  await expect(page.getByText("3 possible filler words detected")).toBeVisible();
+  await page.getByRole("button", { name: "Finish exercise" }).click();
+  await expect(page.getByRole("status")).toContainText("You wrote 10 words.");
+});
