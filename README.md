@@ -94,26 +94,50 @@ SpeakUp AI is a personal English-practice app designed to help learners speak mo
 - [ ] Document setup, configuration, and troubleshooting.
 - [ ] Clearly explain that browser speech services may process audio differently depending on the browser; local LLM use does not automatically make voice processing fully offline.
 
+## Architecture
+
+Use **Next.js with the App Router and TypeScript** for a single full-stack application. The user interface and server-side API routes live in the same codebase; a separate Express server is not required for the MVP.
+
+```text
+Browser (Next.js UI)
+        |
+        v
+Next.js Route Handlers (/api/*)
+        |
+        +------> Ollama (local LLM service)
+        |
+        +------> SQLite database (through Prisma)
+```
+
+- **Frontend:** React components rendered through Next.js.
+- **Backend:** Next.js Route Handlers for chat, sessions, feedback, vocabulary, and progress.
+- **AI:** Ollama running locally, with a configurable model and endpoint. Ollama remains a separate service that Next.js calls from the server.
+- **Persistence:** SQLite with Prisma ORM for the MVP; PostgreSQL can be considered later.
+- **Speech:** Browser speech-recognition and speech-synthesis APIs initially, with text-only fallback.
+- **Validation:** Validate API input on the server and keep model configuration and prompts out of client-side code.
+- **Testing:** Unit tests for prompt construction and validation, plus integration tests for Route Handlers and session persistence.
+
 ## Suggested MVP
 
-Build these first so the project becomes usable quickly:
+Build these in order so the project becomes usable quickly:
 
-1. Simple chat interface with topic selection.
-2. Node.js/TypeScript API connected to Ollama.
-3. Conversation context so the AI remembers the current session.
-4. Grammar corrections and natural-sentence suggestions.
-5. End-of-session summary.
-6. Saved conversation history.
-7. Browser speech input and AI text-to-speech, with text-only fallback.
+1. Create the Next.js App Router project with TypeScript.
+2. Build a responsive chat interface with topic and difficulty selection.
+3. Add a server-side chat Route Handler that connects to Ollama.
+4. Preserve conversation context within each session.
+5. Add grammar corrections and natural-sentence suggestions.
+6. Save conversation history in SQLite using Prisma.
+7. Generate an end-of-session summary.
+8. Add browser speech input and AI text-to-speech, with a text-only fallback.
 
 ## Suggested Technology Stack
 
-- **Frontend:** HTML/CSS/TypeScript or a lightweight React application.
-- **Backend:** Node.js, TypeScript, and Express.
-- **AI:** Ollama with a configurable chat model.
-- **Speech:** Browser speech-recognition and speech-synthesis APIs initially.
-- **Persistence:** SQLite for the first version; PostgreSQL can be considered later.
-- **Testing:** Unit tests for prompt construction, API validation, and session handling, plus integration tests for the chat endpoint.
+- **Full-stack framework:** Next.js (App Router) + React + TypeScript.
+- **Server API:** Next.js Route Handlers at `src/app/api/**/route.ts`; no separate Express server for the MVP.
+- **AI runtime:** Ollama with a configurable local chat model.
+- **Database and ORM:** SQLite + Prisma.
+- **Speech:** Browser Speech Recognition and Speech Synthesis APIs initially.
+- **Testing:** Unit and integration tests for API routes, prompts, and persistence.
 
 ## Development Principles
 
