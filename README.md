@@ -112,7 +112,15 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Improve touch target sizes, text input behavior, and wrapping for practice and review controls on narrow screens.
 - [x] Add Playwright coverage for mobile navigation, a practice chat turn, and horizontal-overflow checks at 320px and 375px across all primary pages.
 
-**Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
+### Phase 14 — Voice practice sessions
+- [x] Start, pause, resume, and end a voice-practice session while preserving the current conversation.
+- [x] Automatically read coach responses aloud during an active voice session and keep per-message replay controls.
+- [x] Keep speech-recognition output visible in the editable message composer before it is sent.
+- [x] Retain typing as a fallback and explain when browser speech recognition is unsupported.
+- [x] Explain that speech recognition and synthesis are browser/OS capabilities and may not be processed fully offline.
+- [x] Add unit and Playwright coverage for the unsupported-browser fallback and text input availability.
+
+**Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
@@ -244,7 +252,7 @@ Next.js Route Handlers (/api/*)
 - **Server API:** Next.js Route Handlers; no separate Express server is planned for the MVP.
 - **AI runtime:** Ollama with a configurable local chat model. The API streams response text from Ollama to the browser.
 - **Learning data persistence:** Browser `localStorage` for conversation transcripts, vocabulary, and practice summaries; data is device/browser-profile specific and is not synced.
-- **Speech:** Browser speech recognition and speech synthesis APIs, with a text-only fallback (planned).
+- **Speech:** Browser speech recognition and speech synthesis APIs, with a text-only fallback. Browser and operating-system capabilities determine available voices and how speech recognition is processed.
 - **Styling:** Responsive CSS with no UI component library required.
 
 ## Feature roadmap
@@ -258,12 +266,12 @@ Next.js Route Handlers (/api/*)
 - [x] Continue a previous conversation from saved local history.
 
 ### 2. Voice Practice
-- [ ] Speech-to-text input using browser speech recognition where supported.
-- [ ] Text-to-speech playback for AI responses.
-- [ ] Start, pause, and end a voice-practice session.
-- [ ] Show a live transcript of the conversation.
-- [ ] Provide a text-input fallback when browser speech features are unavailable.
-- [ ] Allow users to replay AI responses and practice saying them aloud.
+- [x] Speech-to-text input using browser speech recognition where supported.
+- [x] Text-to-speech playback for AI responses, including automatic playback during an active voice session.
+- [x] Start, pause, resume, and end a voice-practice session without deleting the conversation transcript.
+- [x] Show the live conversation transcript and recognized speech in the message composer before sending.
+- [x] Provide a text-input fallback with a clear browser-support message when speech recognition is unavailable.
+- [x] Allow users to replay AI responses and practice saying them aloud.
 
 ### 3. English Feedback and Corrections
 - [ ] Identify grammar mistakes in the learner's messages.
@@ -331,7 +339,7 @@ Next.js Route Handlers (/api/*)
 - [x] Handle Ollama unavailable, timeout, and unsuccessful upstream responses.
 - [x] Add input validation and safe error messages.
 - [x] Document setup, configuration, and troubleshooting.
-- [ ] Clearly explain that browser speech services may process audio differently depending on the browser; local LLM use does not automatically make voice processing fully offline.
+- [x] Clearly explain that browser speech services may process audio differently depending on the browser; local LLM use does not automatically make voice processing fully offline.
 
 ## Development principles
 

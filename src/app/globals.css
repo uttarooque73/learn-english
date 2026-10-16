@@ -398,3 +398,36 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
   .feedback-word { gap: 8px; }
   .page-footer { flex-wrap: wrap; }
 }
+
+
+/* Phase 14: voice session controls */
+.voice-session-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+.voice-session-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.voice-session-actions button { min-height: 40px; }
+.voice-session-status {
+  flex: 1 1 240px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 520px) {
+  .voice-session-controls { align-items: stretch; padding: 12px; }
+  .voice-session-actions { width: 100%; }
+  .voice-session-actions button { flex: 1 1 auto; }
+  .voice-session-status { flex-basis: 100%; }
+}
