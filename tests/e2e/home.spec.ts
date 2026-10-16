@@ -5,6 +5,7 @@ test("dashboard renders and opens the practice room", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Good to see you" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: "Daily practice goal" })).toBeVisible();
   await page.getByRole("link", { name: /Start a practice session/i }).click();
 
   await expect(page).toHaveURL(/\/practice$/);
@@ -103,4 +104,7 @@ test("learning preferences save and persist personalization and accessibility ch
   await expect(page.getByLabel("Reduce animation")).toBeChecked();
   await expect(page.locator("html")).toHaveClass(/speakup-larger-text/);
   await expect(page.locator("html")).toHaveClass(/speakup-reduced-motion/);
+
+  await page.goto("/");
+  await expect(page.getByRole("progressbar", { name: "Daily practice goal" })).toHaveAttribute("aria-valuemax", "15");
 });
