@@ -48,7 +48,7 @@ describe("PracticeExperience", () => {
     await waitFor(() => expect(screen.getByText("Hello there!")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ scenario: "At work", difficulty: "Beginner", feedbackStyle: "balanced", preferredTopics: [], messages: [{ role: "user", content: "Hello coach" }] }),
+      body: JSON.stringify({ scenario: "At work", difficulty: "Beginner", sessionGoal: "Speak more confidently", sessionDurationMinutes: null, feedbackStyle: "balanced", preferredTopics: [], messages: [{ role: "user", content: "Hello coach" }] }),
     }));
     expect(screen.getByText("You")).toBeInTheDocument();
     expect(screen.getByText("SpeakUp AI")).toBeInTheDocument();
@@ -150,7 +150,7 @@ describe("PracticeExperience", () => {
     await waitFor(() => expect(startButton).toBeInTheDocument());
 
     fireEvent.click(startButton);
-    expect(view.getByRole("status")).toHaveTextContent(/Voice input is not supported in this browser/);
+    expect(view.getByText(/Voice input is not supported in this browser/)).toBeInTheDocument();
     expect(container.querySelector("textarea")).toBeEnabled();
   });
 

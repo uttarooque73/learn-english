@@ -12,6 +12,8 @@ const MAX_MESSAGES = 40;
 const MAX_MESSAGE_LENGTH = 4_000;
 const REQUEST_TIMEOUT_MS = 120_000;
 
+const SESSION_GOALS = ["Speak more confidently", "Improve grammar", "Expand vocabulary", "Practice workplace English", "Prepare for an interview", "Improve fluency"] as const;
+
 const SCENARIO_GUIDES: Record<string, string> = {
   "Everyday life": "Role-play as a friendly conversation partner discussing routines, hobbies, family, and daily plans. Start with a simple, natural question.",
   "At work": "Role-play a supportive workplace colleague. Discuss meetings, updates, sharing ideas, and clarifying next steps.",
@@ -101,6 +103,12 @@ export async function POST(request: Request) {
     ? payload.difficulty
     : "Beginner";
   const feedbackStyle = typeof payload.feedbackStyle === "string" && Object.hasOwn(FEEDBACK_GUIDES, payload.feedbackStyle) ? payload.feedbackStyle : "balanced";
+  const sessionGoal = typeof payload.sessionGoal === "string" && (SESSION_GOALS as readonly string[]).includes(payload.sessionGoal) ? payload.sessionGoal : "Speak more confidently";
+  const sessionDurationMinutes = [5, 10, 15, 20].includes(Number(payload.sessionDurationMinutes)) && payload.sessionDurationMinutes !== null && payload.sessionDurationMinutes !== undefined ? Number(payload.sessionDurationMinutes) : null;
+  const sessionGoalGuidance = "Session goal: " + sessionGoal + ". Align your questions, examples, and gentle coaching with this goal without forcing every turn.";
+  const sessionDurationGuidance = sessionDurationMinutes === null
+    ? "The learner has not set a session time limit."
+    : "The learner chose a " + sessionDurationMinutes + "-minute practice session. Keep turns focused and manageable; do not claim to track elapsed time yourself.";
   const preferredTopics = Array.isArray(payload.preferredTopics)
     ? payload.preferredTopics.filter((topic): topic is string => typeof topic === "string" && ALLOWED_TOPICS.has(topic)).slice(0, 10)
     : [];
@@ -135,7 +143,7 @@ export async function POST(request: Request) {
               "and respond to what the learner actually says. Stay in the role-play until the learner asks to stop or switch. " +
               "Use the selected scenario guidance: " + SCENARIO_GUIDES[scenario] + " " +
               "Adapt to this learner level: " + difficulty + ". " + DIFFICULTY_GUIDES[difficulty] + " " +
-              "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " +
+              "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " + sessionGoalGuidance + " " + sessionDurationGuidance + " " +
               "Do not interrupt with unsolicited grammar lessons. If the learner asks for correction, give one natural correction and a brief explanation. " +
               "Do not claim to score proficiency. Selected scenario: " + scenario + ". " + turnGuidance,
           },

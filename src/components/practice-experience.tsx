@@ -6,6 +6,8 @@ import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation
 import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
 
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
+const SESSION_GOALS = ["Speak more confidently", "Improve grammar", "Expand vocabulary", "Practice workplace English", "Prepare for an interview", "Improve fluency"] as const;
+type SessionGoal = typeof SESSION_GOALS[number];
 type Message = { role: "user" | "assistant"; content: string };
 type PhonemeIssue = { word: string; expected: string; actual: string | null; confidence: number; phones: { expected: string; heard: string | null; confidence: number }[] };
 type PhonemeAssessment = { score: number; transcript: string; phonemeErrorRate: number | null; wordErrorRate: number | null; errors: PhonemeIssue[] };
@@ -39,15 +41,22 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: new () => SpeechRecognitionLike;
 };
 
+function getCurrentTimestamp() { return Date.now(); }
+
 function createId() {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    : `${getCurrentTimestamp()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [scenario, setScenario] = useState(prompts[0]?.title ?? "Free conversation");
   const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
+  const [sessionGoal, setSessionGoal] = useState<SessionGoal>("Speak more confidently");
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState<number | null>(null);
+  const [sessionDeadline, setSessionDeadline] = useState<number | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [learningPreferences, setLearningPreferences] = useState<LearningPreferences | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
@@ -118,6 +127,25 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setSavedSessions(getSessions());
     setSelectedSessionId("");
   }
+
+  useEffect(() => {
+    if (sessionDeadline === null) return;
+    let finished = false;
+    const tick = () => {
+      if (finished) return;
+      const remaining = Math.max(0, Math.ceil((sessionDeadline - getCurrentTimestamp()) / 1000));
+      setRemainingSeconds(remaining);
+      if (remaining === 0) {
+        finished = true;
+        setSessionExpired(true);
+        recognitionRef.current?.stop();
+        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+        window.clearInterval(timer);
+      }
+    };
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [sessionDeadline]);
 
   function chooseScenario(title: string) {
     if (isStreaming || listening) return;
@@ -289,7 +317,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
-    if (!content || isStreaming) return;
+    if (!content || isStreaming || sessionExpired) return;
 
     const nextMessages: Message[] = [...messages, { role: "user", content }];
     setMessages([...nextMessages, { role: "assistant", content: "" }]);
@@ -305,6 +333,12 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     if (!sessionIdRef.current) {
       sessionIdRef.current = createId();
       sessionStartedAtRef.current = new Date().toISOString();
+      setSessionExpired(false);
+      if (sessionDurationMinutes !== null) {
+        const deadline = getCurrentTimestamp() + sessionDurationMinutes * 60 * 1000;
+        setSessionDeadline(deadline);
+        setRemainingSeconds(sessionDurationMinutes * 60);
+      }
     }
     const controller = new AbortController();
     abortRef.current = controller;
@@ -313,7 +347,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario, difficulty, feedbackStyle: learningPreferences?.feedbackStyle ?? "balanced", preferredTopics: learningPreferences?.preferredTopics ?? [], messages: nextMessages }),
+        body: JSON.stringify({ scenario, difficulty, sessionGoal, sessionDurationMinutes, feedbackStyle: learningPreferences?.feedbackStyle ?? "balanced", preferredTopics: learningPreferences?.preferredTopics ?? [], messages: nextMessages }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -342,6 +376,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         upsertSession({
           id: sessionIdRef.current ?? createId(),
           scenario,
+          goal: sessionGoal,
+          durationLimitMinutes: sessionDurationMinutes,
           startedAt,
           updatedAt,
           durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
@@ -423,6 +459,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       upsertSession({
         id: sessionId,
         scenario,
+        goal: sessionGoal,
+        durationLimitMinutes: sessionDurationMinutes,
         startedAt,
         updatedAt,
         durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
@@ -500,6 +538,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       upsertSession({
         id: sessionId,
         scenario,
+        goal: sessionGoal,
+        durationLimitMinutes: sessionDurationMinutes,
         startedAt,
         updatedAt,
         durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
@@ -562,6 +602,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       upsertSession({
         id: sessionId,
         scenario,
+        goal: sessionGoal,
+        durationLimitMinutes: sessionDurationMinutes,
         startedAt,
         updatedAt,
         durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
@@ -592,6 +634,9 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setSummaryError("");
     setPronunciationAssessment(null);
     setSavedPhrases([]);
+    setSessionDeadline(null);
+    setRemainingSeconds(null);
+    setSessionExpired(false);
     sessionIdRef.current = null;
     sessionStartedAtRef.current = null;
     setSelectedSessionId("");
@@ -605,6 +650,14 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       ? session.messages
       : session.learnerMessages.map((content) => ({ role: "user" as const, content }));
     setScenario(session.scenario);
+    setSessionGoal(SESSION_GOALS.includes(session.goal as SessionGoal) ? session.goal as SessionGoal : "Speak more confidently");
+    const duration = [5, 10, 15, 20].includes(Number(session.durationLimitMinutes)) ? Number(session.durationLimitMinutes) : null;
+    setSessionDurationMinutes(duration);
+    const started = Date.parse(session.startedAt);
+    const deadline = duration !== null && Number.isFinite(started) ? started + duration * 60 * 1000 : null;
+    setSessionDeadline(deadline);
+    setSessionExpired(deadline !== null && deadline <= getCurrentTimestamp());
+    setRemainingSeconds(deadline === null ? null : Math.max(0, Math.ceil((deadline - getCurrentTimestamp()) / 1000)));
     setMessages(restoredMessages);
     setDraft("");
     setError("");
@@ -644,12 +697,13 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </div>
       </section>
 
-      <section className="roleplay-settings" aria-label="Role-play settings"><div><p className="eyebrow">SET YOUR PACE</p><strong>Choose your English level</strong><p>The coach adapts its vocabulary and question complexity to your level.</p></div><label htmlFor="practice-difficulty">Difficulty<select id="practice-difficulty" value={difficulty} disabled={isStreaming || listening || !learningPreferences} onChange={(event) => { setDifficulty(event.target.value as typeof difficulty); resetConversation(); }}><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></label></section>
+      <section className="roleplay-settings" aria-label="Role-play settings"><div><p className="eyebrow">SET YOUR PACE</p><strong>Choose your English level and session goal</strong><p>The coach adapts its vocabulary and questions to your level and what you want to practise.</p></div><label htmlFor="practice-difficulty">Difficulty<select id="practice-difficulty" value={difficulty} disabled={isStreaming || messages.length > 0 || !learningPreferences} onChange={(event) => { setDifficulty(event.target.value as typeof difficulty); resetConversation(); }}><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></label><label htmlFor="session-goal">Session goal<select id="session-goal" value={sessionGoal} disabled={isStreaming || messages.length > 0} onChange={(event) => setSessionGoal(event.target.value as SessionGoal)}>{SESSION_GOALS.map((goal) => <option key={goal} value={goal}>{goal}</option>)}</select></label><label htmlFor="session-duration">Session duration<select id="session-duration" value={sessionDurationMinutes === null ? "" : String(sessionDurationMinutes)} disabled={isStreaming || messages.length > 0} onChange={(event) => setSessionDurationMinutes(event.target.value ? Number(event.target.value) : null)}><option value="">No time limit</option><option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option><option value="20">20 minutes</option></select></label></section>
 
       <section className="chat-panel" aria-label="AI English conversation">
         <div className="chat-header">
           <div className="chat-coach-mark">✦</div>
-          <div className="chat-header-copy"><strong>Your AI conversation partner</strong><span>Topic: {scenario}</span></div>
+          <div className="chat-header-copy"><strong>Your AI conversation partner</strong><span>Topic: {scenario}</span><span>Goal: {sessionGoal}</span></div>
+          <div className="session-time-status" role="timer" aria-label="Practice session countdown">{sessionExpired ? "Session time is up" : remainingSeconds !== null ? "Time left " + Math.floor(remainingSeconds / 60).toString().padStart(2, "0") + ":" + String(remainingSeconds % 60).padStart(2, "0") : sessionDurationMinutes !== null ? sessionDurationMinutes + "-minute session" : "No time limit"}</div>
           <div className="session-history-controls">
             <label className="sr-only" htmlFor="saved-session">Saved conversations</label>
             <select id="saved-session" value={selectedSessionId} onChange={(event) => setSelectedSessionId(event.target.value)} disabled={isStreaming || listening}>
@@ -701,11 +755,11 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </div>
         <form className="chat-composer" onSubmit={sendMessage}>
           <label className="sr-only" htmlFor="chat-message">Your message</label>
-          <textarea id="chat-message" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write what you would like to say…" rows={2} maxLength={4000} disabled={isStreaming || listening}
+          <textarea id="chat-message" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write what you would like to say…" rows={2} maxLength={4000} disabled={isStreaming || listening || sessionExpired}
             onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
           <div className="composer-footer"><span>Enter to send · Shift + Enter for a new line</span><div className="composer-actions">
             <button className="button button-voice" type="button" aria-label={listening && !pronunciationMode ? "Stop microphone" : "Start voice input"} title={speechSupported ? "Speak your message" : "Voice input is not supported in this browser"} onClick={() => listening ? stopListening() : startListening("compose")} disabled={isStreaming || !speechSupported}>{listening && !pronunciationMode ? "■ Stop mic" : "🎙 Speak"}</button>
-            <button className="button button-dark send-button" type="submit" disabled={isStreaming || listening || !draft.trim()}>{isStreaming ? "Thinking…" : "Send message"} <span>↗</span></button>
+            <button className="button button-dark send-button" type="submit" disabled={isStreaming || listening || sessionExpired || !draft.trim()}>{sessionExpired ? "Time is up" : isStreaming ? "Thinking…" : "Send message"} <span>↗</span></button>
           </div></div>
         </form>
         {voiceError && <p className="voice-status" role="status">{voiceError}</p>}

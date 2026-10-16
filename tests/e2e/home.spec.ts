@@ -25,7 +25,7 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
   await expect(difficulty).toHaveValue("Beginner");
   await difficulty.selectOption("Advanced");
   await expect(difficulty).toHaveValue("Advanced");
-  await expect(page.getByText(/coach adapts its vocabulary and question complexity/i)).toBeVisible();
+  await expect(page.getByText(/coach adapts its vocabulary and questions to your level/i)).toBeVisible();
 
   await expect(page.getByRole("button", { name: /Daily stand-up/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Explain a technical concept/ })).toBeVisible();
@@ -364,4 +364,25 @@ test("phoneme assessment records audio and displays sound-level feedback from th
   await expect(feedback.getByText("82", { exact: true })).toBeVisible();
   await expect(feedback.getByText("Sounds to practice")).toBeVisible();
   await expect(feedback.getByText("went", { exact: true })).toBeVisible();
+});
+
+
+test("session goal guides the tutor and the optional timer ends a timed session", async ({ page }) => {
+  let chatBody: Record<string, unknown> | undefined;
+  await page.route("**/api/chat", async (route) => {
+    chatBody = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 200, contentType: "text/plain", body: "Let us practise a sentence together." });
+  });
+  await page.goto("/practice");
+  await page.getByLabel("Session goal").selectOption("Improve grammar");
+  await page.getByLabel("Session duration").selectOption("5");
+  await page.getByLabel("Your message").fill("I work yesterday.");
+  await page.getByRole("button", { name: /Send message/ }).click();
+  await expect(page.getByText("Let us practise a sentence together.")).toBeVisible();
+  await expect.poll(() => chatBody).toMatchObject({ sessionGoal: "Improve grammar", sessionDurationMinutes: 5 });
+  await expect(page.getByRole("timer").filter({ hasText: /Time left 0[45]:[0-5][0-9]/ })).toBeVisible();
+  await page.evaluate(() => { const start = Date.now(); Date.now = () => start + 6 * 60 * 1000; });
+  await expect(page.getByRole("timer").filter({ hasText: "Session time is up" })).toBeVisible({ timeout: 4000 });
+  await expect(page.getByLabel("Your message")).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Time is up/ })).toBeDisabled();
 });

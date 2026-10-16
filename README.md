@@ -49,7 +49,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Add a one-minute talk exercise with start, pause, resume, and reset controls.
 - [x] Add text-based filler-word awareness for common expressions such as “um”, “uh”, and “you know”.
 - [x] Provide a supportive reflection after an exercise without claiming to measure proficiency.
-- [ ] Add adaptive follow-up questions that respond to the learner's answer.
+- [x] Add adaptive follow-up questions that respond to the learner's answer.
 
 ### Phase 6 — Session summary and next steps
 - [x] Generate a transcript-based summary of the conversation topic and key points.
@@ -152,6 +152,13 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Show a phoneme-level score estimate, model-heard transcript, and per-word sound differences.
 - [x] Explain microphone permissions, service setup, audio handling, and the transcript-only fallback.
 - [x] Add API integration and Playwright coverage with a mocked local service.
+### Phase 20 — Goal-based and time-boxed sessions
+- [x] Let learners set a goal before the first message and pass that goal into the server-controlled tutor prompt.
+- [x] Offer optional 5-, 10-, 15-, and 20-minute sessions, plus an unlimited option.
+- [x] Show a live countdown, persist goal and duration with saved sessions, and restore the remaining time when a timed session is reopened.
+- [x] Stop accepting new messages when time runs out while preserving the conversation for review.
+- [x] Add API, storage, and Playwright coverage and reconcile stale roadmap checkboxes for already-shipped features.
+
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice includes an optional local OpenPronounce phoneme model when the companion service is running; without it, the app falls back to browser transcript comparison, which is approximate and not an acoustic score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -290,10 +297,10 @@ Next.js Route Handlers (/api/*)
 ## Feature roadmap
 
 ### 1. AI Conversation Practice
-- [ ] Chat with an AI tutor on everyday and professional topics.
-- [ ] Choose a topic before starting a session.
-- [ ] Select a difficulty level: Beginner, Intermediate, or Advanced.
-- [ ] Set a conversation goal and optional session duration.
+- [x] Chat with an AI tutor on everyday and professional topics.
+- [x] Choose a topic before starting a session.
+- [x] Select a difficulty level: Beginner, Intermediate, or Advanced.
+- [x] Set a conversation goal and optional session duration; use a visible countdown that ends sending when time runs out.
 - [x] Ask adaptive follow-up questions and request simpler explanations.
 - [x] Continue a previous conversation from saved local history.
 
@@ -315,9 +322,9 @@ Next.js Route Handlers (/api/*)
 - [x] Let the learner choose immediate feedback or feedback at session review in Learning Preferences.
 
 ### 4. Vocabulary Builder
-- [ ] Highlight useful words and phrases from conversations.
-- [ ] Explain meanings in context with example sentences.
-- [ ] Save words and phrases to a personal vocabulary notebook.
+- [x] Highlight useful words and phrases from feedback, with an action to save them.
+- [x] Explain meanings in context with example sentences.
+- [x] Save words and phrases to a personal vocabulary notebook.
 - [x] Mark vocabulary as learning, familiar, or mastered.
 - [x] Review saved vocabulary with flashcards and short quizzes.
 - [x] Practice collocations, phrasal verbs, and common expressions through a curated library with contextual meanings, examples, and one-click saving to the vocabulary notebook.
@@ -360,7 +367,7 @@ Next.js Route Handlers (/api/*)
 - [x] Choose feedback style: gentle, balanced, or detailed.
 - [x] Configure speech playback speed and select an available English voice where supported, with a safe automatic fallback.
 - [x] Add accessible native controls, keyboard focus styling, larger text, and reduced motion.
-- [ ] Provide clear microphone-permission and browser-compatibility messages.
+- [x] Provide clear microphone-permission and browser-compatibility messages for browser speech input and the local phoneme recorder.
 - [x] Allow users to delete an individual saved session or clear all saved conversations, transcripts, summaries, and vocabulary from Learning Settings with explicit confirmation.
 
 ### 10. Technical and Privacy Features

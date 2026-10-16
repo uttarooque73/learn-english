@@ -28,6 +28,8 @@ export type SessionSummary = {
 export type PracticeSession = {
   id: string;
   scenario: string;
+  goal?: string;
+  durationLimitMinutes?: number | null;
   startedAt: string;
   updatedAt: string;
   durationSeconds: number;
