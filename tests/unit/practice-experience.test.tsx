@@ -46,7 +46,7 @@ describe("PracticeExperience", () => {
     await waitFor(() => expect(screen.getByText("Hello there!")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ scenario: "Everyday life", messages: [{ role: "user", content: "Hello coach" }] }),
+      body: JSON.stringify({ scenario: "At work", messages: [{ role: "user", content: "Hello coach" }] }),
     }));
     expect(screen.getByText("You")).toBeInTheDocument();
     expect(screen.getByText("SpeakUp AI")).toBeInTheDocument();
