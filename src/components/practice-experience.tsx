@@ -40,6 +40,7 @@ function createId() {
 
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [scenario, setScenario] = useState(prompts[0]?.title ?? "Free conversation");
+  const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -178,7 +179,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario, messages: nextMessages }),
+        body: JSON.stringify({ scenario, difficulty, messages: nextMessages }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -309,6 +310,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </div>
       </section>
 
+      <section className="roleplay-settings" aria-label="Role-play settings"><div><p className="eyebrow">SET YOUR PACE</p><strong>Choose your English level</strong><p>The coach adapts its vocabulary and question complexity to your level.</p></div><label htmlFor="practice-difficulty">Difficulty<select id="practice-difficulty" value={difficulty} disabled={isStreaming || listening} onChange={(event) => { setDifficulty(event.target.value as typeof difficulty); resetConversation(); }}><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></label></section>
+
       <section className="chat-panel" aria-label="AI English conversation">
         <div className="chat-header">
           <div className="chat-coach-mark">✦</div>
@@ -334,8 +337,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           {messages.length === 0 ? (
             <div className="chat-welcome">
               <span className="chat-welcome-spark">✦</span><h3>Ready when you are.</h3>
-              <p>Say hello, tell me about your day, or ask to practice a conversation about <strong>{scenario.toLowerCase()}</strong>.</p>
-              <button type="button" className="suggestion-chip" onClick={() => setDraft("Hi! I want to practice my English. Can we start with a simple question?")}>Help me get started <span>↗</span></button>
+              <p>Start a <strong>{scenario.toLowerCase()}</strong> role-play. The coach will stay in character, ask one question at a time, and adapt to your {difficulty.toLowerCase()} level.</p>
+              <button type="button" className="suggestion-chip" onClick={() => setDraft(scenario === "Job interview" ? "Hello, thank you for meeting with me. I am ready to introduce myself." : scenario === "Daily stand-up" ? "Yesterday I worked on my task, and today I plan to continue it." : scenario === "Team meeting" ? "I would like to share an idea with the team." : scenario === "Explain a technical concept" ? "I will explain this concept in simple terms. What would you like to know first?" : scenario === "Restaurant conversation" ? "Hello, could I see the menu, please?" : scenario === "Travel and directions" ? "Excuse me, could you help me find the train station?" : scenario === "Phone call" ? "Hello, this is Umar speaking. May I speak with the right person, please?" : "Hi! I want to practice my English. Can we start with a simple question?")}>Help me get started <span>↗</span></button>
             </div>
           ) : messages.map((message, index) => (
             <div className={`chat-message ${message.role === "user" ? "from-user" : "from-assistant"}`} key={`${index}-${message.role}`}>
