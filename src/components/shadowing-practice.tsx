@@ -93,6 +93,7 @@ export function ShadowingPractice() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const transcriptRef = useRef("");
 
   useEffect(() => {
     const w = window as SpeechWindow;
@@ -118,7 +119,7 @@ export function ShadowingPractice() {
   }
 
   async function startRepeat() {
-    setTranscript(""); setFeedback(""); setAcoustic(null); setPhonemeResult(null); setPhonemeMessage("");
+    setTranscript(""); transcriptRef.current = ""; setFeedback(""); setAcoustic(null); setPhonemeResult(null); setPhonemeMessage("");
     const w = window as SpeechWindow;
     const Constructor = w.SpeechRecognition || w.webkitSpeechRecognition;
     let recognition: Recognition | null = null;
@@ -128,7 +129,9 @@ export function ShadowingPractice() {
       recognition.onresult = (event) => {
         const parts: string[] = [];
         for (let i = 0; i < event.results.length; i++) parts.push(event.results[i]?.[0]?.transcript ?? "");
-        setTranscript(parts.join(" ").trim());
+        const nextTranscript = parts.join(" ").trim();
+        transcriptRef.current = nextTranscript;
+        setTranscript(nextTranscript);
       };
       recognition.onerror = (event) => setFeedback(event.error === "not-allowed" ? "Microphone permission was denied." : "Speech recognition stopped; your recording can still be assessed.");
       recognition.onend = () => {};
