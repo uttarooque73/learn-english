@@ -5,6 +5,9 @@ export type SavedVocabulary = {
   example: string;
   savedAt: string;
   status?: VocabularyStatus;
+  lastReviewedAt?: string;
+  nextReviewAt?: string;
+  reviewCount?: number;
 };
 
 export type VocabularyStatus = "learning" | "familiar" | "mastered";
@@ -62,6 +65,33 @@ export function saveVocabulary(item: Omit<SavedVocabulary, "id" | "savedAt">): S
 export function updateVocabularyStatus(id: string, status: VocabularyStatus) {
   const items = getVocabulary().map((item) => item.id === id ? { ...item, status } : item);
   writeList(VOCABULARY_KEY, items);
+}
+
+export type VocabularyReviewRating = "again" | "good" | "easy";
+
+export function reviewVocabulary(id: string, rating: VocabularyReviewRating, reviewedAt = new Date()): SavedVocabulary | undefined {
+  const intervals: Record<VocabularyReviewRating, number> = { again: 1, good: 3, easy: 7 };
+  const items = getVocabulary();
+  let reviewed: SavedVocabulary | undefined;
+  const updated = items.map((item) => {
+    if (item.id !== id) return item;
+    const nextReview = new Date(reviewedAt);
+    nextReview.setTime(nextReview.getTime() + intervals[rating] * 24 * 60 * 60 * 1000);
+    reviewed = {
+      ...item,
+      lastReviewedAt: reviewedAt.toISOString(),
+      nextReviewAt: nextReview.toISOString(),
+      reviewCount: (item.reviewCount ?? 0) + 1,
+      status: rating === "easy" ? "mastered" : rating === "good" ? "familiar" : "learning",
+    };
+    return reviewed;
+  });
+  if (reviewed) writeList(VOCABULARY_KEY, updated);
+  return reviewed;
+}
+
+export function getDueVocabulary(now = new Date()): SavedVocabulary[] {
+  return getVocabulary().filter((item) => !item.nextReviewAt || !Number.isFinite(Date.parse(item.nextReviewAt)) || Date.parse(item.nextReviewAt) <= now.getTime());
 }
 
 export function removeVocabulary(id: string) {
