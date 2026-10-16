@@ -29,13 +29,9 @@ export function ShadowingPractice() {
   const [feedback, setFeedback] = useState("");
   const [listening, setListening] = useState(false);
   const [rate, setRate] = useState(0.85);
-  const [supported, setSupported] = useState(false);
+  const supported = typeof window !== "undefined" && (() => { const w = window as SpeechWindow; return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition); })();
 
-  useEffect(() => {
-    const w = window as SpeechWindow;
-    setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-    return () => window.speechSynthesis?.cancel();
-  }, []);
+  useEffect(() => () => window.speechSynthesis?.cancel(), []);
 
   const sentence = lines[index] ?? lines[0];
   function speakSentence() {
