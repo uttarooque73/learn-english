@@ -550,3 +550,163 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
   .vocabulary-selection-action, .vocabulary-selection-panel { left: 12px !important; right: 12px; width: auto; }
   .vocabulary-selection-status { right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); }
 }
+
+
+/* Dynamic experience: subtle motion, responsive feedback, and reduced-motion support */
+:root {
+  --motion-fast: 160ms;
+  --motion-medium: 260ms;
+  --motion-slow: 520ms;
+  --surface-shadow: 0 14px 34px rgba(39, 54, 34, .075);
+}
+html { scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(ellipse at 88% 8%, rgba(221, 233, 210, .23), transparent 32rem),
+    radial-gradient(ellipse at 8% 60%, rgba(246, 226, 213, .16), transparent 30rem),
+    var(--paper);
+}
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid rgba(105, 137, 91, .72);
+  outline-offset: 3px;
+}
+.button, .nav-link, .topic-card, .stat-card, .insights-panel, .expression-card,
+.saved-word-card, .settings-card, .next-step-card, .daily-goal-card, .feedback-panel,
+.chat-panel, .vocab-study-card {
+  transition:
+    transform var(--motion-medium) cubic-bezier(.2,.75,.25,1),
+    box-shadow var(--motion-medium) ease,
+    border-color var(--motion-fast) ease,
+    background-color var(--motion-fast) ease;
+}
+.button:active, .nav-link:active, .topic-card:active,
+.expression-card button:active, .vocabulary-selection-action button:active {
+  transform: scale(.98);
+}
+.topic-card:hover, .expression-card:hover, .saved-word-card:hover,
+.settings-card:hover, .insights-panel:hover, .daily-goal-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--surface-shadow);
+}
+.stat-card:hover { transform: translateY(-2px); border-color: #d7dfcf; }
+.nav-link { position: relative; overflow: hidden; }
+.nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 8px auto 8px 0;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: var(--green);
+  transform: scaleY(0);
+  transition: transform var(--motion-medium) ease;
+}
+.nav-link.active::before { transform: scaleY(1); }
+.welcome-banner, .practice-intro, .vocab-hero, .progress-banner {
+  isolation: isolate;
+  box-shadow: 0 18px 48px rgba(42, 60, 37, .09);
+}
+.welcome-banner::after, .practice-intro::after, .vocab-hero::after, .progress-banner::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 340px;
+  height: 340px;
+  right: -100px;
+  bottom: -230px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 50%;
+  box-shadow: 0 0 0 26px rgba(255,255,255,.035), 0 0 0 56px rgba(255,255,255,.025);
+  pointer-events: none;
+  animation: speakup-orbit 18s linear infinite;
+}
+.welcome-banner { animation: speakup-enter 520ms cubic-bezier(.2,.75,.25,1) both; }
+.page-heading { animation: speakup-enter 420ms cubic-bezier(.2,.75,.25,1) both; }
+.page-content > .section-block,
+.page-content > .stats-grid,
+.page-content > .daily-goal-card,
+.page-content > .analytics-grid,
+.page-content > .insights-panel {
+  animation: speakup-enter 520ms both;
+  animation-delay: 70ms;
+}
+.art-letter { transform-origin: center; animation: speakup-float 6s ease-in-out infinite; }
+.art-sun, .coach-spark, .next-step-icon { animation: speakup-glow 4s ease-in-out infinite; }
+.speech-bubble { transition: transform var(--motion-medium) ease, box-shadow var(--motion-medium) ease; }
+.welcome-banner:hover .bubble-one { transform: translateY(-4px) rotate(-6deg); }
+.welcome-banner:hover .bubble-two { transform: translateY(3px) rotate(4deg); }
+.daily-goal-track span, .week-bar-fill, .progress-ring, .stat-line {
+  transition: width 500ms cubic-bezier(.2,.75,.25,1), height 500ms cubic-bezier(.2,.75,.25,1), transform 500ms ease;
+}
+.daily-goal-track { position: relative; }
+.daily-goal-track span { position: relative; overflow: hidden; }
+.daily-goal-track span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 25%, rgba(255,255,255,.35) 50%, transparent 75%);
+  transform: translateX(-100%);
+  animation: speakup-shimmer 3.8s ease-in-out infinite;
+}
+.chat-message, .feedback-issue, .activity-row, .correction-pattern, .saved-word-card {
+  animation: speakup-enter 300ms ease both;
+}
+button:disabled { cursor: not-allowed; }
+input, textarea, select {
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: #91a686;
+  box-shadow: 0 0 0 3px rgba(145, 166, 134, .16);
+}
+.insights-empty { transition: background-color var(--motion-medium) ease, border-color var(--motion-medium) ease; }
+.insights-empty:hover { border-color: #d8dfd0; background-color: #fbfcf8; }
+.vocabulary-selection-action, .vocabulary-selection-panel, .vocabulary-selection-status {
+  animation: speakup-pop 180ms cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes speakup-enter {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes speakup-pop {
+  from { opacity: 0; transform: translateY(5px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes speakup-float {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50% { transform: translateY(-8px) rotate(-5deg); }
+}
+@keyframes speakup-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.12); }
+}
+@keyframes speakup-orbit { to { transform: rotate(360deg); } }
+@keyframes speakup-shimmer {
+  0%, 62% { transform: translateX(-100%); }
+  88%, 100% { transform: translateX(100%); }
+}
+@media (hover: none) {
+  .topic-card:hover, .expression-card:hover, .saved-word-card:hover,
+  .settings-card:hover, .insights-panel:hover, .daily-goal-card:hover,
+  .stat-card:hover { transform: none; box-shadow: none; }
+}
+@media (max-width: 800px) {
+  .page-content > .section-block,
+  .page-content > .stats-grid,
+  .page-content > .daily-goal-card,
+  .page-content > .analytics-grid,
+  .page-content > .insights-panel { animation-delay: 0ms; }
+  .welcome-banner::after, .practice-intro::after, .vocab-hero::after, .progress-banner::after {
+    width: 220px; height: 220px; right: -100px; bottom: -150px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
