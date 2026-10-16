@@ -82,7 +82,7 @@ export function VocabularySelectionTool() {
         }
       }
       saveVocabulary({ phrase: selection.phrase, meaning: finalMeaning, example: finalExample, category });
-      setStatus("Saved “" + selection.phrase + "” with an AI-generated meaning.");
+      setStatus("Saved “" + selection.phrase + "” to your vocabulary with its meaning.");
     }
     setSelection(null);
     setFormOpen(false);
