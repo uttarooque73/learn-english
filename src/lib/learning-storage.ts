@@ -114,6 +114,15 @@ export function getSessions(): PracticeSession[] {
   return readList<PracticeSession>(SESSIONS_KEY).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
+export function removeSession(id: string) {
+  writeList(SESSIONS_KEY, getSessions().filter((session) => session.id !== id));
+}
+
+export function clearSavedPracticeData() {
+  writeList(SESSIONS_KEY, []);
+  writeList(VOCABULARY_KEY, []);
+}
+
 export function upsertSession(session: PracticeSession) {
   const sessions = getSessions();
   const normalizedSession = {

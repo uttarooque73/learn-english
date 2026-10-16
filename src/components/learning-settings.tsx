@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { clearSavedPracticeData, getSessions, getVocabulary } from "@/lib/learning-storage";
 import {
   applyAccessibilityPreferences,
   DEFAULT_LEARNING_PREFERENCES,
@@ -13,11 +14,14 @@ import {
 export function LearningSettings() {
   const [preferences, setPreferences] = useState<LearningPreferences>(DEFAULT_LEARNING_PREFERENCES);
   const [saved, setSaved] = useState(false);
+  const [savedDataCounts, setSavedDataCounts] = useState({ sessions: 0, vocabulary: 0 });
+  const [dataStatus, setDataStatus] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const current = getLearningPreferences();
       setPreferences(current);
+      setSavedDataCounts({ sessions: getSessions().length, vocabulary: getVocabulary().length });
       applyAccessibilityPreferences(current);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -33,6 +37,18 @@ export function LearningSettings() {
       ? [...preferences.preferredTopics, topic]
       : preferences.preferredTopics.filter((item) => item !== topic);
     update("preferredTopics", next);
+  }
+
+  function handleClearSavedData() {
+    if (savedDataCounts.sessions === 0 && savedDataCounts.vocabulary === 0) {
+      setDataStatus("There is no saved practice data to delete.");
+      return;
+    }
+    const confirmed = window.confirm("Permanently delete all saved conversations, transcripts, session summaries, and vocabulary from this browser? Learning preferences will be kept.");
+    if (!confirmed) return;
+    clearSavedPracticeData();
+    setSavedDataCounts({ sessions: 0, vocabulary: 0 });
+    setDataStatus("All saved conversations, summaries, and vocabulary have been deleted from this browser.");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -86,6 +102,14 @@ export function LearningSettings() {
         <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">◉</span><div><h2 id="accessibility-heading">Comfort & accessibility</h2><p>Adjust the interface for easier reading and calmer motion.</p></div></div>
         <label className="settings-toggle"><span><strong>Larger text</strong><small>Increase text size across the app.</small></span><input type="checkbox" checked={preferences.largerText} onChange={(event) => update("largerText", event.target.checked)} /></label>
         <label className="settings-toggle"><span><strong>Reduce animation</strong><small>Minimize transitions and animated effects.</small></span><input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => update("reducedMotion", event.target.checked)} /></label>
+      </section>
+
+      <section className="settings-card data-management-card" aria-labelledby="saved-data-heading">
+        <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">⌫</span><div><h2 id="saved-data-heading">Your saved learning data</h2><p>Review what is stored in this browser and remove it when you want.</p></div></div>
+        <div className="saved-data-counts"><div><strong>{savedDataCounts.sessions}</strong><span>Saved conversations</span></div><div><strong>{savedDataCounts.vocabulary}</strong><span>Vocabulary items</span></div></div>
+        <p className="data-management-note">Deleting saved practice data permanently removes conversation transcripts, session summaries, and vocabulary from this browser. Your learning preferences are kept. This action cannot be undone.</p>
+        <button className="button button-danger-outline" type="button" onClick={handleClearSavedData}>Delete all saved practice data</button>
+        <p className="data-management-status" aria-live="polite" role="status">{dataStatus}</p>
       </section>
 
       <div className="settings-submit-row"><p aria-live="polite" role="status">{saved ? "Your preferences are saved on this device." : "Preferences stay in this browser and are not sent to an account."}</p><button className="button button-dark" type="submit">Save preferences <span aria-hidden="true">✓</span></button></div>

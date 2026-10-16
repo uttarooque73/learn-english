@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { getSessions, saveVocabulary, upsertSession, type PracticeSession, type SessionSummary } from "@/lib/learning-storage";
+import { getSessions, removeSession, saveVocabulary, upsertSession, type PracticeSession, type SessionSummary } from "@/lib/learning-storage";
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
 
@@ -92,6 +92,16 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     };
   }, []);
+
+  function deleteSelectedSession() {
+    const selected = savedSessions.find((session) => session.id === selectedSessionId);
+    if (!selected || isStreaming || listening) return;
+    const confirmed = window.confirm("Delete this saved conversation, transcript, and summary? This cannot be undone.");
+    if (!confirmed) return;
+    removeSession(selected.id);
+    setSavedSessions(getSessions());
+    setSelectedSessionId("");
+  }
 
   function chooseScenario(title: string) {
     if (isStreaming || listening) return;
@@ -573,6 +583,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
               const selected = savedSessions.find((session) => session.id === selectedSessionId);
               if (selected) restoreSession(selected);
             }} disabled={!selectedSessionId || isStreaming || listening}>Restore</button>
+            <button className="chat-reset" type="button" onClick={deleteSelectedSession} disabled={!selectedSessionId || isStreaming || listening}>Delete selected</button>
             <button className="chat-reset" type="button" onClick={resetConversation} disabled={!messages.length && !error && !feedback}>New conversation</button>
           </div>
         </div>

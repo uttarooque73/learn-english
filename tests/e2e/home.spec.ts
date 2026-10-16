@@ -121,7 +121,7 @@ test("learning preferences save and persist personalization and accessibility ch
   await page.getByLabel("Larger text").check();
   await page.getByLabel("Reduce animation").check();
   await page.getByRole("button", { name: /Save preferences/ }).click();
-  await expect(page.getByRole("status")).toContainText("Your preferences are saved on this device.");
+  await expect(page.getByText("Your preferences are saved on this device.", { exact: true })).toBeVisible();
 
   await page.reload();
   await page.waitForTimeout(1000);
@@ -293,4 +293,33 @@ test("vocabulary expression library explains and saves collocations and phrasal 
   await page.getByRole("button", { name: "Word bank" }).click();
   await expect(page.getByRole("heading", { name: "make a decision" })).toBeVisible();
   await expect(page.getByText("We need to make a decision before Friday.")).toBeVisible();
+});
+
+
+test("settings can permanently clear saved sessions and vocabulary after confirmation", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("speakup:sessions:v1", JSON.stringify([{ id: "saved-session", scenario: "At work", startedAt: "2026-10-16T10:00:00.000Z", updatedAt: "2026-10-16T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["I finished the task."] }]));
+    localStorage.setItem("speakup:vocabulary:v1", JSON.stringify([{ id: "saved-word", phrase: "meet a deadline", meaning: "Finish on time.", example: "We met the deadline.", savedAt: "2026-10-16T10:00:00.000Z" }]));
+  });
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Your saved learning data" })).toBeVisible();
+  await expect(page.getByText("Saved conversations").locator("..").getByText("1")).toBeVisible();
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Delete all saved practice data" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "All saved conversations, summaries, and vocabulary have been deleted" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("speakup:sessions:v1") || "[]").length)).toBe(0);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("speakup:vocabulary:v1") || "[]").length)).toBe(0);
+});
+
+test("a learner can delete one saved conversation from Practice Room history", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("speakup:sessions:v1", JSON.stringify([
+    { id: "session-to-delete", scenario: "At work", startedAt: "2026-10-16T10:00:00.000Z", updatedAt: "2026-10-16T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["I finished the task."], messages: [{ role: "user", content: "I finished the task." }, { role: "assistant", content: "Great work." }] },
+    { id: "session-to-keep", scenario: "Everyday life", startedAt: "2026-10-15T10:00:00.000Z", updatedAt: "2026-10-15T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["I went shopping."] }
+  ])));
+  await page.goto("/practice");
+  await page.getByLabel("Saved conversations").selectOption("session-to-delete");
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Delete selected" }).click();
+  await expect(page.getByLabel("Saved conversations")).toContainText("Recent conversations (1)");
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("speakup:sessions:v1") || "[]").map((session: { id: string }) => session.id))).toEqual(["session-to-keep"]);
 });
