@@ -32,6 +32,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Organize saved words and phrases in a searchable personal notebook.
 - [x] Track each item as Learning, Familiar, or Mastered.
 - [x] Review saved phrases with reveal-answer flashcards.
+- [x] Schedule vocabulary review with spaced repetition and a due queue.
 - [x] Practice meanings with a multiple-choice quick quiz when at least two items are saved.
 - [x] Update vocabulary status and delete individual items; persist changes locally.
 - [x] Preserve compatibility with existing saved vocabulary items.
@@ -66,6 +67,14 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Add keyboard-friendly native form controls, visible focus treatment, responsive layouts, and accessible status messages.
 - [x] Add integration and browser tests for preference-driven tutor behavior and persistence.
 - [x] Track daily practice time against the selected goal on the overview and progress pages.
+
+### Phase 8 — Spaced-repetition vocabulary review
+- [x] Add a dedicated due-review queue to the vocabulary notebook.
+- [x] Schedule the next review from learner recall: Again (1 day), Got it (3 days), or Easy (7 days).
+- [x] Track review count, last reviewed time, next review date, and vocabulary status.
+- [x] Keep existing saved vocabulary compatible; items without review metadata are due immediately.
+- [x] Add unit tests for interval scheduling, due-date selection, and unknown vocabulary IDs.
+- [x] Add responsive review controls and a visible due-count indicator.
 
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
