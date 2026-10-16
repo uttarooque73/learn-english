@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getVocabulary, removeVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
+import { getDueVocabulary, getVocabulary, removeVocabulary, reviewVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
 
 const statusLabels: Record<VocabularyStatus, string> = { learning: "Learning", familiar: "Familiar", mastered: "Mastered" };
 
@@ -10,12 +10,13 @@ export function VocabularyNotebook() {
   const [ready, setReady] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | VocabularyStatus>("all");
-  const [mode, setMode] = useState<"list" | "flashcards" | "quiz">("list");
+  const [mode, setMode] = useState<"list" | "flashcards" | "quiz" | "review">("list");
   const [cardIndex, setCardIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [quizChoice, setQuizChoice] = useState("");
   const [quizAnswered, setQuizAnswered] = useState(false);
   const [quizIndex, setQuizIndex] = useState(0);
+  const [reviewIndex, setReviewIndex] = useState(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => { setWords(getVocabulary()); setReady(true); }, 0);
@@ -38,6 +39,8 @@ export function VocabularyNotebook() {
     setCardIndex((index) => Math.max(0, Math.min(index, filtered.length - 2)));
   }
 
+  const dueWords = useMemo(() => getDueVocabulary().filter((word) => words.some((saved) => saved.id === word.id)), [words]);
+  const currentDue = dueWords.length ? dueWords[reviewIndex % dueWords.length] : undefined;
   const current = filtered.length ? filtered[cardIndex % filtered.length] : undefined;
   const quizWord = filtered.length ? filtered[quizIndex % filtered.length] : undefined;
   const quizOptions = useMemo(() => {
@@ -61,9 +64,14 @@ export function VocabularyNotebook() {
         <button type="button" className={mode === "list" ? "active" : ""} onClick={() => setMode("list")}>Word bank</button>
         <button type="button" className={mode === "flashcards" ? "active" : ""} onClick={() => { setMode("flashcards"); setRevealed(false); }}>Flashcards</button>
         <button type="button" className={mode === "quiz" ? "active" : ""} onClick={() => { setMode("quiz"); setQuizChoice(""); setQuizAnswered(false); }}>Quick quiz</button>
+        <button type="button" className={mode === "review" ? "active" : ""} onClick={() => { setMode("review"); setReviewIndex(0); setRevealed(false); }}>Review due <span className="review-due-count">{dueWords.length}</span></button>
       </div>
 
-      {mode === "flashcards" ? (
+      {mode === "review" ? (
+        <section className="vocab-study-card spaced-review-card" aria-label="Spaced repetition review">
+          {currentDue ? <><p className="eyebrow">DUE REVIEW · {reviewIndex + 1} OF {dueWords.length}</p><h3>{currentDue.phrase}</h3>{revealed ? <><p>{currentDue.meaning}</p><blockquote>{currentDue.example}</blockquote><p className="review-history">Reviewed {currentDue.reviewCount ?? 0} time(s). Your answer schedules the next review.</p><div className="vocab-study-actions"><button type="button" className="button button-light" onClick={() => { reviewVocabulary(currentDue.id, "again"); refresh(); setReviewIndex(0); setRevealed(false); }}>Again · 1 day</button><button type="button" className="button button-dark" onClick={() => { reviewVocabulary(currentDue.id, "good"); refresh(); setReviewIndex(0); setRevealed(false); }}>Got it · 3 days</button><button type="button" className="button button-primary" onClick={() => { reviewVocabulary(currentDue.id, "easy"); refresh(); setReviewIndex(0); setRevealed(false); }}>Easy · 7 days</button></div></> : <><p className="vocab-study-hint">Try to recall the meaning before revealing it. Your answer schedules the next review.</p><div className="vocab-study-actions"><button type="button" className="button button-dark" onClick={() => setRevealed(true)}>Reveal meaning</button></div></>}</> : <div className="notebook-empty"><h3>You're all caught up</h3><p>No saved words are due right now. New words will appear here automatically.</p></div>}
+        </section>
+      ) : mode === "flashcards" ? (
         <section className="vocab-study-card" aria-label="Vocabulary flashcard">
           {current ? <><p className="eyebrow">FLASHCARD {cardIndex + 1} OF {filtered.length}</p><h3>{current.phrase}</h3>{revealed ? <><p>{current.meaning}</p><blockquote>{current.example}</blockquote><span className={`vocab-status status-${current.status ?? "learning"}`}>{statusLabels[current.status ?? "learning"]}</span></> : <p className="vocab-study-hint">Try to remember the meaning, then reveal the answer.</p>}<div className="vocab-study-actions">{!revealed ? <button type="button" className="button button-dark" onClick={() => setRevealed(true)}>Reveal meaning</button> : <><button type="button" className="button button-light" onClick={() => changeStatus(current, "learning")}>Still learning</button><button type="button" className="button button-dark" onClick={() => changeStatus(current, "mastered")}>I know this</button></>}<button type="button" className="notebook-secondary" onClick={() => { setCardIndex((index) => (index + 1) % filtered.length); setRevealed(false); }}>Next card →</button></div></> : <div className="notebook-empty"><h3>No cards to review</h3><p>Save a useful phrase from Practice Room to start studying.</p></div>}
         </section>
