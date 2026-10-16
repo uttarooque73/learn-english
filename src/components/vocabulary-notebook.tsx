@@ -68,6 +68,11 @@ export function VocabularyNotebook() {
     }
     setAddError("");
     setAddSuccess("");
+    const existing = getVocabulary().find((item) => item.phrase.trim().toLocaleLowerCase() === phrase.toLocaleLowerCase());
+    if (existing) {
+      setAddError("“" + phrase + "” is already in your word bank.");
+      return;
+    }
     setSavingNewWord(true);
     try {
       let meaning = newMeaning.trim();
@@ -87,9 +92,7 @@ export function VocabularyNotebook() {
       setNewPhrase("");
       setNewMeaning("");
       setNewExample("");
-      setAddSuccess(saved.phrase.toLocaleLowerCase() === phrase.toLocaleLowerCase()
-        ? "Saved “" + phrase + "” with its AI definition."
-        : "“" + phrase + "” is already in your word bank.");
+      setAddSuccess("Saved “" + saved.phrase + "” with its definition.");
     } catch (error) {
       setAddError(error instanceof Error ? error.message : "Could not add this vocabulary item.");
     } finally {
