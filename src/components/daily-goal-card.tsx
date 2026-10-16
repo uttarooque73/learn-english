@@ -10,14 +10,17 @@ export function DailyGoalCard() {
   const [todaySeconds, setTodaySeconds] = useState(0);
 
   useEffect(() => {
-    const today = new Date().toDateString();
-    const sessions = getSessions();
-    setTodaySeconds(sessions.reduce((total, session) => {
-      return new Date(session.startedAt).toDateString() === today
-        ? total + Math.max(0, session.durationSeconds)
-        : total;
-    }, 0));
-    setGoalMinutes(getLearningPreferences().dailyGoalMinutes);
+    const timer = window.setTimeout(() => {
+      const today = new Date().toDateString();
+      const sessions = getSessions();
+      setTodaySeconds(sessions.reduce((total, session) => {
+        return new Date(session.startedAt).toDateString() === today
+          ? total + Math.max(0, session.durationSeconds)
+          : total;
+      }, 0));
+      setGoalMinutes(getLearningPreferences().dailyGoalMinutes);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const goalSeconds = goalMinutes * 60;
