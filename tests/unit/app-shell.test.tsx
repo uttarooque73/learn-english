@@ -19,6 +19,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Practice room/i })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /Shadowing & pronunciation/i })).toHaveAttribute("href", "/shadowing");
+    expect(screen.getByRole("link", { name: /Daily Vocabulary/i })).toHaveAttribute("href", "/daily-vocabulary");
     expect(screen.getByText("Practice content")).toBeInTheDocument();
   });
 });
