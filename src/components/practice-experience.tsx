@@ -162,7 +162,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setIsStreaming(true);
 
     if (!sessionIdRef.current) {
-      sessionIdRef.current = crypto.randomUUID();
+      sessionIdRef.current = createId();
       sessionStartedAtRef.current = new Date().toISOString();
     }
     const controller = new AbortController();
@@ -197,7 +197,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       else {
         const startedAt = sessionStartedAtRef.current ?? new Date().toISOString();
         upsertSession({
-          id: sessionIdRef.current ?? crypto.randomUUID(),
+          id: sessionIdRef.current ?? createId(),
           scenario,
           startedAt,
           updatedAt: new Date().toISOString(),
