@@ -4,7 +4,10 @@ export type SavedVocabulary = {
   meaning: string;
   example: string;
   savedAt: string;
+  status?: VocabularyStatus;
 };
+
+export type VocabularyStatus = "learning" | "familiar" | "mastered";
 
 export type PracticeMessage = { role: "user" | "assistant"; content: string };
 
@@ -51,9 +54,14 @@ export function saveVocabulary(item: Omit<SavedVocabulary, "id" | "savedAt">): S
   const normalized = item.phrase.trim().toLocaleLowerCase();
   const existing = items.find((entry) => entry.phrase.trim().toLocaleLowerCase() === normalized);
   if (existing) return existing;
-  const saved: SavedVocabulary = { ...item, id: createId(), savedAt: new Date().toISOString() };
+  const saved: SavedVocabulary = { ...item, status: "learning", id: createId(), savedAt: new Date().toISOString() };
   writeList(VOCABULARY_KEY, [saved, ...items]);
   return saved;
+}
+
+export function updateVocabularyStatus(id: string, status: VocabularyStatus) {
+  const items = getVocabulary().map((item) => item.id === id ? { ...item, status } : item);
+  writeList(VOCABULARY_KEY, items);
 }
 
 export function removeVocabulary(id: string) {
