@@ -743,3 +743,12 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .listen-page-control{display:inline-flex;align-items:center;justify-content:center;gap:8px;margin:0 0 18px;padding:10px 14px;border:1px solid #dfe4d9;border-radius:10px;background:#fff;color:var(--green-dark);font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 3px 12px rgba(37,39,31,.035)}
 .listen-page-control:hover{background:#f5f8f1;border-color:#b9c8ae}
 .listen-page-control:focus-visible,.notebook-secondary:focus-visible{outline:3px solid #91a987;outline-offset:2px}
+
+/* Vocabulary mini-story for contextual learning */
+.vocabulary-story-section{margin-top:27px;padding:24px;border:1px solid #dfe7d8;border-radius:15px;background:linear-gradient(125deg,#f4f7ef,#fff 78%);box-shadow:0 4px 18px rgba(37,39,31,.03)}
+.vocabulary-story-copy{max-width:850px;margin:0 auto}
+.vocabulary-story-copy h3{margin:7px 0 13px;font-family:Manrope,sans-serif;font-size:21px;letter-spacing:-.45px}
+.vocabulary-story-paragraph{margin:0 0 14px;color:var(--ink);font-size:14px;line-height:1.95;white-space:normal}
+.vocabulary-story-takeaway{margin:15px 0 0;padding:11px 13px;border-left:3px solid #9caf8c;border-radius:0 8px 8px 0;background:#fff;color:var(--muted);font-size:12px;line-height:1.7}
+.vocabulary-story-takeaway strong{color:var(--green-dark)}
+@media(max-width:600px){.vocabulary-story-section{padding:17px}.vocabulary-story-copy h3{font-size:19px}.vocabulary-story-paragraph{font-size:13px;line-height:1.85}}
