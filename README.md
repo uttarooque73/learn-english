@@ -23,7 +23,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [ ] Persist full conversation transcripts and restore them after refresh (future phase).
 - [ ] Add true phoneme-level pronunciation assessment with a dedicated speech model (future phase).
 
-**Current limitations:** Voice input depends on browser support and microphone permission. Pronunciation practice currently compares the browser's speech transcript with the target sentence; this is an approximate word-match indicator, not an acoustic pronunciation score. Vocabulary and practice summaries use browser local storage and are not synced across devices. Full conversation transcripts are not restored after refresh.
+**Current limitations:** Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Pronunciation practice currently compares the browser's speech transcript with the target sentence; this is an approximate word-match indicator, not an acoustic pronunciation score. Vocabulary and practice summaries use browser local storage and are not synced across devices. Full conversation transcripts are not restored after refresh.
 
 ## Getting started
 
