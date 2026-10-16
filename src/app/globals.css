@@ -639,3 +639,59 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .flashcard-export-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .feature-feedback a{font-weight:700;text-decoration:underline}
 @media(max-width:620px){.learning-feature-panel{padding:17px}.learning-feature-heading h2{font-size:19px}.shadowing-sentence{font-size:17px}.shadowing-custom-line{grid-template-columns:1fr}.shadowing-custom-line button{width:100%}.sentence-alternatives li,.micro-lesson-item{align-items:stretch;flex-direction:column}.sentence-alternatives li .button,.micro-lesson-item .button{width:100%}.shadowing-controls{align-items:stretch}.shadowing-controls .button,.shadowing-controls .text-link{width:100%;justify-content:center}.shadowing-controls label{width:100%;justify-content:space-between}}
+
+
+/* Practice page hierarchy: keep the conversation primary and tuck optional tools away. */
+.practice-intro{min-height:218px;padding:27px 32px}
+.practice-intro h2{margin:14px 0 9px;font-size:30px}
+.practice-intro p{max-width:410px}
+.practice-intro .practice-illustration{transform:scale(.88);transform-origin:center right}
+.scenario-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.scenario-card{padding:15px}
+.scenario-title{margin:12px 0 5px;font-size:13px}
+.scenario-description{min-height:31px;font-size:10px}
+.scenario-bottom{margin-top:12px;padding-top:10px}
+.roleplay-settings{margin-top:19px}
+.chat-panel{margin-top:17px;box-shadow:0 5px 22px rgba(37,39,31,.035)}
+.chat-header{flex-wrap:wrap}
+.session-history-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;width:100%;padding-left:47px}
+.session-history-controls select{flex:1;min-width:180px;min-height:34px;padding:0 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:inherit;font-size:10px}
+.practice-tools-section{margin-top:34px}
+.practice-tools-heading{margin-bottom:13px}
+.practice-tools-list{display:grid;gap:10px}
+.practice-tool-accordion{overflow:hidden;border:1px solid var(--line);border-radius:13px;background:#fff}
+.practice-tool-accordion[open]{box-shadow:0 5px 22px rgba(37,39,31,.035)}
+.practice-tool-accordion>summary{display:flex;align-items:center;gap:13px;min-height:78px;padding:14px 17px;cursor:pointer;list-style:none}
+.practice-tool-accordion>summary::-webkit-details-marker{display:none}
+.practice-tool-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;font-size:18px}
+.practice-tool-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
+.practice-tool-copy strong{font-size:12px;font-weight:700}
+.practice-tool-copy small{color:var(--muted);font-size:10px;line-height:1.5}
+.practice-tool-chevron{display:grid;place-items:center;width:27px;height:27px;border:1px solid var(--line);border-radius:8px;color:var(--green);font-size:18px;transition:transform .15s}
+.practice-tool-accordion[open] .practice-tool-chevron{transform:rotate(45deg)}
+.practice-tool-content{padding:0 16px 16px;border-top:1px solid #f0f0ea}
+.practice-tool-content>.learning-feature-panel{margin:15px 0 0;padding:20px;box-shadow:none}
+.practice-tool-content>.learning-feature-panel .learning-feature-heading h2{font-size:18px}
+.practice-tool-content>.learning-feature-panel .learning-feature-heading p:not(.eyebrow){font-size:11px}
+.practice-tool-content>.learning-feature-panel .shadowing-sentence{font-size:17px}
+.practice-tool-accordion summary:focus-visible{outline:3px solid #91a987;outline-offset:-3px}
+@media(max-width:1000px){.scenario-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.session-history-controls{padding-left:0}}
+@media(max-width:600px){
+  .practice-intro{min-height:205px;padding:23px 20px}
+  .practice-intro h2{font-size:27px}
+  .practice-intro>div:first-child{max-width:78%}
+  .practice-intro .practice-illustration{right:-34px;opacity:.35;transform:scale(.72);transform-origin:center right}
+  .scenario-grid{grid-template-columns:minmax(0,1fr);gap:9px}
+  .scenario-card{padding:13px}
+  .scenario-top{align-items:center}
+  .scenario-title{margin:10px 0 4px}
+  .scenario-description{min-height:0}
+  .scenario-bottom{margin-top:10px}
+  .practice-tool-accordion>summary{min-height:72px;padding:12px}
+  .practice-tool-content{padding:0 10px 10px}
+  .practice-tool-content>.learning-feature-panel{padding:15px}
+  .practice-tool-content .learning-feature-heading{flex-wrap:wrap}
+  .practice-tool-content .learning-feature-heading .button{width:100%}
+  .session-history-controls{align-items:stretch}
+  .session-history-controls select{flex-basis:100%}
+}
