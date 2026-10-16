@@ -24,6 +24,52 @@ describe("POST /api/chat", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("accepts a follow-up request after a completed learner-assistant turn and asks for one contextual question", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response([
+      JSON.stringify({ message: { content: "What changed after you introduced that process?" }, done: false }),
+      JSON.stringify({ done: true }),
+      "",
+    ].join("\n"), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "follow-up",
+        scenario: "At work",
+        difficulty: "Intermediate",
+        messages: [
+          { role: "user", content: "I introduced a new deployment process." },
+          { role: "assistant", content: "That sounds useful. Tell me about it." },
+          { role: "user", content: "It reduced our release time." },
+          { role: "assistant", content: "That must have helped the team." },
+        ],
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("What changed after you introduced that process?");
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(options.body)) as { messages: { role: string; content: string }[] };
+    expect(sent.messages[0]?.content).toContain("Ask exactly one open-ended question");
+    expect(sent.messages[0]?.content).toContain("Intermediate");
+    expect(sent.messages[sent.messages.length - 1]).toMatchObject({ role: "user", content: expect.stringContaining("adaptive follow-up question") });
+    expect(sent.messages.slice(1, -1)).toHaveLength(4);
+  });
+
+  it("rejects a follow-up request without a completed assistant turn", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: "follow-up", messages: [{ role: "user", content: "I had a meeting." }] }),
+    }));
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("streams text from Ollama and forwards conversation context", async () => {
     const ollamaBody = [
       JSON.stringify({ message: { content: "Hello" }, done: false }),

@@ -54,6 +54,30 @@ describe("PracticeExperience", () => {
     expect(screen.getByText("SpeakUp AI")).toBeInTheDocument();
   });
 
+  it("requests an adaptive follow-up and saves it in the existing conversation", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("Tell me about your latest project.", { status: 200, headers: { "Content-Type": "text/plain" } }))
+      .mockResolvedValueOnce(new Response("What was the biggest challenge you solved?", { status: 200, headers: { "Content-Type": "text/plain" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<PracticeExperience prompts={prompts} />);
+    fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "I built an inventory service." } });
+    fireEvent.click(within(screen.getByLabelText("Your message").closest("form")!).getByRole("button", { name: /Send message/ }));
+    await waitFor(() => expect(screen.getByText("Tell me about your latest project.")).toBeInTheDocument());
+
+    const followUpButton = screen.getByRole("button", { name: "Ask a follow-up question" });
+    await waitFor(() => expect(followUpButton).toBeEnabled());
+    fireEvent.click(followUpButton);
+    await waitFor(() => expect(screen.getByText("What was the biggest challenge you solved?")).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/chat", expect.objectContaining({
+      method: "POST",
+      body: expect.stringContaining('"mode":"follow-up"'),
+    }));
+    await waitFor(() => expect(getSessions().some((session) =>
+      session.messages?.some((message) => message.content === "What was the biggest challenge you solved?")
+    )).toBe(true));
+  });
+
   it("shows a helpful message when the API reports an error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       Response.json({ error: "Cannot connect to Ollama." }, { status: 503 }),

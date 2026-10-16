@@ -92,6 +92,13 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Surface repeated sentence corrections from saved session summaries without presenting them as a proficiency score.
 - [x] Add deterministic unit tests and browser coverage for analytics and streak calculations.
 
+### Phase 11 — Adaptive follow-up questions
+- [x] Let learners explicitly request one follow-up question grounded in their latest answer and conversation context.
+- [x] Adapt follow-up complexity to the selected English level and ask for concrete details when answers are vague.
+- [x] Keep the follow-up instruction server-controlled and validate requests before contacting Ollama.
+- [x] Save follow-up responses into the existing conversation transcript and preserve session history.
+- [x] Add API integration, component, and Playwright coverage for the new follow-up flow.
+
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -274,7 +281,7 @@ Next.js Route Handlers (/api/*)
 - [x] Quick-response challenge with a prompt to answer without overthinking.
 - [x] Daily speaking prompt.
 - [x] One-minute talk on a selected topic with a timer.
-- [ ] Follow-up questions to encourage longer answers.
+- [x] Adaptive follow-up questions to encourage longer answers.
 - [x] Basic text-based filler-word awareness; spoken filler detection remains future work.
 - [x] Encouraging, non-judgmental reflection focused on improvement.
 

@@ -57,7 +57,12 @@ test("fluency page offers timed speaking and filler-word awareness exercises", a
 
 test("practice room generates a structured session summary", async ({ page }) => {
   await page.route("**/api/chat", async (route) => {
-    await route.fulfill({ status: 200, contentType: "text/plain", body: "Tell me about your experience." });
+    const payload = route.request().postDataJSON() as { mode?: string };
+    await route.fulfill({
+      status: 200,
+      contentType: "text/plain",
+      body: payload.mode === "follow-up" ? "What specific result did you achieve?" : "Tell me about your experience.",
+    });
   });
   await page.route("**/api/session-summary", async (route) => {
     await route.fulfill({
@@ -84,6 +89,8 @@ test("practice room generates a structured session summary", async ({ page }) =>
   await page.locator("#chat-message").fill("I work here since 2020.");
   await page.getByRole("button", { name: /Send message/ }).click();
   await expect(page.getByText("Tell me about your experience.")).toBeVisible({ timeout: 10_000 });
+  await page.getByRole("button", { name: "Ask a follow-up question" }).click();
+  await expect(page.getByText("What specific result did you achieve?")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: /Summarize session/ })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole("button", { name: /Summarize session/ }).click();
   await expect(page.getByRole("heading", { name: "Your learning summary" })).toBeVisible();
