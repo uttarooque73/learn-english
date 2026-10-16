@@ -1,3 +1,5 @@
+import { deletePersistedValue, readPersistedValue, writePersistedValue } from "@/lib/client-persistence";
+
 export type SavedVocabulary = {
   id: string;
   phrase: string;
@@ -51,7 +53,7 @@ const SESSIONS_KEY = "speakup:sessions:v1";
 function readList<T>(key: string): T[] {
   if (typeof window === "undefined") return [];
   try {
-    const value: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    const value: unknown = JSON.parse(readPersistedValue(key) ?? "[]");
     return Array.isArray(value) ? value as T[] : [];
   } catch {
     return [];
@@ -59,7 +61,7 @@ function readList<T>(key: string): T[] {
 }
 
 function writeList<T>(key: string, value: T[]) {
-  if (typeof window !== "undefined") window.localStorage.setItem(key, JSON.stringify(value));
+  writePersistedValue(key, JSON.stringify(value));
 }
 
 export function getVocabulary(): SavedVocabulary[] {
@@ -121,8 +123,8 @@ export function removeSession(id: string) {
 }
 
 export function clearSavedPracticeData() {
-  writeList(SESSIONS_KEY, []);
-  writeList(VOCABULARY_KEY, []);
+  deletePersistedValue(SESSIONS_KEY);
+  deletePersistedValue(VOCABULARY_KEY);
 }
 
 export function upsertSession(session: PracticeSession) {
