@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 function startSpeaking(text: string, onStop: () => void) {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
@@ -23,11 +23,7 @@ function startSpeaking(text: string, onStop: () => void) {
 
 export function ListenButton({ text, label = "Listen", className = "notebook-secondary" }: { text: string; label?: string; className?: string }) {
   const [speaking, setSpeaking] = useState(false);
-  const [supported, setSupported] = useState(false);
 
-  useEffect(() => { setSupported("speechSynthesis" in window); }, []);
-
-  if (!supported) return null;
   return <button type="button" className={className} onClick={() => {
     if (speaking) {
       window.speechSynthesis.cancel();
@@ -42,11 +38,7 @@ export function ListenButton({ text, label = "Listen", className = "notebook-sec
 
 export function ListenPageControl() {
   const [speaking, setSpeaking] = useState(false);
-  const [supported, setSupported] = useState(false);
 
-  useEffect(() => { setSupported("speechSynthesis" in window); }, []);
-
-  if (!supported) return null;
   return <button type="button" className="listen-page-control" onClick={() => {
     if (speaking) {
       window.speechSynthesis.cancel();
