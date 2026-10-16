@@ -587,3 +587,55 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .dynamic-options-manager .remove-word{min-height:34px}
 @media(max-width:850px){.dynamic-option-form{grid-template-columns:1fr 1fr}.dynamic-option-form button{width:100%}}
 @media(max-width:520px){.dynamic-option-form{grid-template-columns:1fr}.dynamic-option-row{align-items:flex-start}.dynamic-option-row .remove-word{flex:0 0 auto}}
+
+/* Pronunciation, sentence-building, mistake review, and flashcard export */
+.learning-feature-panel{margin:24px 0;padding:25px;border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 5px 24px rgba(37,39,31,.035)}
+.learning-feature-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}
+.learning-feature-heading h2{margin:7px 0;font-family:Manrope,sans-serif;font-size:22px;letter-spacing:-.6px}
+.learning-feature-heading p:not(.eyebrow){max-width:700px;margin:0;color:var(--muted);font-size:12px;line-height:1.7}
+.feature-symbol{display:grid;place-items:center;flex:0 0 44px;height:44px;border-radius:13px;background:var(--mint);color:var(--green-dark);font-size:22px}
+.feature-field{display:grid;gap:7px;margin:12px 0;color:#5f6257;font-size:11px;font-weight:700}
+.feature-field input,.feature-field textarea,.feature-field select,.shadowing-controls select{width:100%;min-width:0;padding:11px 12px;border:1px solid #e2e4dc;border-radius:9px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
+.feature-field textarea{resize:vertical;line-height:1.6}
+.shadowing-sentence{margin:14px 0;padding:20px;border-radius:12px;background:#f5f6f0;color:#343c2f;font-family:Manrope,sans-serif;font-size:20px;line-height:1.6}
+.shadowing-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.shadowing-controls label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px}
+.shadowing-controls select{width:auto;min-width:95px;padding:9px}
+.button-outline{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 13px;border:1px solid #dfe4d9;border-radius:9px;background:#fff;color:var(--green-dark);font-size:11px;font-weight:700;cursor:pointer}
+.button-primary{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 14px;border:1px solid var(--green);border-radius:9px;background:var(--green);color:#fff;font-size:11px;font-weight:700;cursor:pointer}
+.button-outline:disabled,.button-primary:disabled{opacity:.5;cursor:not-allowed}
+.shadowing-result{margin-top:16px;padding:15px;border-radius:11px;background:#f7f8f4}
+.shadowing-result p{margin:8px 0;color:#565a50;line-height:1.6}
+.shadowing-result small,.feature-note{color:var(--muted);font-size:10px;line-height:1.7}
+.word-feedback{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.word-feedback span{padding:5px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.word-match{background:#dff0e2;color:#2c6636}.word-miss{background:#f8e6d9;color:#8a4b2b}
+.shadowing-custom-line{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.shadowing-custom-line .feature-field{margin:0}
+.sentence-builder-form{display:grid;gap:12px}
+.sentence-alternatives{display:grid;gap:10px;padding:0;list-style:none;counter-reset:suggestions}
+.sentence-alternatives li{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid var(--line);border-radius:10px}
+.sentence-alternatives p{margin:0;line-height:1.6}
+.feature-feedback{color:var(--green-dark);font-size:12px;line-height:1.6}
+.feature-empty{padding:17px;border-radius:10px;background:#f7f8f4}
+.feature-empty p{margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.7}
+.micro-lesson-list{display:grid;gap:10px}
+.micro-lesson-item{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px;border:1px solid var(--line);border-radius:11px}
+.micro-lesson-item strong{font-size:13px;line-height:1.6}.micro-lesson-item p{margin:5px 0;color:#676b60;font-size:12px;line-height:1.6}.micro-lesson-item small{color:var(--muted);font-size:10px}
+.micro-quiz{padding:18px;border-radius:12px;background:#f7f8f4}
+.micro-quiz-top,.micro-quiz-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.micro-quiz h3{font-size:16px;line-height:1.6}
+.micro-quiz-options{display:grid;gap:8px}
+.micro-quiz-option{padding:12px;text-align:left;border:1px solid #e1e4db;border-radius:9px;background:white;cursor:pointer}
+.micro-quiz-option.selected{border-color:var(--green);background:#edf3e9}
+.quiz-correct,.quiz-review{padding:12px;border-radius:8px;background:#e5f1e5;font-size:12px;line-height:1.7}.quiz-review{background:#f8eadf}
+.micro-quiz-actions{justify-content:flex-end;margin-top:15px}
+.flashcard-candidate-list{display:grid;gap:8px;margin:15px 0}
+.flashcard-candidate{display:flex;align-items:flex-start;gap:11px;padding:13px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.flashcard-candidate input{margin-top:4px;accent-color:var(--green)}
+.flashcard-candidate>span{display:grid;gap:5px;min-width:0}
+.flashcard-candidate strong{font-size:13px}.flashcard-candidate small{color:var(--green);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.flashcard-candidate span span,.flashcard-candidate em{color:#6e7167;font-size:11px;line-height:1.6}.flashcard-candidate em{font-style:italic}
+.flashcard-export-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.feature-feedback a{font-weight:700;text-decoration:underline}
+@media(max-width:620px){.learning-feature-panel{padding:17px}.learning-feature-heading h2{font-size:19px}.shadowing-sentence{font-size:17px}.shadowing-custom-line{grid-template-columns:1fr}.shadowing-custom-line button{width:100%}.sentence-alternatives li,.micro-lesson-item{align-items:stretch;flex-direction:column}.sentence-alternatives li .button,.micro-lesson-item .button{width:100%}.shadowing-controls{align-items:stretch}.shadowing-controls .button,.shadowing-controls .text-link{width:100%;justify-content:center}.shadowing-controls label{width:100%;justify-content:space-between}}
