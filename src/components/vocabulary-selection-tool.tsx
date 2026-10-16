@@ -17,6 +17,7 @@ export function VocabularySelectionTool() {
   const [status, setStatus] = useState("");
 
   useEffect(() => {
+    document.documentElement.dataset.vocabularySelectionReady = "true";
     function captureSelection(event: Event) {
       const target = event.target;
       if (target instanceof Element && target.closest("[data-vocabulary-selection-tool], input, textarea, select, button, [contenteditable='true']")) return;
@@ -48,6 +49,7 @@ export function VocabularySelectionTool() {
     document.addEventListener("selectionchange", captureSelection);
     window.addEventListener("keydown", dismissOnEscape);
     return () => {
+      delete document.documentElement.dataset.vocabularySelectionReady;
       window.removeEventListener("mouseup", captureSelection);
       window.removeEventListener("keyup", captureSelection);
       document.removeEventListener("selectionchange", captureSelection);
