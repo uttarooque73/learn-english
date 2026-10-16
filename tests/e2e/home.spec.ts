@@ -25,7 +25,7 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
   await expect(difficulty).toHaveValue("Beginner");
   await difficulty.selectOption("Advanced");
   await expect(difficulty).toHaveValue("Advanced");
-  await expect(page.getByText(/coach adapts its vocabulary and question complexity/i)).toBeVisible();
+  await expect(page.getByText(/coach adapts its vocabulary and questions to your level/i)).toBeVisible();
 
   await expect(page.getByRole("button", { name: /Daily stand-up/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Explain a technical concept/ })).toBeVisible();

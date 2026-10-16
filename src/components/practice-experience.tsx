@@ -703,7 +703,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         <div className="chat-header">
           <div className="chat-coach-mark">✦</div>
           <div className="chat-header-copy"><strong>Your AI conversation partner</strong><span>Topic: {scenario}</span><span>Goal: {sessionGoal}</span></div>
-          <div className="session-time-status" role="status">{sessionExpired ? "Session time is up" : remainingSeconds !== null ? "Time left " + Math.floor(remainingSeconds / 60).toString().padStart(2, "0") + ":" + String(remainingSeconds % 60).padStart(2, "0") : sessionDurationMinutes !== null ? sessionDurationMinutes + "-minute session" : "No time limit"}</div>
+          <div className="session-time-status" role="timer" aria-label="Practice session countdown">{sessionExpired ? "Session time is up" : remainingSeconds !== null ? "Time left " + Math.floor(remainingSeconds / 60).toString().padStart(2, "0") + ":" + String(remainingSeconds % 60).padStart(2, "0") : sessionDurationMinutes !== null ? sessionDurationMinutes + "-minute session" : "No time limit"}</div>
           <div className="session-history-controls">
             <label className="sr-only" htmlFor="saved-session">Saved conversations</label>
             <select id="saved-session" value={selectedSessionId} onChange={(event) => setSelectedSessionId(event.target.value)} disabled={isStreaming || listening}>
