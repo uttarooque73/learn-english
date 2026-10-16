@@ -53,20 +53,36 @@ export function VocabularySelectionTool() {
     };
   }, []);
 
-  function saveSelectedText(event: FormEvent<HTMLFormElement>) {
+  async function saveSelectedText(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selection) return;
     const existing = getVocabulary().find((item) => item.phrase.trim().toLocaleLowerCase() === selection.phrase.toLocaleLowerCase());
     if (existing) {
       setStatus("“" + selection.phrase + "” is already in your vocabulary.");
     } else {
-      saveVocabulary({
-        phrase: selection.phrase,
-        meaning: meaning.trim() || "Meaning not added yet.",
-        example: example.trim(),
-        category: /\s/.test(selection.phrase) ? "expression" : "word",
-      });
-      setStatus("Saved “" + selection.phrase + "” to your vocabulary.");
+      let finalMeaning = meaning.trim();
+      let finalExample = example.trim();
+      let category: "word" | "expression" | "collocation" | "phrasal verb" = /\\s/.test(selection.phrase) ? "expression" : "word";
+      if (!finalMeaning || !finalExample) {
+        setStatus("Generating an AI meaning for “" + selection.phrase + "”…");
+        try {
+          const response = await fetch("/api/vocabulary/define", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phrase: selection.phrase }),
+          });
+          const definition = await response.json() as { meaning?: string; example?: string; category?: typeof category; error?: string };
+          if (!response.ok || !definition.meaning) throw new Error(definition.error || "AI definition failed.");
+          finalMeaning ||= definition.meaning;
+          finalExample ||= definition.example || "";
+          category = definition.category || category;
+        } catch (error) {
+          setStatus(error instanceof Error ? error.message : "Could not generate a meaning. Please try again.");
+          return;
+        }
+      }
+      saveVocabulary({ phrase: selection.phrase, meaning: finalMeaning, example: finalExample, category });
+      setStatus("Saved “" + selection.phrase + "” with an AI-generated meaning.");
     }
     setSelection(null);
     setFormOpen(false);
