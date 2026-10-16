@@ -23,6 +23,7 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
   await expect(page.getByRole("button", { name: /Daily stand-up/ })).toBeVisible();
 
   const difficulty = page.getByRole("combobox", { name: "Difficulty" });
+  await expect(difficulty).toBeEnabled();
   await expect(difficulty).toHaveValue("Beginner");
   await difficulty.selectOption("Advanced");
   await expect(difficulty).toHaveValue("Advanced");
