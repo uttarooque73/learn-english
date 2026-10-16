@@ -5,12 +5,13 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "practice" | "vocabulary" | "progress" | "fluency" | "shadowing" | "settings";
+type PageKey = "home" | "practice" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "settings";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
   { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
   { key: "vocabulary", label: "Vocabulary", href: "/vocabulary", icon: "Aa" },
+  { key: "daily-vocabulary", label: "Daily Vocabulary", href: "/daily-vocabulary", icon: "✦" },
   { key: "progress", label: "My progress", href: "/progress", icon: "↗" },
   { key: "fluency", label: "Fluency exercises", href: "/fluency", icon: "◷" },
   { key: "shadowing", label: "Shadowing & pronunciation", href: "/shadowing", icon: "♫" },

@@ -1,0 +1,9 @@
+-- Durable, browser-owner-scoped daily vocabulary learning.
+CREATE TABLE IF NOT EXISTS daily_vocabulary_topics(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',category TEXT NOT NULL DEFAULT 'Custom',instructions TEXT NOT NULL DEFAULT '',difficulty TEXT NOT NULL DEFAULT 'intermediate',daily_allocation INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_daily_vocab_topics_owner ON daily_vocabulary_topics(owner_id,active);
+CREATE TABLE IF NOT EXISTS daily_vocabulary_preferences(owner_id TEXT PRIMARY KEY,daily_target INTEGER NOT NULL DEFAULT 10,allocation_mode TEXT NOT NULL DEFAULT 'automatic',difficulty TEXT NOT NULL DEFAULT 'intermediate',timezone TEXT NOT NULL DEFAULT 'UTC',updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS daily_vocabulary_sets(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,local_date TEXT NOT NULL,daily_target INTEGER NOT NULL,created_at TEXT NOT NULL,UNIQUE(owner_id,local_date));
+CREATE INDEX IF NOT EXISTS idx_daily_vocab_sets_owner_date ON daily_vocabulary_sets(owner_id,local_date DESC);
+CREATE TABLE IF NOT EXISTS daily_vocabulary_entries(id TEXT PRIMARY KEY,set_id TEXT NOT NULL,owner_id TEXT NOT NULL,topic_id TEXT NOT NULL,word_key TEXT NOT NULL,word_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'new',favorite INTEGER NOT NULL DEFAULT 0,review_later INTEGER NOT NULL DEFAULT 0,learned_at TEXT,created_at TEXT NOT NULL,UNIQUE(set_id,topic_id,word_key),FOREIGN KEY(set_id) REFERENCES daily_vocabulary_sets(id) ON DELETE CASCADE);
+CREATE INDEX IF NOT EXISTS idx_daily_vocab_entries_owner ON daily_vocabulary_entries(owner_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_vocab_entries_topic ON daily_vocabulary_entries(owner_id,topic_id,word_key);
