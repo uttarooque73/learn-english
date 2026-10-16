@@ -45,10 +45,12 @@ export function VocabularySelectionTool() {
     }
     window.addEventListener("mouseup", captureSelection);
     window.addEventListener("keyup", captureSelection);
+    document.addEventListener("selectionchange", captureSelection);
     window.addEventListener("keydown", dismissOnEscape);
     return () => {
       window.removeEventListener("mouseup", captureSelection);
       window.removeEventListener("keyup", captureSelection);
+      document.removeEventListener("selectionchange", captureSelection);
       window.removeEventListener("keydown", dismissOnEscape);
     };
   }, []);
