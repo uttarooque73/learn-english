@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { LearningInsights } from "@/components/learning-insights";
 
 const topics = [
   { icon: "☕", title: "Everyday conversation", detail: "Feel more natural in daily chats", tone: "peach" },
@@ -28,12 +29,8 @@ export default function HomePage() {
       </section>
 
       <section className="section-block">
-        <div className="section-heading"><div><p className="eyebrow">YOUR ROUTINE</p><h2>Your learning snapshot</h2></div><span className="section-note">Your progress will appear as you practice</span></div>
-        <div className="stats-grid">
-          <article className="stat-card"><div className="stat-top"><span className="stat-icon peach">◷</span><span className="stat-tag">GET STARTED</span></div><div className="stat-value">0 <small>min</small></div><p>Practice time</p><div className="stat-foot"><span className="stat-line peach-line" />Your first session is waiting</div></article>
-          <article className="stat-card"><div className="stat-top"><span className="stat-icon lavender">✦</span><span className="stat-tag">FRESH START</span></div><div className="stat-value">0</div><p>Sessions completed</p><div className="stat-foot"><span className="stat-line lavender-line" />Every conversation counts</div></article>
-          <article className="stat-card"><div className="stat-top"><span className="stat-icon mint">Aa</span><span className="stat-tag">GROW YOUR WORDS</span></div><div className="stat-value">0</div><p>Words saved</p><div className="stat-foot"><span className="stat-line mint-line" />Collect useful expressions</div></article>
-        </div>
+        <div className="section-heading"><div><p className="eyebrow">YOUR ROUTINE</p><h2>Your learning snapshot</h2></div><span className="section-note">Updates as you practice</span></div>
+        <LearningInsights mode="overview" />
       </section>
 
       <section className="section-block topic-section">
@@ -46,7 +43,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="next-step-card"><div className="next-step-icon">✎</div><div><strong>Your first step is the most important.</strong><p>Try a short conversation. You can review corrections and save new words as those features arrive.</p></div><Link href="/practice" className="text-link">Let’s begin <span>→</span></Link></section>
+      <section className="next-step-card"><div className="next-step-icon">✎</div><div><strong>Your first step is the most important.</strong><p>Try a short conversation, review your English feedback, and save useful phrases to your word bank.</p></div><Link href="/practice" className="text-link">Let’s begin <span>→</span></Link></section>
     </AppShell>
   );
 }

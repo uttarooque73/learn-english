@@ -56,7 +56,7 @@ describe("POST /api/chat", () => {
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://127.0.0.1:11434/api/chat");
     const sent = JSON.parse(String(options.body)) as { model: string; stream: boolean; messages: { role: string; content: string }[] };
-    expect(sent.model).toBe("qwen3:4b");
+    expect(sent.model).toBe("llama3.1:8b");
     expect(sent.stream).toBe(true);
     expect(sent.messages.map((message) => message.role)).toEqual(["system", "user", "assistant", "user"]);
     expect(sent.messages[0]?.content).toContain("At work");
