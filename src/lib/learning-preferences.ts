@@ -2,6 +2,7 @@ export type EnglishLevel = "Beginner" | "Intermediate" | "Advanced";
 export type FeedbackStyle = "gentle" | "balanced" | "detailed";
 export type FeedbackTiming = "immediate" | "end";
 export type SpeechRate = 0.8 | 1 | 1.2;
+export type SpeechVoiceGender = "automatic" | "female" | "male";
 
 export type LearningPreferences = {
   englishLevel: EnglishLevel;
@@ -10,6 +11,7 @@ export type LearningPreferences = {
   feedbackTiming: FeedbackTiming;
   speechRate: SpeechRate;
   speechVoiceURI: string;
+  speechVoiceGender: SpeechVoiceGender;
   preferredTopics: string[];
   largerText: boolean;
   reducedMotion: boolean;
@@ -22,6 +24,7 @@ export const DEFAULT_LEARNING_PREFERENCES: LearningPreferences = {
   feedbackTiming: "end",
   speechRate: 1,
   speechVoiceURI: "",
+  speechVoiceGender: "automatic",
   preferredTopics: ["Everyday life", "At work"],
   largerText: false,
   reducedMotion: false,
@@ -52,6 +55,7 @@ export function getLearningPreferences(): LearningPreferences {
     const styles: FeedbackStyle[] = ["gentle", "balanced", "detailed"];
     const timings: FeedbackTiming[] = ["immediate", "end"];
     const speechRates: SpeechRate[] = [0.8, 1, 1.2];
+    const speechVoiceGenders: SpeechVoiceGender[] = ["automatic", "female", "male"];
     const goal = Number(value.dailyGoalMinutes);
     return {
       englishLevel: levels.includes(value.englishLevel as EnglishLevel) ? value.englishLevel as EnglishLevel : "Beginner",
@@ -60,6 +64,7 @@ export function getLearningPreferences(): LearningPreferences {
       feedbackTiming: timings.includes(value.feedbackTiming as FeedbackTiming) ? value.feedbackTiming as FeedbackTiming : "end",
       speechRate: speechRates.includes(value.speechRate as SpeechRate) ? value.speechRate as SpeechRate : 1,
       speechVoiceURI: typeof value.speechVoiceURI === "string" ? value.speechVoiceURI.slice(0, 300) : "",
+      speechVoiceGender: speechVoiceGenders.includes(value.speechVoiceGender as SpeechVoiceGender) ? value.speechVoiceGender as SpeechVoiceGender : "automatic",
       preferredTopics: Array.isArray(value.preferredTopics)
         ? value.preferredTopics.filter((topic): topic is string => typeof topic === "string" && (LEARNING_TOPICS as readonly string[]).includes(topic)).slice(0, 10)
         : [...DEFAULT_LEARNING_PREFERENCES.preferredTopics],
@@ -80,6 +85,7 @@ export function saveLearningPreferences(preferences: LearningPreferences): void 
     feedbackTiming: ["immediate", "end"].includes(preferences.feedbackTiming) ? preferences.feedbackTiming : "end",
     speechRate: [0.8, 1, 1.2].includes(preferences.speechRate) ? preferences.speechRate : 1,
     speechVoiceURI: typeof preferences.speechVoiceURI === "string" ? preferences.speechVoiceURI.slice(0, 300) : "",
+    speechVoiceGender: ["automatic", "female", "male"].includes(preferences.speechVoiceGender) ? preferences.speechVoiceGender : "automatic",
     preferredTopics: preferences.preferredTopics.filter((topic) => (LEARNING_TOPICS as readonly string[]).includes(topic)).slice(0, 10),
     largerText: Boolean(preferences.largerText),
     reducedMotion: Boolean(preferences.reducedMotion),
