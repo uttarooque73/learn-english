@@ -13,6 +13,15 @@ type Feedback = {
   pronunciationTip: string;
   vocabulary: { phrase: string; meaning: string; example: string }[];
 };
+type SessionSummary = {
+  topicSummary: string;
+  keyPoints: string[];
+  corrections: { original: string; improved: string; reason: string }[];
+  vocabulary: { phrase: string; meaning: string }[];
+  strengths: string[];
+  improvements: string[];
+  followUpExercise: string;
+};
 type SpeechAlternative = { transcript: string };
 type SpeechResult = ArrayLike<SpeechAlternative>;
 type SpeechRecognitionResultEvent = { results: ArrayLike<SpeechResult> };
@@ -48,6 +57,9 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState("");
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState("");
   const [speechSupported, setSpeechSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState("");
@@ -165,6 +177,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setError("");
     setFeedback(null);
     setFeedbackError("");
+    setSessionSummary(null);
+    setSummaryError("");
     setPronunciationAssessment(null);
     setIsStreaming(true);
 
@@ -249,6 +263,26 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     }
   }
 
+  async function requestSessionSummary() {
+    if (messages.length < 2 || !hasReply || summaryLoading || isStreaming) return;
+    setSummaryLoading(true);
+    setSummaryError("");
+    try {
+      const response = await fetch("/api/session-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenario, difficulty, messages: messages.filter((message) => message.content.trim()).slice(-40) }),
+      });
+      const result = await response.json() as SessionSummary & { error?: string };
+      if (!response.ok) throw new Error(result.error || "Could not generate the session summary.");
+      setSessionSummary(result);
+    } catch (caught) {
+      setSummaryError(caught instanceof Error ? caught.message : "Could not generate the session summary.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  }
+
   function resetConversation() {
     if (isStreaming) abortRef.current?.abort();
     stopListening();
@@ -258,6 +292,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setError("");
     setFeedback(null);
     setFeedbackError("");
+    setSessionSummary(null);
+    setSummaryError("");
     setPronunciationAssessment(null);
     setSavedPhrases([]);
     sessionIdRef.current = null;
@@ -278,6 +314,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setError("");
     setFeedback(null);
     setFeedbackError("");
+    setSessionSummary(null);
+    setSummaryError("");
     setPronunciationAssessment(null);
     setSavedPhrases([]);
     sessionIdRef.current = session.id;
@@ -361,8 +399,20 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           </div></div>
         </form>
         {voiceError && <p className="voice-status" role="status">{voiceError}</p>}
-        {hasReply && <div className="feedback-actions"><div><strong>Improve your English</strong><p>Get a natural correction, quick tips, and useful phrases from this exchange.</p></div><button className="button button-dark" type="button" onClick={requestFeedback} disabled={feedbackLoading || isStreaming}>{feedbackLoading ? "Reviewing…" : "Get feedback"} <span>✦</span></button></div>}
+        {hasReply && <div className="feedback-actions"><div><strong>Review your session</strong><p>Get a conversation summary, corrections, vocabulary, strengths, and a follow-up exercise.</p></div><div className="session-review-actions"><button className="notebook-secondary" type="button" onClick={requestFeedback} disabled={feedbackLoading || isStreaming}>{feedbackLoading ? "Reviewing…" : "Get feedback"}</button><button className="button button-dark" type="button" onClick={requestSessionSummary} disabled={summaryLoading || isStreaming}>{summaryLoading ? "Summarizing…" : "Summarize session"} <span>✦</span></button></div></div>}
         {feedbackError && <p className="chat-error" role="alert">{feedbackError}</p>}
+        {summaryError && <p className="chat-error" role="alert">{summaryError}</p>}
+        {sessionSummary && <section className="session-summary-panel" aria-label="Session summary" aria-live="polite">
+          <div className="feedback-title"><span className="stat-icon lavender">✓</span><div><p className="eyebrow">SESSION REVIEW</p><h3>Your learning summary</h3></div></div>
+          <p className="session-summary-intro">{sessionSummary.topicSummary}</p>
+          {sessionSummary.keyPoints.length > 0 && <><p className="feedback-label">Key points</p><ul className="feedback-tips">{sessionSummary.keyPoints.map((item, index) => <li key={index}>{item}</li>)}</ul></>}
+          {sessionSummary.corrections.length > 0 && <><p className="feedback-label">Useful corrections</p><div className="summary-corrections">{sessionSummary.corrections.map((item, index) => <article key={index}><p><span>Before</span>{item.original}</p><p><span>Try</span>{item.improved}</p><small>{item.reason}</small></article>)}</div></>}
+          {sessionSummary.vocabulary.length > 0 && <><p className="feedback-label">Vocabulary to remember</p><div className="summary-vocabulary">{sessionSummary.vocabulary.map((item, index) => <article key={index}><strong>{item.phrase}</strong><p>{item.meaning}</p></article>)}</div></>}
+          {sessionSummary.strengths.length > 0 && <><p className="feedback-label">What went well</p><ul className="feedback-tips">{sessionSummary.strengths.map((item, index) => <li key={index}>{item}</li>)}</ul></>}
+          {sessionSummary.improvements.length > 0 && <><p className="feedback-label">Try next time</p><ul className="feedback-tips">{sessionSummary.improvements.map((item, index) => <li key={index}>{item}</li>)}</ul></>}
+          <div className="summary-follow-up"><p className="eyebrow">YOUR NEXT EXERCISE</p><p>{sessionSummary.followUpExercise}</p></div>
+          <p className="fluency-disclaimer">This is AI-generated learning guidance based on this transcript, not a validated proficiency assessment.</p>
+        </section>}
         {feedback && <section className="feedback-panel" aria-label="English feedback">
           <div className="feedback-title"><span className="stat-icon lavender">✦</span><div><p className="eyebrow">YOUR PERSONAL COACH</p><h3>English feedback</h3></div></div>
           <p className="feedback-label">A more natural sentence</p><blockquote className="corrected-sentence">{feedback.correctedSentence}</blockquote><p className="feedback-explanation">{feedback.explanation}</p>
