@@ -60,6 +60,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
+  const [isHydrated, setIsHydrated] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState("");
@@ -81,6 +82,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const speech = window as SpeechWindow;
+      setIsHydrated(true);
       setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
       setSavedSessions(getSessions());
     }, 0);
@@ -339,7 +341,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </div>
         <div className="scenario-grid">
           {prompts.map((prompt) => (
-            <button className={`scenario-card scenario-choice ${scenario === prompt.title ? "selected" : ""}`} type="button" key={prompt.number} onClick={() => chooseScenario(prompt.title)} aria-pressed={scenario === prompt.title} disabled={isStreaming || listening}>
+            <button className={`scenario-card scenario-choice ${scenario === prompt.title ? "selected" : ""}`} type="button" key={prompt.number} onClick={() => chooseScenario(prompt.title)} aria-pressed={scenario === prompt.title} disabled={!isHydrated || isStreaming || listening}>
               <span className="scenario-top"><span className={`scenario-icon ${prompt.tone}`}>{prompt.icon}</span><span className="scenario-number">{prompt.number}</span></span>
               <span className="scenario-title">{prompt.title}</span><span className="scenario-description">{prompt.description}</span>
               <span className="scenario-bottom"><span>Guided conversation</span><span className="scenario-arrow">{scenario === prompt.title ? "✓" : "↗"}</span></span>
