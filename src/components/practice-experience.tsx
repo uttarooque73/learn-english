@@ -92,7 +92,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const voiceSpeakingRef = useRef(false);
   const voiceRestartTimerRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>(messages);
-  messagesRef.current = messages;
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartedAtRef = useRef<string | null>(null);
 
@@ -782,7 +782,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
               <button className="button button-voice" type="button" onClick={startVoiceSession} disabled={!speechSupported || sessionExpired}>Start voice conversation</button>
             )}
           </div>
-          <p className="voice-session-status" role="status">{voiceSessionState === "active" ? listening ? "Listening — speak naturally. Your reply will be sent automatically; the AI will speak back and listen again." : isStreaming ? "Your AI coach is responding. It will listen again after speaking." : voiceSpeakingRef.current ? "Your AI coach is speaking. You can respond when it finishes." : "Voice conversation active. Waiting for the next turn…" : speechSupported ? "Start one continuous, hands-free voice conversation. Allow microphone access when prompted." : "Voice input is not supported in this browser. Try the latest Chrome or Edge."}</p>
+          <p className="voice-session-status" role="status">{voiceSessionState === "active" ? listening ? "Listening — speak naturally. Your reply will be sent automatically; the AI will speak back and listen again." : isStreaming ? "Your AI coach is responding. It will listen again after speaking." : "Voice conversation active. Waiting for the next turn…" : speechSupported ? "Start one continuous, hands-free voice conversation. Allow microphone access when prompted." : "Voice input is not supported in this browser. Try the latest Chrome or Edge."}</p>
         </div>
         <div className="chat-transcript" aria-live="polite" aria-relevant="additions text">
           {messages.length === 0 ? (
