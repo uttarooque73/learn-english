@@ -31,7 +31,7 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: new () => SpeechRecognitionLike;
 };
 
-function createId() {\n  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"\n    ? createId()\n    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;\n}\n\nfunction wordMatchScore(target: string, spoken: string) {
+function createId() {\n  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"\n    ? crypto.randomUUID()\n    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;\n}\n\nfunction wordMatchScore(target: string, spoken: string) {
   const expected = target.toLocaleLowerCase().match(/[a-z']+/g) ?? [];
   const actual = new Set(spoken.toLocaleLowerCase().match(/[a-z']+/g) ?? []);
   if (!expected.length) return 0;
