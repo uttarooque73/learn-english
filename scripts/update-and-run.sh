@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Update SpeakUp AI safely and start the local development app.
+# Discard local Git changes, update SpeakUp AI, and start the local development app.
 # Run from any directory: bash scripts/update-and-run.sh
 
 log() { printf '\n[%s] %s\n' "SpeakUp AI" "$*"; }
@@ -9,7 +9,7 @@ fail() { printf '\n[SpeakUp AI] ERROR: %s\n' "$*" >&2; exit 1; }
 
 command -v git >/dev/null 2>&1 || fail "Git is required."
 command -v node >/dev/null 2>&1 || fail "Node.js is required (20.9+)."
-command -v npm >/dev/null 2>&1 || fail "npm is required."
+command -v npm >/dev/null 2>&1 || fail "npm is required (20.9+)."
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
@@ -17,15 +17,17 @@ cd "$PROJECT_DIR"
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "This script must be inside the SpeakUp AI Git repository."
 
-# Protect tracked local edits instead of overwriting them during the update.
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  fail "You have modified tracked files. Commit or stash your changes, then run this script again. No files were reset."
-fi
+# Discard tracked edits and remove untracked files/directories before updating.
+# Ignored files such as .env.local and node_modules are preserved.
+log "Discarding local tracked changes..."
+git reset --hard
+log "Removing untracked files and directories..."
+git clean -fd
 
 BRANCH="$(git branch --show-current)"
 [[ -n "$BRANCH" ]] || fail "Could not determine the current Git branch."
 log "Updating branch '$BRANCH' from its configured remote..."
-git pull --ff-only || fail "Git update failed. Check your network, branch, and local Git state. No reset or clean was run."
+git pull --ff-only || fail "Git update failed. Check your network, branch, and local Git state."
 
 [[ -f .env.example ]] || fail ".env.example is missing."
 if [[ ! -f .env.local ]]; then
@@ -63,7 +65,6 @@ fi
 if ! curl --silent --fail "${OLLAMA_BASE_URL}/api/tags" >/dev/null 2>&1; then
   log "Ollama API is not responding; attempting to start 'ollama serve'..."
   nohup ollama serve >/tmp/speakup-ollama.log 2>&1 </dev/null &
-  OLLAMA_PID=$!
   for _ in {1..20}; do
     if curl --silent --fail "${OLLAMA_BASE_URL}/api/tags" >/dev/null 2>&1; then
       break
