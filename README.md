@@ -33,7 +33,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 For an existing checkout, update the code, install dependencies, ensure Ollama is available, and start the app with one command:
 
 ```bash
-bash scripts/update-and-run.sh
+git pull --ff-only && bash scripts/update-and-run.sh
 ```
 
 The script uses fast-forward-only Git updates, preserves your existing `.env.local` custom settings, upgrades the old default model setting from `qwen3:4b` to `llama3.1:8b`, and downloads the configured model only if it is missing. It does not run `git reset` or `git clean`; it stops if tracked local edits are present.
