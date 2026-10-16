@@ -29,7 +29,7 @@ export function ListenButton({ text, label = "Listen", className = "notebook-sec
 
   if (!supported) return null;
   return <button type="button" className={className} onClick={() => {
-    if (window.speechSynthesis.speaking) {
+    if (speaking) {
       window.speechSynthesis.cancel();
       setSpeaking(false);
     } else {
@@ -48,7 +48,7 @@ export function ListenPageControl() {
 
   if (!supported) return null;
   return <button type="button" className="listen-page-control" onClick={() => {
-    if (window.speechSynthesis.speaking) {
+    if (speaking) {
       window.speechSynthesis.cancel();
       setSpeaking(false);
       return;
