@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { saveVocabulary, upsertSession } from "@/lib/learning-storage";
+import { getSessions, saveVocabulary, upsertSession, type PracticeSession } from "@/lib/learning-storage";
+import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
 type Message = { role: "user" | "assistant"; content: string };
@@ -37,13 +38,6 @@ function createId() {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function wordMatchScore(target: string, spoken: string) {
-  const expected = target.toLocaleLowerCase().match(/[a-z']+/g) ?? [];
-  const actual = new Set(spoken.toLocaleLowerCase().match(/[a-z']+/g) ?? []);
-  if (!expected.length) return 0;
-  return Math.round((expected.filter((word) => actual.has(word)).length / expected.length) * 100);
-}
-
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [scenario, setScenario] = useState(prompts[0]?.title ?? "Free conversation");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -56,9 +50,11 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [speechSupported, setSpeechSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState("");
-  const [pronunciationScore, setPronunciationScore] = useState<number | null>(null);
+  const [pronunciationAssessment, setPronunciationAssessment] = useState<TranscriptAssessment | null>(null);
   const [pronunciationMode, setPronunciationMode] = useState(false);
   const [savedPhrases, setSavedPhrases] = useState<string[]>([]);
+  const [savedSessions, setSavedSessions] = useState<PracticeSession[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState("");
   const conversationEnd = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
@@ -73,6 +69,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     const timer = window.setTimeout(() => {
       const speech = window as SpeechWindow;
       setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
+      setSavedSessions(getSessions());
     }, 0);
     return () => {
       window.clearTimeout(timer);
@@ -118,7 +115,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       if (mode === "compose") {
         setDraft((current) => current.trim() ? current.trim() + " " + transcript : transcript);
       } else if (feedback) {
-        setPronunciationScore(wordMatchScore(feedback.correctedSentence, transcript));
+        setPronunciationAssessment(assessTranscript(feedback.correctedSentence, transcript));
       }
       setVoiceError("");
     };
@@ -161,7 +158,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setError("");
     setFeedback(null);
     setFeedbackError("");
-    setPronunciationScore(null);
+    setPronunciationAssessment(null);
     setIsStreaming(true);
 
     if (!sessionIdRef.current) {
@@ -199,15 +196,18 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       if (!assistantText.trim()) setError("The AI returned an empty response. Please try again.");
       else {
         const startedAt = sessionStartedAtRef.current ?? new Date().toISOString();
+        const updatedAt = new Date().toISOString();
         upsertSession({
           id: sessionIdRef.current ?? createId(),
           scenario,
           startedAt,
-          updatedAt: new Date().toISOString(),
-          durationSeconds: Math.max(1, Math.round((Date.now() - new Date(startedAt).getTime()) / 1000)),
+          updatedAt,
+          durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
           messageCount: completeMessages.filter((message) => message.role === "user").length,
           learnerMessages: completeMessages.filter((message) => message.role === "user").map((message) => message.content).slice(-40),
+          messages: completeMessages.slice(-100),
         });
+        setSavedSessions(getSessions());
       }
     } catch (caught) {
       if (caught instanceof Error && caught.name === "AbortError") return;
@@ -234,7 +234,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       const result = await response.json() as Feedback & { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not generate English feedback.");
       setFeedback(result);
-      setPronunciationScore(null);
+      setPronunciationAssessment(null);
     } catch (caught) {
       setFeedbackError(caught instanceof Error ? caught.message : "Could not generate English feedback.");
     } finally {
@@ -251,10 +251,31 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setError("");
     setFeedback(null);
     setFeedbackError("");
-    setPronunciationScore(null);
+    setPronunciationAssessment(null);
     setSavedPhrases([]);
     sessionIdRef.current = null;
     sessionStartedAtRef.current = null;
+    setSelectedSessionId("");
+  }
+
+  function restoreSession(session: PracticeSession) {
+    if (isStreaming || listening) return;
+    stopListening();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    const restoredMessages = Array.isArray(session.messages) && session.messages.length
+      ? session.messages
+      : session.learnerMessages.map((content) => ({ role: "user" as const, content }));
+    setScenario(session.scenario);
+    setMessages(restoredMessages);
+    setDraft("");
+    setError("");
+    setFeedback(null);
+    setFeedbackError("");
+    setPronunciationAssessment(null);
+    setSavedPhrases([]);
+    sessionIdRef.current = session.id;
+    sessionStartedAtRef.current = session.startedAt;
+    setSelectedSessionId(session.id);
   }
 
   function savePhrase(item: Feedback["vocabulary"][number]) {
@@ -286,7 +307,22 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         <div className="chat-header">
           <div className="chat-coach-mark">✦</div>
           <div className="chat-header-copy"><strong>Your AI conversation partner</strong><span>Topic: {scenario}</span></div>
-          <button className="chat-reset" type="button" onClick={resetConversation} disabled={!messages.length && !error && !feedback}>New conversation</button>
+          <div className="session-history-controls">
+            <label className="sr-only" htmlFor="saved-session">Saved conversations</label>
+            <select id="saved-session" value={selectedSessionId} onChange={(event) => setSelectedSessionId(event.target.value)} disabled={isStreaming || listening}>
+              <option value="">Recent conversations ({savedSessions.length})</option>
+              {savedSessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.scenario} · {new Date(session.updatedAt).toLocaleDateString()} · {session.messageCount} messages
+                </option>
+              ))}
+            </select>
+            <button className="chat-reset" type="button" onClick={() => {
+              const selected = savedSessions.find((session) => session.id === selectedSessionId);
+              if (selected) restoreSession(selected);
+            }} disabled={!selectedSessionId || isStreaming || listening}>Restore</button>
+            <button className="chat-reset" type="button" onClick={resetConversation} disabled={!messages.length && !error && !feedback}>New conversation</button>
+          </div>
         </div>
         <div className="chat-transcript" aria-live="polite" aria-relevant="additions text">
           {messages.length === 0 ? (
@@ -323,7 +359,14 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           <p className="feedback-label">A more natural sentence</p><blockquote className="corrected-sentence">{feedback.correctedSentence}</blockquote><p className="feedback-explanation">{feedback.explanation}</p>
           {feedback.tips.length > 0 && <><p className="feedback-label">Quick tips</p><ul className="feedback-tips">{feedback.tips.map((tip, index) => <li key={index}>{tip}</li>)}</ul></>}
           <div className="pronunciation-practice"><div><p className="feedback-label">Pronunciation practice</p><p>{feedback.pronunciationTip}</p><small>Word-match is an approximate transcript comparison, not a phoneme-level pronunciation score.</small></div><div className="pronunciation-controls"><button className="button button-voice" type="button" onClick={() => speak(feedback.correctedSentence)}>🔊 Hear it</button>{speechSupported && <button className="button button-voice" type="button" disabled={listening} onClick={() => startListening("pronunciation")}>🎙 Repeat it</button>}</div>
-            {pronunciationScore !== null && <div className="match-score" role="status"><strong>{pronunciationScore}%</strong><span>word match for your spoken attempt</span></div>}
+            {pronunciationAssessment && <div className="match-score" role="status">
+              <strong>{pronunciationAssessment.score}%</strong>
+              <div><span>ordered transcript match (approximate)</span>
+                {pronunciationAssessment.missingWords.length > 0 && <p>Words to practice: {pronunciationAssessment.missingWords.join(", ")}</p>}
+                {pronunciationAssessment.extraWords.length > 0 && <p>Extra or substituted words: {pronunciationAssessment.extraWords.join(", ")}</p>}
+                {!pronunciationAssessment.missingWords.length && !pronunciationAssessment.extraWords.length && <p>All target words appear in the recognized transcript.</p>}
+              </div>
+            </div>}
           </div>
           {feedback.vocabulary.length > 0 && <><p className="feedback-label">Useful phrases to keep</p><div className="feedback-word-list">{feedback.vocabulary.map((item) => <article className="feedback-word" key={item.phrase}><div><strong>{item.phrase}</strong><p>{item.meaning}</p><small>{item.example}</small></div><button type="button" className="save-word-button" onClick={() => savePhrase(item)} disabled={savedPhrases.includes(item.phrase)}>{savedPhrases.includes(item.phrase) ? "✓ Saved" : "+ Save"}</button></article>)}</div></>}
         </section>}
