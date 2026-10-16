@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   const scenario =
     typeof payload.scenario === "string" ? payload.scenario.trim().slice(0, 120) : "Free conversation";
   const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
-  const model = process.env.OLLAMA_MODEL || "qwen3:4b";
+  const model = process.env.OLLAMA_MODEL || "llama3.1:8b";
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
