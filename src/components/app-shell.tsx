@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 type PageKey = "home" | "practice" | "vocabulary" | "progress" | "fluency" | "settings";
@@ -23,6 +24,8 @@ export function AppShell({
   subtitle: string;
   children: ReactNode;
 }) {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   return (
     <div className="app-frame">
       <aside className="sidebar">
@@ -35,13 +38,24 @@ export function AppShell({
         </Link>
 
         <div className="nav-caption">YOUR SPACE</div>
-        <nav className="main-nav" aria-label="Main navigation">
+        <button
+          className="mobile-nav-toggle"
+          type="button"
+          aria-controls="main-navigation"
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen((open) => !open)}
+        >
+          <span aria-hidden="true">{mobileNavOpen ? "×" : "☰"}</span>
+          {mobileNavOpen ? "Close menu" : "Open menu"}
+        </button>
+        <nav id="main-navigation" className={`main-nav ${mobileNavOpen ? "mobile-nav-open" : ""}`} aria-label="Main navigation">
           {navigation.map((item) => (
             <Link
               key={item.key}
               className={`nav-link ${activePage === item.key ? "active" : ""}`}
               href={item.href}
               aria-current={activePage === item.key ? "page" : undefined}
+              onClick={() => setMobileNavOpen(false)}
             >
               <span className="nav-icon" aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>

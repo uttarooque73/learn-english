@@ -329,3 +329,72 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .correction-pattern small{grid-column:1/-1;color:#8a8c81;font-size:9px}
 @media(max-width:800px){.analytics-grid{grid-template-columns:1fr}.period-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.insights-panel{padding:15px}.analytics-panel-heading{align-items:flex-start}.analytics-panel-heading .section-note{max-width:110px}.streak-metrics>div{padding:10px}.streak-metrics strong{font-size:27px}.week-bars{gap:5px}.week-bar-track{height:65px}.correction-pattern{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:5px}.period-stats strong,.analytics-vocab-stats strong{font-size:15px}}
+
+
+/* Phase 13: accessible mobile navigation and phone-sized layouts */
+.mobile-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mobile-nav-toggle span {
+  font-size: 19px;
+  line-height: 1;
+}
+@media (max-width: 800px) {
+  .mobile-nav-toggle { display: flex; }
+  .main-nav {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    overflow: visible;
+    padding: 7px 0 0;
+  }
+  .main-nav.mobile-nav-open { display: flex; }
+  .nav-link {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+  .sidebar { padding-bottom: 10px; }
+  .page-content { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+  .chat-composer textarea { min-height: 48px; font-size: 16px; }
+  .composer-footer { flex-wrap: wrap; }
+  .composer-actions, .pronunciation-controls { flex-wrap: wrap; }
+  .feedback-actions { align-items: flex-start; flex-direction: column; }
+  .session-review-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .session-review-actions > button { min-height: 40px; }
+  .feedback-panel { padding: 17px 14px; }
+  .feedback-word { align-items: flex-start; flex-wrap: wrap; }
+  .feedback-word > button { min-height: 40px; }
+  .chat-reset, .suggestion-chip, .inline-action, .save-word-button, .remove-word { min-height: 40px; }
+}
+@media (max-width: 390px) {
+  .topbar { padding: 0 12px; }
+  .breadcrumb { gap: 6px; min-width: 0; font-size: 10px; }
+  .breadcrumb strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar-right { gap: 7px; }
+  .page-content { padding-left: 12px; padding-right: 12px; }
+  .page-heading h1 { font-size: 22px; letter-spacing: -.8px; }
+  .welcome-copy { padding-left: 18px; padding-right: 18px; }
+  .welcome-copy h2 { font-size: 27px; letter-spacing: -1.1px; }
+  .chat-header { align-items: flex-start; flex-wrap: wrap; }
+  .chat-header-copy { flex-basis: calc(100% - 54px); }
+  .chat-reset { margin-left: 47px; }
+  .pronunciation-practice { grid-template-columns: minmax(0, 1fr); }
+  .feedback-word { gap: 8px; }
+  .page-footer { flex-wrap: wrap; }
+}

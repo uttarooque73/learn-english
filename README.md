@@ -11,7 +11,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Create a responsive shared application shell and navigation.
 - [x] Build the overview dashboard and practice, vocabulary, and progress pages.
 - [x] Add responsive styling and clear empty/coming-soon states.
-- [ ] Ensure the entire application is mobile-first and fully usable on phones, including navigation, practice chat, forms, cards, and dashboards.
+- [x] Ensure the entire application is mobile-first and usable on phones, including accessible collapsible navigation, practice chat, forms, cards, and dashboards.
 - [x] Document local setup and the implementation roadmap.
 - [x] Connect the Practice Room to Ollama through a streaming Next.js Route Handler.
 - [x] Add scenario selection, streaming chat UI, input validation, and actionable connection errors.
@@ -106,6 +106,12 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Save simplified responses into the current conversation and existing local session history.
 - [x] Add API integration, component, and Playwright coverage for simpler explanations.
 
+### Phase 13 — Mobile-first responsive experience
+- [x] Add an accessible collapsible mobile navigation with expanded-state semantics and automatic close after navigation.
+- [x] Declare device-width viewport and safe-area support for modern phones.
+- [x] Improve touch target sizes, text input behavior, and wrapping for practice and review controls on narrow screens.
+- [x] Add Playwright coverage for mobile navigation, a practice chat turn, and horizontal-overflow checks at 320px and 375px across all primary pages.
+
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -173,7 +179,7 @@ For interactive test development, run `npm run test:watch`.
 
 ### Responsive UI and mobile support
 
-**Requirement:** SpeakUp AI must be comfortable to use on a phone as well as on a desktop. Responsive behavior is a product requirement, not an optional polish task.
+**Requirement:** SpeakUp AI must be comfortable to use on a phone as well as on a desktop. Responsive behavior is a product requirement, not an optional polish task. Phase 13 adds collapsible navigation and automated phone-width checks; the dedicated phoneme-level pronunciation model remains out of scope.
 
 Acceptance criteria:
 - Use a mobile-first layout and responsive CSS breakpoints; verify narrow screens around 320–390 CSS pixels as well as tablet and desktop widths.
