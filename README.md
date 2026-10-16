@@ -50,6 +50,14 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Provide a supportive reflection after an exercise without claiming to measure proficiency.
 - [ ] Add adaptive follow-up questions that respond to the learner's answer.
 
+### Phase 6 — Session summary and next steps
+- [x] Generate a transcript-based summary of the conversation topic and key points.
+- [x] Surface a small number of evidence-based corrections and useful vocabulary items.
+- [x] Identify observed strengths and practical improvement ideas without assigning a proficiency score.
+- [x] Suggest one follow-up exercise based on the conversation.
+- [x] Validate summary requests and bound output lists on the server; add API tests.
+- [ ] Persist generated summaries with saved conversations and show them in session history.
+
 **Current limitations:** Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -237,11 +245,11 @@ Next.js Route Handlers (/api/*)
 - [x] Encouraging, non-judgmental reflection focused on improvement.
 
 ### 7. Session Summary
-- [ ] Summarize the topic and key points discussed.
-- [ ] Show useful corrections and natural phrasing suggestions.
-- [ ] List new vocabulary learned during the session.
-- [ ] Identify strengths and the top areas to improve next.
-- [ ] Generate a short follow-up exercise based on the session.
+- [x] Summarize the topic and key points discussed.
+- [x] Show useful corrections and natural phrasing suggestions in session review.
+- [x] List useful vocabulary from the session when present in the transcript.
+- [x] Identify observed strengths and practical improvement ideas.
+- [x] Generate a short follow-up exercise based on the session.
 
 ### 8. Progress Tracking
 - [x] Save conversation history with date, topic, duration, and transcript.
