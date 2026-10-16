@@ -41,7 +41,7 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: new () => SpeechRecognitionLike;
 };
 
-function getCurrentTimestamp() { return getCurrentTimestamp(); }
+function getCurrentTimestamp() { return Date.now(); }
 
 function createId() {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
