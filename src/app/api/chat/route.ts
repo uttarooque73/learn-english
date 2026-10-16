@@ -65,6 +65,10 @@ export async function POST(request: Request) {
   }
 
   const payload = body as Record<string, unknown>;
+  if (payload.mode !== undefined && payload.mode !== "conversation" && payload.mode !== "follow-up") {
+    return NextResponse.json({ error: "Mode must be conversation or follow-up." }, { status: 400 });
+  }
+  const mode = payload.mode === "follow-up" ? "follow-up" : "conversation";
   if (
     !Array.isArray(payload.messages) ||
     payload.messages.length === 0 ||
@@ -78,9 +82,15 @@ export async function POST(request: Request) {
   }
 
   const messages = payload.messages as ChatMessage[];
-  if (messages[messages.length - 1]?.role !== "user") {
+  const lastMessage = messages[messages.length - 1];
+  const validFinalMessage = mode === "follow-up"
+    ? lastMessage?.role === "assistant" && messages.some((message) => message.role === "user")
+    : lastMessage?.role === "user";
+  if (!validFinalMessage) {
     return NextResponse.json(
-      { error: "The last conversation message must be from the user." },
+      { error: mode === "follow-up"
+        ? "A follow-up request needs a learner message followed by an assistant reply."
+        : "The last conversation message must be from the user." },
       { status: 400 },
     );
   }
@@ -97,6 +107,9 @@ export async function POST(request: Request) {
   const topicGuidance = preferredTopics.length
     ? "The learner is interested in these topics when a natural opportunity arises: " + preferredTopics.join(", ") + ". Do not derail the selected role-play to force a topic."
     : "Follow the selected role-play naturally without forcing unrelated topics.";
+  const turnGuidance = mode === "follow-up"
+    ? "This is a dedicated adaptive follow-up request. Ask exactly one open-ended question grounded in the learner's most recent answer and the conversation context. Match the selected English level, ask for one concrete detail if the answer was vague, and do not repeat a question already asked. Output only the question; do not add a preamble, correction, list, or explanation."
+    : "";
   const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
   const model = process.env.OLLAMA_MODEL || "llama3.1:8b";
   const controller = new AbortController();
@@ -122,9 +135,13 @@ export async function POST(request: Request) {
               "Adapt to this learner level: " + difficulty + ". " + DIFFICULTY_GUIDES[difficulty] + " " +
               "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " +
               "Do not interrupt with unsolicited grammar lessons. If the learner asks for correction, give one natural correction and a brief explanation. " +
-              "Do not claim to score proficiency. Selected scenario: " + scenario + ".",
+              "Do not claim to score proficiency. Selected scenario: " + scenario + ". " + turnGuidance,
           },
           ...messages,
+          ...(mode === "follow-up" ? [{
+            role: "user" as const,
+            content: "Ask me one adaptive follow-up question based on my latest answer. Do not answer for me.",
+          }] : []),
         ],
       }),
     });
