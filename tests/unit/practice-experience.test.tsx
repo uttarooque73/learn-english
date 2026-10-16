@@ -144,12 +144,14 @@ describe("PracticeExperience", () => {
   });
 
   it("keeps typed practice available when speech recognition is unsupported", async () => {
-    render(<PracticeExperience prompts={prompts} />);
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start voice practice" })).toBeInTheDocument());
+    const { container } = render(<PracticeExperience prompts={prompts} />);
+    const view = within(container);
+    const startButton = view.getByRole("button", { name: "Start voice practice" });
+    await waitFor(() => expect(startButton).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole("button", { name: "Start voice practice" }));
-    expect(screen.getByRole("status")).toHaveTextContent(/Voice input is not supported in this browser/);
-    expect(screen.getByLabelText("Your message")).toBeEnabled();
+    fireEvent.click(startButton);
+    expect(view.getByRole("status")).toHaveTextContent(/Voice input is not supported in this browser/);
+    expect(view.getByLabelText("Your message")).toBeEnabled();
   });
 
 });
