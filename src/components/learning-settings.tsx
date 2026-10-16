@@ -16,15 +16,27 @@ export function LearningSettings() {
   const [saved, setSaved] = useState(false);
   const [savedDataCounts, setSavedDataCounts] = useState({ sessions: 0, vocabulary: 0 });
   const [dataStatus, setDataStatus] = useState("");
+  const [speechVoices, setSpeechVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [speechPlaybackSupported, setSpeechPlaybackSupported] = useState(false);
 
   useEffect(() => {
+    let voiceChangeHandler: (() => void) | undefined;
     const timer = window.setTimeout(() => {
       const current = getLearningPreferences();
       setPreferences(current);
       setSavedDataCounts({ sessions: getSessions().length, vocabulary: getVocabulary().length });
       applyAccessibilityPreferences(current);
+      if ("speechSynthesis" in window) {
+        setSpeechPlaybackSupported(true);
+        voiceChangeHandler = () => setSpeechVoices(window.speechSynthesis.getVoices().filter((voice) => voice.lang.toLowerCase().startsWith("en")));
+        voiceChangeHandler();
+        window.speechSynthesis.addEventListener("voiceschanged", voiceChangeHandler);
+      }
     }, 0);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      if (voiceChangeHandler && "speechSynthesis" in window) window.speechSynthesis.removeEventListener("voiceschanged", voiceChangeHandler);
+    };
   }, []);
 
   function update<K extends keyof LearningPreferences>(key: K, value: LearningPreferences[K]) {
@@ -102,6 +114,26 @@ export function LearningSettings() {
         <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">◉</span><div><h2 id="accessibility-heading">Comfort & accessibility</h2><p>Adjust the interface for easier reading and calmer motion.</p></div></div>
         <label className="settings-toggle"><span><strong>Larger text</strong><small>Increase text size across the app.</small></span><input type="checkbox" checked={preferences.largerText} onChange={(event) => update("largerText", event.target.checked)} /></label>
         <label className="settings-toggle"><span><strong>Reduce animation</strong><small>Minimize transitions and animated effects.</small></span><input type="checkbox" checked={preferences.reducedMotion} onChange={(event) => update("reducedMotion", event.target.checked)} /></label>
+      </section>
+
+      <section className="settings-card" aria-labelledby="speech-playback-heading">
+        <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">♫</span><div><h2 id="speech-playback-heading">Speech playback</h2><p>Choose how the coach reads example sentences and voice-session replies aloud.</p></div></div>
+        <div className="settings-field-grid">
+          <label className="settings-field">Speaking speed
+            <select value={String(preferences.speechRate)} onChange={(event) => update("speechRate", Number(event.target.value) as LearningPreferences["speechRate"])}>
+              <option value="0.8">Slow — clearer practice</option><option value="1">Normal</option><option value="1.2">Fast — natural pace</option>
+            </select>
+            <span>Changes text-to-speech playback where the browser supports it.</span>
+          </label>
+          <label className="settings-field">English voice
+            <select value={preferences.speechVoiceURI} onChange={(event) => update("speechVoiceURI", event.target.value)} disabled={!speechPlaybackSupported}>
+              <option value="">Automatic (recommended)</option>
+              {preferences.speechVoiceURI && !speechVoices.some((voice) => voice.voiceURI === preferences.speechVoiceURI) && <option value={preferences.speechVoiceURI}>Saved voice (not available on this device)</option>}
+              {speechVoices.map((voice) => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} ({voice.lang})</option>)}
+            </select>
+            <span>{speechPlaybackSupported ? speechVoices.length ? "Voices come from your browser and operating system; available choices vary by device." : "The browser has text-to-speech, but no English voices are currently available." : "Text-to-speech is not supported in this browser; playback controls will explain the fallback."}</span>
+          </label>
+        </div>
       </section>
 
       <section className="settings-card data-management-card" aria-labelledby="saved-data-heading">

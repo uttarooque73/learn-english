@@ -117,11 +117,12 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 0.98;
+    utterance.rate = learningPreferences?.speechRate ?? 1;
     utterance.pitch = 1.15;
     const voices = window.speechSynthesis.getVoices();
     const englishVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith("en"));
-    const preferredVoice = englishVoices.find((voice) => /samantha|ava|jenny|aria|female|google us english/i.test(voice.name))
+    const preferredVoice = englishVoices.find((voice) => voice.voiceURI === learningPreferences?.speechVoiceURI)
+      ?? englishVoices.find((voice) => /samantha|ava|jenny|aria|female|google us english/i.test(voice.name))
       ?? englishVoices.find((voice) => /natural|enhanced|premium/i.test(voice.name));
     if (preferredVoice) utterance.voice = preferredVoice;
     window.speechSynthesis.speak(utterance);
