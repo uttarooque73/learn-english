@@ -2,12 +2,9 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { LearningInsights } from "@/components/learning-insights";
 import { DailyGoalCard } from "@/components/daily-goal-card";
+import { DynamicHomeTopics } from "@/components/dynamic-home-topics";
 
-const topics = [
-  { icon: "☕", title: "Everyday conversation", detail: "Feel more natural in daily chats", tone: "peach" },
-  { icon: "💼", title: "Work & meetings", detail: "Share ideas with confidence", tone: "lavender" },
-  { icon: "🎤", title: "Speak for one minute", detail: "Build fluency, one thought at a time", tone: "mint" },
-];
+
 
 export default function HomePage() {
   return (
@@ -38,13 +35,7 @@ export default function HomePage() {
 
       <section className="section-block topic-section">
         <div className="section-heading"><div><p className="eyebrow">PICK UP WHERE YOU ARE</p><h2>What would you like to practice?</h2></div><Link className="text-link" href="/practice">Explore practice <span>→</span></Link></div>
-        <div className="topic-grid">
-          {topics.map((topic, index) => <Link className="topic-card" href="/practice" key={topic.title}>
-            <div className={`topic-art ${topic.tone}`}><span>{topic.icon}</span><small>0{index + 1}</small></div>
-            <div className="topic-copy"><h3>{topic.title}</h3><p>{topic.detail}</p><span className="topic-arrow">↗</span></div>
-          </Link>)}
-        </div>
-      </section>
+        <DynamicHomeTopics />     </section>
 
       <section className="next-step-card"><div className="next-step-icon">✎</div><div><strong>Your first step is the most important.</strong><p>Try a short conversation, review your English feedback, and save useful phrases to your word bank.</p></div><Link href="/practice" className="text-link">Let’s begin <span>→</span></Link></section>
     </AppShell>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getDueVocabulary, getVocabulary, removeVocabulary, reviewVocabulary, saveVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
 
 const statusLabels: Record<VocabularyStatus, string> = { learning: "Learning", familiar: "Familiar", mastered: "Mastered" };
@@ -40,6 +40,66 @@ export function VocabularyNotebook() {
   const [quizAnswered, setQuizAnswered] = useState(false);
   const [quizIndex, setQuizIndex] = useState(0);
   const [reviewIndex, setReviewIndex] = useState(0);
+  const [newPhrase, setNewPhrase] = useState("");
+  const [newMeaning, setNewMeaning] = useState("");
+  const [newExample, setNewExample] = useState("");
+  const [defining, setDefining] = useState(false);
+  const [savingNewWord, setSavingNewWord] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [addSuccess, setAddSuccess] = useState("");
+
+  async function generateDefinition(phrase: string) {
+    const response = await fetch("/api/vocabulary/define", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phrase }),
+    });
+    const result = await response.json() as { meaning?: string; example?: string; category?: SavedVocabulary["category"]; error?: string };
+    if (!response.ok || !result.meaning) throw new Error(result.error || "Could not generate a definition.");
+    return result;
+  }
+
+  async function addWord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const phrase = newPhrase.trim();
+    if (!phrase || phrase.length > 120) {
+      setAddError("Enter a word or phrase up to 120 characters.");
+      return;
+    }
+    setAddError("");
+    setAddSuccess("");
+    const existing = getVocabulary().find((item) => item.phrase.trim().toLocaleLowerCase() === phrase.toLocaleLowerCase());
+    if (existing) {
+      setAddError("“" + phrase + "” is already in your word bank.");
+      return;
+    }
+    setSavingNewWord(true);
+    try {
+      let meaning = newMeaning.trim();
+      let example = newExample.trim();
+      let category: SavedVocabulary["category"] = /\s/.test(phrase) ? "expression" : "word";
+      if (!meaning || !example) {
+        setDefining(true);
+        const definition = await generateDefinition(phrase);
+        meaning ||= definition.meaning || "";
+        example ||= definition.example || "";
+        category = definition.category || category;
+        setNewMeaning(meaning);
+        setNewExample(example);
+      }
+      const saved = saveVocabulary({ phrase, meaning, example, category });
+      refresh();
+      setNewPhrase("");
+      setNewMeaning("");
+      setNewExample("");
+      setAddSuccess("Saved “" + saved.phrase + "” with its definition.");
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : "Could not add this vocabulary item.");
+    } finally {
+      setDefining(false);
+      setSavingNewWord(false);
+    }
+  }
 
   useEffect(() => {
     const timer = window.setTimeout(() => { setWords(getVocabulary()); setReady(true); }, 0);
@@ -80,6 +140,33 @@ export function VocabularyNotebook() {
 
   return (
     <div className="vocabulary-notebook">
+      <form className="vocabulary-add-form" onSubmit={addWord} aria-label="Add vocabulary manually">
+        <div className="vocabulary-add-heading">
+          <div><p className="eyebrow">ADD YOUR OWN WORDS</p><h3>Save vocabulary by typing</h3><p>Enter a word or phrase. AI will generate a clear meaning and example automatically.</p></div>
+        </div>
+        <label>Word or phrase
+          <input value={newPhrase} onChange={(event) => setNewPhrase(event.target.value)} maxLength={120} required placeholder="e.g. meticulous, break the ice" aria-label="Word or phrase to save" />
+        </label>
+        <div className="vocabulary-add-fields">
+          <label>Meaning <span>(AI-generated; editable)</span>
+            <textarea value={newMeaning} onChange={(event) => setNewMeaning(event.target.value)} rows={2} placeholder="Generated automatically when you save" aria-label="Vocabulary meaning" />
+          </label>
+          <label>Example sentence <span>(AI-generated; editable)</span>
+            <textarea value={newExample} onChange={(event) => setNewExample(event.target.value)} rows={2} placeholder="A natural example will be generated" aria-label="Vocabulary example sentence" />
+          </label>
+        </div>
+        {addError && <p className="vocabulary-add-message error" role="alert">{addError}</p>}
+        {addSuccess && <p className="vocabulary-add-message success" role="status">{addSuccess}</p>}
+        <div className="vocabulary-add-actions">
+          <button type="button" className="notebook-secondary" disabled={!newPhrase.trim() || defining || savingNewWord} onClick={async () => {
+            setAddError(""); setAddSuccess(""); setDefining(true);
+            try { const definition = await generateDefinition(newPhrase.trim()); setNewMeaning(definition.meaning || ""); setNewExample(definition.example || ""); }
+            catch (error) { setAddError(error instanceof Error ? error.message : "Could not generate a definition."); }
+            finally { setDefining(false); }
+          }}>{defining ? "Generating with AI…" : "Generate meaning with AI"}</button>
+          <button type="submit" className="button button-dark" disabled={savingNewWord || !newPhrase.trim()}>{savingNewWord ? "Saving…" : "Save vocabulary"}</button>
+        </div>
+      </form>
       <div className="notebook-toolbar">
         <label className="notebook-search"><span aria-hidden="true">⌕</span><input value={search} onChange={(event) => { setSearch(event.target.value); setCardIndex(0); }} placeholder="Search words, meanings, examples" aria-label="Search vocabulary" /></label>
         <label className="notebook-filter"><span className="sr-only">Filter vocabulary status</span><select value={filter} onChange={(event) => { setFilter(event.target.value as typeof filter); setCardIndex(0); }}><option value="all">All statuses</option><option value="learning">Learning</option><option value="familiar">Familiar</option><option value="mastered">Mastered</option></select></label>
@@ -122,7 +209,7 @@ export function VocabularyNotebook() {
       ) : filtered.length ? (
         <div className="saved-word-grid">{filtered.map((word) => <article className="saved-word-card" key={word.id}><div className="saved-word-heading"><div><h3>{word.phrase}</h3><span className={`vocab-status status-${word.status ?? "learning"}`}>{statusLabels[word.status ?? "learning"]}</span></div><button type="button" className="notebook-delete" onClick={() => deleteWord(word)} aria-label={`Delete ${word.phrase}`}>×</button></div><p>{word.meaning}</p><blockquote>{word.example}</blockquote><div className="saved-word-footer"><label>Learning status <select aria-label={`Status for ${word.phrase}`} value={word.status ?? "learning"} onChange={(event) => changeStatus(word, event.target.value as VocabularyStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><small>{new Date(word.savedAt).toLocaleDateString()}</small></div></article>)}</div>
       ) : <div className="notebook-empty"><h3>{words.length ? "No matching words" : "Your word bank is ready"}</h3><p>{words.length ? "Try another search or status filter." : "Practice a conversation, ask for feedback, and save phrases to build your personal vocabulary notebook."}</p></div>}
-      <p className="storage-note">Your vocabulary stays in this browser. Status changes and deletions are saved automatically.</p>
+      <p className="storage-note">Your vocabulary is mirrored to the app database when persistence is configured. Status changes and deletions are saved automatically.</p>
     </div>
   );
 }

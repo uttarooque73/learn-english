@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { clearSavedPracticeData, getSessions, getVocabulary } from "@/lib/learning-storage";
+import { LearningOptionsManager } from "@/components/learning-options-manager";
 import {
   applyAccessibilityPreferences,
   DEFAULT_LEARNING_PREFERENCES,
@@ -109,6 +110,8 @@ export function LearningSettings() {
           {LEARNING_TOPICS.map((topic) => <label className="settings-topic" key={topic}><input type="checkbox" checked={preferences.preferredTopics.includes(topic)} onChange={(event) => toggleTopic(topic, event.target.checked)} /><span>{topic}</span></label>)}
         </fieldset>
       </section>
+
+      <LearningOptionsManager />
 
       <section className="settings-card" aria-labelledby="accessibility-heading">
         <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">◉</span><div><h2 id="accessibility-heading">Comfort & accessibility</h2><p>Adjust the interface for easier reading and calmer motion.</p></div></div>
