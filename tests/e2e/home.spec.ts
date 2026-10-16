@@ -18,7 +18,7 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
   await interview.click();
-  await expect(page.getByText("Topic: Job interview")).toBeVisible();
+  await expect(page.locator(".chat-header-copy")).toContainText("Topic: Job interview");
 
   const difficulty = page.getByRole("combobox", { name: "Difficulty" });
   await expect(difficulty).toHaveValue("Beginner");
