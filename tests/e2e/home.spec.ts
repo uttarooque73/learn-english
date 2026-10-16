@@ -386,3 +386,32 @@ test("session goal guides the tutor and the optional timer ends a timed session"
   await expect(page.getByLabel("Your message")).toBeDisabled();
   await expect(page.getByRole("button", { name: /Time is up/ })).toBeDisabled();
 });
+
+
+test("selected text can be saved to vocabulary from different app pages", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("speakup:vocabulary:v1", "[]"));
+  for (const route of ["/vocabulary", "/settings"]) {
+    await page.goto(route);
+    await page.evaluate(() => {
+      const heading = document.querySelector("h1");
+      if (!heading) throw new Error("Expected page heading");
+      const range = document.createRange();
+      range.selectNodeContents(heading);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    });
+    await page.getByRole("button", { name: "Add selected text to vocabulary" }).click();
+    await expect(page.getByRole("form", { name: "Add selected text to vocabulary" })).toBeVisible();
+    await page.getByLabel("Meaning (optional)").fill("A test meaning");
+    await page.getByLabel("Example (optional)").fill("This is an example.");
+    await page.getByRole("button", { name: "Save to vocabulary" }).click();
+    await expect(page.getByRole("status")).toContainText(/Saved .* to your vocabulary/);
+    await expect.poll(() => page.evaluate(() => {
+      const words = JSON.parse(localStorage.getItem("speakup:vocabulary:v1") ?? "[]") as { phrase: string; meaning: string; example: string }[];
+      return words.some((word) => word.meaning === "A test meaning" && word.example === "This is an example.");
+    })).toBeTruthy();
+    await page.evaluate(() => localStorage.setItem("speakup:vocabulary:v1", "[]"));
+  }
+});
