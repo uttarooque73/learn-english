@@ -88,6 +88,11 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const voiceSessionStateRef = useRef<"idle" | "active" | "paused">("idle");
+  const voiceTurnPendingRef = useRef(false);
+  const voiceSpeakingRef = useRef(false);
+  const voiceRestartTimerRef = useRef<number | null>(null);
+  const messagesRef = useRef<Message[]>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartedAtRef = useRef<string | null>(null);
 
@@ -108,6 +113,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     return () => {
       window.clearTimeout(timer);
       recognitionRef.current?.stop();
+      if (voiceRestartTimerRef.current !== null) window.clearTimeout(voiceRestartTimerRef.current);
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.onstop = null;
         mediaRecorderRef.current.ondataavailable = null;
@@ -153,9 +159,10 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     resetConversation();
   }
 
-  function speak(text: string) {
+  function speak(text: string, onEnd?: () => void) {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       setVoiceError("Text-to-speech is not supported in this browser.");
+      onEnd?.();
       return;
     }
     window.speechSynthesis.cancel();
@@ -169,6 +176,10 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       ?? englishVoices.find((voice) => /samantha|ava|jenny|aria|female|google us english/i.test(voice.name))
       ?? englishVoices.find((voice) => /natural|enhanced|premium/i.test(voice.name));
     if (preferredVoice) utterance.voice = preferredVoice;
+    if (onEnd) {
+      utterance.onend = onEnd;
+      utterance.onerror = onEnd;
+    }
     window.speechSynthesis.speak(utterance);
     setVoiceError("");
   }
@@ -252,7 +263,12 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     recognition.onresult = (event) => {
       const transcript = Array.from(event.results).map((result) => result[0]?.transcript ?? "").join(" ").trim();
       if (!transcript) return;
-      if (mode === "compose") {
+      if (mode === "compose" && voiceSessionStateRef.current === "active") {
+        voiceTurnPendingRef.current = true;
+        setDraft(transcript);
+        setVoiceError("");
+        void sendMessage(undefined, transcript);
+      } else if (mode === "compose") {
         setDraft((current) => current.trim() ? current.trim() + " " + transcript : transcript);
       } else if (feedback) {
         setPronunciationAssessment(assessTranscript(feedback.correctedSentence, transcript));
@@ -262,12 +278,22 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     recognition.onerror = (event) => {
       setVoiceError(event.error === "not-allowed"
         ? "Microphone access was denied. Allow microphone access in your browser settings."
-        : `Voice input failed (${event.error}). You can still type your message.`);
+        : event.error === "no-speech"
+          ? ""
+          : `Voice input failed (${event.error}). You can still type your message.`);
+      if (event.error === "not-allowed" && voiceSessionStateRef.current === "active") {
+        voiceTurnPendingRef.current = false;
+        voiceSpeakingRef.current = false;
+        updateVoiceSessionState("idle");
+      }
     };
     recognition.onend = () => {
       setListening(false);
       setPronunciationMode(false);
       recognitionRef.current = null;
+      if (mode === "compose" && voiceSessionStateRef.current === "active" && !voiceTurnPendingRef.current && !voiceSpeakingRef.current) {
+        scheduleVoiceListening();
+      }
     };
     recognitionRef.current = recognition;
     setPronunciationMode(mode === "pronunciation");
@@ -281,7 +307,21 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     }
   }
 
+  function scheduleVoiceListening() {
+    if (voiceRestartTimerRef.current !== null) window.clearTimeout(voiceRestartTimerRef.current);
+    voiceRestartTimerRef.current = window.setTimeout(() => {
+      voiceRestartTimerRef.current = null;
+      if (voiceSessionStateRef.current === "active" && !voiceTurnPendingRef.current && !voiceSpeakingRef.current && !recognitionRef.current) {
+        startListening("compose");
+      }
+    }, 350);
+  }
+
   function stopListening() {
+    if (voiceRestartTimerRef.current !== null) {
+      window.clearTimeout(voiceRestartTimerRef.current);
+      voiceRestartTimerRef.current = null;
+    }
     recognitionRef.current?.stop();
     setListening(false);
     setPronunciationMode(false);
@@ -294,32 +334,32 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
 
   function startVoiceSession() {
     if (!speechSupported) {
-      setVoiceError("Voice input is not supported in this browser. You can still type your message.");
+      setVoiceError("Voice input is not supported in this browser. Try the latest Chrome or Edge, or type your message.");
       return;
     }
+    if (voiceRestartTimerRef.current !== null) window.clearTimeout(voiceRestartTimerRef.current);
+    voiceTurnPendingRef.current = false;
+    voiceSpeakingRef.current = false;
     updateVoiceSessionState("active");
     startListening("compose");
   }
 
-  function pauseVoiceSession() {
-    stopListening();
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    updateVoiceSessionState("paused");
-  }
-
   function endVoiceSession() {
+    updateVoiceSessionState("idle");
+    voiceTurnPendingRef.current = false;
+    voiceSpeakingRef.current = false;
     stopListening();
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    updateVoiceSessionState("idle");
     setVoiceError("");
   }
 
-  async function sendMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const content = draft.trim();
+  async function sendMessage(event?: FormEvent<HTMLFormElement>, contentOverride?: string) {
+    event?.preventDefault();
+    const content = (contentOverride ?? draft).trim();
     if (!content || isStreaming || sessionExpired) return;
+    if (voiceSessionStateRef.current === "active") voiceTurnPendingRef.current = true;
 
-    const nextMessages: Message[] = [...messages, { role: "user", content }];
+    const nextMessages: Message[] = [...messagesRef.current, { role: "user", content }];
     setMessages([...nextMessages, { role: "assistant", content: "" }]);
     setDraft("");
     setError("");
@@ -368,9 +408,19 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       assistantText += decoder.decode();
       const completeMessages = [...nextMessages, { role: "assistant" as const, content: assistantText }];
       setMessages(completeMessages);
-      if (!assistantText.trim()) setError("The AI returned an empty response. Please try again.");
-      else {
-        if (voiceSessionStateRef.current === "active") speak(assistantText);
+      if (!assistantText.trim()) {
+        setError("The AI returned an empty response. Please try again.");
+        voiceTurnPendingRef.current = false;
+        if (voiceSessionStateRef.current === "active") scheduleVoiceListening();
+      } else {
+        if (voiceSessionStateRef.current === "active") {
+          voiceTurnPendingRef.current = false;
+          voiceSpeakingRef.current = true;
+          speak(assistantText, () => {
+            voiceSpeakingRef.current = false;
+            if (voiceSessionStateRef.current === "active") scheduleVoiceListening();
+          });
+        }
         const startedAt = sessionStartedAtRef.current ?? new Date().toISOString();
         const updatedAt = new Date().toISOString();
         upsertSession({
@@ -394,6 +444,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       if (caught instanceof Error && caught.name === "AbortError") return;
       setMessages(nextMessages);
       setError(caught instanceof Error ? caught.message : "Something went wrong. Please try again.");
+      voiceTurnPendingRef.current = false;
+      if (voiceSessionStateRef.current === "active") scheduleVoiceListening();
     } finally {
       abortRef.current = null;
       setIsStreaming(false);
@@ -722,18 +774,15 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
             <button className="chat-reset" type="button" onClick={resetConversation} disabled={!messages.length && !error && !feedback}>New conversation</button>
           </div>
         </div>
-        <div className="voice-session-controls" aria-label="Voice practice controls">
+        <div className="voice-session-controls" aria-label="Voice conversation controls">
           <div className="voice-session-actions">
-            {voiceSessionState === "idle" ? (
-              <button className="button button-voice" type="button" onClick={startVoiceSession}>Start voice practice</button>
-            ) : voiceSessionState === "active" ? (
-              <button className="button button-voice" type="button" onClick={pauseVoiceSession}>Pause voice practice</button>
+            {voiceSessionState === "active" ? (
+              <button className="button button-voice" type="button" onClick={endVoiceSession}>End voice conversation</button>
             ) : (
-              <button className="button button-voice" type="button" onClick={startVoiceSession}>Resume voice practice</button>
+              <button className="button button-voice" type="button" onClick={startVoiceSession} disabled={!speechSupported || sessionExpired}>Start voice conversation</button>
             )}
-            {voiceSessionState !== "idle" && <button className="chat-reset" type="button" onClick={endVoiceSession}>End voice practice</button>}
           </div>
-          {voiceSessionState !== "idle" && <p className="voice-session-status" role="status">{voiceSessionState === "paused" ? "Voice practice paused. Your transcript and conversation are saved in this session." : listening ? "Listening — speak naturally. Your words appear in the message box before you send them." : isStreaming ? "Your coach is responding. Its reply will be spoken aloud." : "Voice practice is active. Select Speak when you are ready to answer."}</p>}
+          <p className="voice-session-status" role="status">{voiceSessionState === "active" ? listening ? "Listening — speak naturally. Your reply will be sent automatically; the AI will speak back and listen again." : isStreaming ? "Your AI coach is responding. It will listen again after speaking." : "Voice conversation active. Waiting for the next turn…" : speechSupported ? "Start one continuous, hands-free voice conversation. Allow microphone access when prompted." : "Voice input is not supported in this browser. Try the latest Chrome or Edge."}</p>
         </div>
         <div className="chat-transcript" aria-live="polite" aria-relevant="additions text">
           {messages.length === 0 ? (
@@ -758,7 +807,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           <textarea id="chat-message" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write what you would like to say…" rows={2} maxLength={4000} disabled={isStreaming || listening || sessionExpired}
             onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
           <div className="composer-footer"><span>Enter to send · Shift + Enter for a new line</span><div className="composer-actions">
-            <button className="button button-voice" type="button" aria-label={listening && !pronunciationMode ? "Stop microphone" : "Start voice input"} title={speechSupported ? "Speak your message" : "Voice input is not supported in this browser"} onClick={() => listening ? stopListening() : startListening("compose")} disabled={isStreaming || !speechSupported}>{listening && !pronunciationMode ? "■ Stop mic" : "🎙 Speak"}</button>
+            <button className="button button-voice" type="button" aria-label={listening && !pronunciationMode ? "Stop microphone" : "Start voice input"} title={speechSupported ? "Speak your message" : "Voice input is not supported in this browser"} onClick={() => listening ? stopListening() : startListening("compose")} disabled={isStreaming || !speechSupported || voiceSessionState === "active"}>{listening && !pronunciationMode ? "■ Stop mic" : "🎙 Speak"}</button>
             <button className="button button-dark send-button" type="submit" disabled={isStreaming || listening || sessionExpired || !draft.trim()}>{sessionExpired ? "Time is up" : isStreaming ? "Thinking…" : "Send message"} <span>↗</span></button>
           </div></div>
         </form>

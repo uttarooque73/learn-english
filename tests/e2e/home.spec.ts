@@ -243,7 +243,7 @@ test("voice practice explains the text fallback when speech recognition is unava
     Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
   });
   await page.goto("/practice");
-  await page.getByRole("button", { name: "Start voice practice" }).click();
+  await expect(page.getByRole("button", { name: "Start voice conversation" })).toBeDisabled();
   await expect(page.getByRole("status")).toContainText(/Voice input is not supported/);
   await expect(page.getByLabel("Your message")).toBeEnabled();
   await expect(page.getByRole("button", { name: /Send message/ })).toBeDisabled();
