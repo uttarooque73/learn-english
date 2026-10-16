@@ -788,3 +788,31 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .vocabulary-guide-forms>div span{color:#65695f}
 .vocabulary-guide-memory{background:#f2f6ee;border-color:#dfe8d8}
 @media(max-width:600px){.vocabulary-word-guide{padding:17px}.vocabulary-word-guide-header{flex-direction:column}.vocabulary-word-guide-header .notebook-secondary{width:100%}.vocabulary-guide-lists{grid-template-columns:1fr}.vocabulary-guide-forms>div{grid-template-columns:1fr;gap:4px}}
+
+
+/* Dedicated shadowing and pronunciation workspace */
+.shadowing-page-layout{display:grid;gap:22px}
+.shadowing-page-intro{margin-bottom:22px}
+.shadowing-history-panel{margin-top:0}
+.shadowing-history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:19px 0}
+.shadowing-history-summary>div{display:flex;flex-direction:column;gap:5px;padding:15px;border:1px solid var(--line);border-radius:11px;background:#fafbf7}
+.shadowing-history-summary strong{font-family:Manrope,sans-serif;font-size:22px;letter-spacing:-.7px}
+.shadowing-history-summary span{color:var(--muted);font-size:10px}
+.shadowing-history-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,.45fr) auto;align-items:end;gap:12px;margin-bottom:17px}
+.shadowing-history-tools .feature-field{display:grid;gap:7px;color:var(--muted);font-size:11px;font-weight:700}
+.shadowing-history-tools input,.shadowing-history-tools select{width:100%;min-height:41px;padding:0 11px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit;font-size:12px}
+.shadowing-history-empty{padding:25px;border:1px dashed #d7dfd0;border-radius:12px;background:#fafbf7}
+.shadowing-history-empty strong{font-family:Manrope,sans-serif;font-size:14px}
+.shadowing-history-empty p{max-width:660px;margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.7}
+.shadowing-history-list{display:grid;gap:11px}
+.shadowing-history-entry{min-width:0;padding:17px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.shadowing-history-entry-top{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:10px}
+.shadowing-history-entry-top span{padding:5px 8px;border-radius:99px;background:#edf2e8;color:var(--green-dark);font-weight:800}
+.shadowing-history-target{margin:13px 0 8px;font-family:Manrope,sans-serif;font-size:16px;font-weight:750;line-height:1.6;overflow-wrap:anywhere}
+.shadowing-history-transcript{margin:0;color:var(--muted);font-size:12px;line-height:1.7;overflow-wrap:anywhere}
+.shadowing-history-transcript strong{color:var(--ink)}
+.shadowing-history-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:13px;padding-top:12px;border-top:1px solid #eff0e9}
+.shadowing-history-actions .text-link{padding:0;border:0;background:transparent;color:var(--green-dark);font-size:11px;font-weight:750;cursor:pointer}
+.shadowing-history-actions .text-link:hover{text-decoration:underline}
+.shadowing-history-actions .shadowing-history-delete{margin-left:auto;color:#9b5145}
+@media(max-width:700px){.shadowing-history-tools{grid-template-columns:1fr}.shadowing-history-tools>.button{width:100%;justify-content:center}.shadowing-history-summary strong{font-size:19px}.shadowing-history-entry-top{align-items:flex-start;flex-direction:column}.shadowing-history-actions{gap:12px}.shadowing-history-actions .shadowing-history-delete{margin-left:0}}
