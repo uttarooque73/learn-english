@@ -470,3 +470,15 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
   .notebook-mode-tabs { flex-wrap: wrap; width: 100%; }
   .notebook-mode-tabs button { flex: 1 1 auto; padding-left: 8px; padding-right: 8px; }
 }
+
+
+/* Phase 17: local learning-data controls */
+.saved-data-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.saved-data-counts > div { display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.saved-data-counts strong { font-size: 24px; }
+.saved-data-counts span, .data-management-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.data-management-note { max-width: 720px; }
+.button-danger-outline { min-height: 42px; padding: 0 14px; border: 1px solid #b64b3b; border-radius: 9px; background: #fff; color: #963d30; font-weight: 700; cursor: pointer; }
+.button-danger-outline:hover { background: #fff5f2; }
+.data-management-status { min-height: 20px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+.session-history-controls { flex-wrap: wrap; }
