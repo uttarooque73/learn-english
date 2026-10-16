@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("dashboard renders and opens the practice room", async ({ page }) => {
   await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
 
   await expect(page.getByRole("heading", { name: "Good to see you" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
@@ -15,6 +16,7 @@ test("dashboard renders and opens the practice room", async ({ page }) => {
 
 test("practice room offers guided role-play scenarios and difficulty levels", async ({ page }) => {
   await page.goto("/practice");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
   await page.waitForLoadState("networkidle");
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
@@ -34,6 +36,7 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
 
 test("fluency page offers timed speaking and filler-word awareness exercises", async ({ page }) => {
   await page.goto("/fluency");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
 
   await expect(page.getByRole("heading", { name: "Fluency & confidence" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Daily speaking prompt/ })).toBeVisible();
@@ -71,6 +74,7 @@ test("practice room generates a structured session summary", async ({ page }) =>
     });
   });
   await page.goto("/practice");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
   await page.waitForLoadState("networkidle");
   await page.locator("#chat-message").fill("I work here since 2020.");
   await page.getByRole("button", { name: /Send message/ }).click();
@@ -84,6 +88,7 @@ test("practice room generates a structured session summary", async ({ page }) =>
 
 test("learning preferences save and persist personalization and accessibility choices", async ({ page }) => {
   await page.goto("/settings");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
   await expect(page.getByRole("heading", { name: "Learning preferences" })).toBeVisible();
 
   await page.getByLabel("Current English level").selectOption("Intermediate");
@@ -96,6 +101,7 @@ test("learning preferences save and persist personalization and accessibility ch
   await expect(page.getByRole("status")).toContainText("saved on this device");
 
   await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
   await expect(page.getByLabel("Current English level")).toHaveValue("Intermediate");
   await expect(page.getByLabel("Feedback style")).toHaveValue("detailed");
   await expect(page.getByLabel("Daily practice goal")).toHaveValue("15");
@@ -106,5 +112,6 @@ test("learning preferences save and persist personalization and accessibility ch
   await expect(page.locator("html")).toHaveClass(/speakup-reduced-motion/);
 
   await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
   await expect(page.getByRole("progressbar", { name: "Daily practice goal" })).toHaveAttribute("aria-valuemax", "15");
 });
