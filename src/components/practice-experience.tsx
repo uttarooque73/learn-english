@@ -36,6 +36,14 @@ function createId() {
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
+
+function wordMatchScore(target: string, spoken: string) {
+  const expected = target.toLocaleLowerCase().match(/[a-z']+/g) ?? [];
+  const actual = new Set(spoken.toLocaleLowerCase().match(/[a-z']+/g) ?? []);
+  if (!expected.length) return 0;
+  return Math.round((expected.filter((word) => actual.has(word)).length / expected.length) * 100);
+}
+
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [scenario, setScenario] = useState(prompts[0]?.title ?? "Free conversation");
   const [messages, setMessages] = useState<Message[]>([]);
