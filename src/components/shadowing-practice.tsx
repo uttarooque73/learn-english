@@ -99,7 +99,7 @@ export function ShadowingPractice() {
     const timer = window.setTimeout(() => {
       const w = window as SpeechWindow;
       setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-      setRecordingSupported(Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder));
+      setRecordingSupported(typeof navigator.mediaDevices?.getUserMedia === "function" && typeof window.MediaRecorder === "function");
     }, 0);
     return () => {
       window.clearTimeout(timer);
