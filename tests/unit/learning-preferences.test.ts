@@ -37,6 +37,7 @@ describe("learning preferences", () => {
       feedbackTiming: "immediate",
       speechRate: 1.2,
       speechVoiceURI: "test-english-voice",
+      speechVoiceGender: "female",
       preferredTopics: ["Job interview"],
       largerText: true,
       reducedMotion: false,
