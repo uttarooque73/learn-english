@@ -6,6 +6,7 @@ test("dashboard renders and opens the practice room", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Good to see you" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: "Daily practice goal" })).toBeVisible();
   await page.getByRole("link", { name: /Start a practice session/i }).click();
 
   await expect(page).toHaveURL(/\/practice$/);
@@ -22,6 +23,7 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
   await expect(page.getByRole("button", { name: /Daily stand-up/ })).toBeVisible();
 
   const difficulty = page.getByRole("combobox", { name: "Difficulty" });
+  await expect(difficulty).toBeEnabled();
   await expect(difficulty).toHaveValue("Beginner");
   await difficulty.selectOption("Advanced");
   await expect(difficulty).toHaveValue("Advanced");
@@ -82,4 +84,35 @@ test("practice room generates a structured session summary", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Your learning summary" })).toBeVisible();
   await expect(page.getByText("hands-on experience")).toBeVisible();
   await expect(page.getByText("Repeat the answer and include one measurable result.")).toBeVisible();
+});
+
+
+test("learning preferences save and persist personalization and accessibility choices", async ({ page }) => {
+  await page.goto("/settings");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
+  await expect(page.getByRole("heading", { name: "Learning preferences" })).toBeVisible();
+
+  await page.getByLabel("Current English level").selectOption("Intermediate");
+  await page.getByLabel("Feedback style").selectOption("detailed");
+  await page.getByLabel("Daily practice goal").selectOption("15");
+  await page.getByLabel("Explain a technical concept").check();
+  await page.getByLabel("Larger text").check();
+  await page.getByLabel("Reduce animation").check();
+  await page.getByRole("button", { name: /Save preferences/ }).click();
+  await expect(page.getByRole("status")).toContainText("saved on this device");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
+  await expect(page.getByLabel("Current English level")).toHaveValue("Intermediate");
+  await expect(page.getByLabel("Feedback style")).toHaveValue("detailed");
+  await expect(page.getByLabel("Daily practice goal")).toHaveValue("15");
+  await expect(page.getByLabel("Explain a technical concept")).toBeChecked();
+  await expect(page.getByLabel("Larger text")).toBeChecked();
+  await expect(page.getByLabel("Reduce animation")).toBeChecked();
+  await expect(page.locator("html")).toHaveClass(/speakup-larger-text/);
+  await expect(page.locator("html")).toHaveClass(/speakup-reduced-motion/);
+
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-app-hydrated", "true");
+  await expect(page.getByRole("progressbar", { name: "Daily practice goal" })).toHaveAttribute("aria-valuemax", "15");
 });
