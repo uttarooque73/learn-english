@@ -26,6 +26,14 @@ const SCENARIO_GUIDES: Record<string, string> = {
   "Free conversation": "Have a natural open-ended conversation based on the learner's interests. Ask one follow-up question at a time.",
 };
 
+const FEEDBACK_GUIDES: Record<string, string> = {
+  gentle: "When the learner requests help, lead with encouragement, correct only the most useful issue, and keep explanations brief and reassuring.",
+  balanced: "When the learner requests help, balance encouragement with one or two useful corrections and concise explanations.",
+  detailed: "When the learner requests help, explain corrections clearly, include why the improved phrasing works, and offer a short example without overwhelming the conversation.",
+};
+
+const ALLOWED_TOPICS = new Set(["Everyday life", "At work", "Job interview", "Daily stand-up", "Team meeting", "Explain a technical concept", "Restaurant conversation", "Travel and directions", "Phone call", "Free conversation"]);
+
 const DIFFICULTY_GUIDES: Record<string, string> = {
   Beginner: "Use short sentences, common words, and one clear question at a time. If the learner seems stuck, offer a simple phrase they can use.",
   Intermediate: "Use natural everyday English, occasional idioms, and realistic follow-up questions. Encourage the learner to expand answers without overwhelming them.",
@@ -105,6 +113,7 @@ export async function POST(request: Request) {
               "and respond to what the learner actually says. Stay in the role-play until the learner asks to stop or switch. " +
               "Use the selected scenario guidance: " + SCENARIO_GUIDES[scenario] + " " +
               "Adapt to this learner level: " + difficulty + ". " + DIFFICULTY_GUIDES[difficulty] + " " +
+              "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " +
               "Do not interrupt with unsolicited grammar lessons. If the learner asks for correction, give one natural correction and a brief explanation. " +
               "Do not claim to score proficiency. Selected scenario: " + scenario + ".",
           },
