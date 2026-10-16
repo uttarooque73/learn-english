@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { clearSavedPracticeData, getSessions, getVocabulary } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { LearningOptionsManager } from "@/components/learning-options-manager";
 import {
   applyAccessibilityPreferences,
@@ -21,8 +22,10 @@ export function LearningSettings() {
   const [speechPlaybackSupported, setSpeechPlaybackSupported] = useState(false);
 
   useEffect(() => {
+    let active = true;
     let voiceChangeHandler: (() => void) | undefined;
-    const timer = window.setTimeout(() => {
+    void initializeDatabasePersistence().then(() => {
+      if (!active) return;
       const current = getLearningPreferences();
       setPreferences(current);
       setSavedDataCounts({ sessions: getSessions().length, vocabulary: getVocabulary().length });
@@ -33,9 +36,9 @@ export function LearningSettings() {
         voiceChangeHandler();
         window.speechSynthesis.addEventListener("voiceschanged", voiceChangeHandler);
       }
-    }, 0);
+    }).catch(() => { if (active) setDataStatus("Could not load saved settings from the database. Refresh to retry."); });
     return () => {
-      window.clearTimeout(timer);
+      active = false;
       if (voiceChangeHandler && "speechSynthesis" in window) window.speechSynthesis.removeEventListener("voiceschanged", voiceChangeHandler);
     };
   }, []);
@@ -57,11 +60,11 @@ export function LearningSettings() {
       setDataStatus("There is no saved practice data to delete.");
       return;
     }
-    const confirmed = window.confirm("Permanently delete all saved conversations, transcripts, session summaries, and vocabulary from this browser? Learning preferences will be kept.");
+    const confirmed = window.confirm("Permanently delete all saved conversations, transcripts, session summaries, and vocabulary from the application database? Learning preferences will be kept.");
     if (!confirmed) return;
     clearSavedPracticeData();
     setSavedDataCounts({ sessions: 0, vocabulary: 0 });
-    setDataStatus("All saved conversations, summaries, and vocabulary have been deleted from this browser.");
+    setDataStatus("All saved conversations, summaries, and vocabulary have been deleted from the application database.");
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
