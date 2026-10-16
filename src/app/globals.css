@@ -550,3 +550,23 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
   .vocabulary-selection-action, .vocabulary-selection-panel { left: 12px !important; right: 12px; width: auto; }
   .vocabulary-selection-status { right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); }
 }
+
+
+/* User-configurable practice options */
+.dynamic-option-form{display:grid;grid-template-columns:1fr 1.5fr 100px auto;align-items:end;gap:12px;margin:18px 0 20px}
+.dynamic-option-form .settings-field{min-width:0}
+.dynamic-option-form input,.dynamic-option-form textarea,.dynamic-option-form select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-weight:400;font-size:12px}
+.dynamic-option-form input:focus,.dynamic-option-form textarea:focus,.dynamic-option-form select:focus{outline:2px solid #91a686;outline-offset:1px}
+.dynamic-option-form button{min-height:42px;white-space:nowrap}
+.dynamic-options-list{display:grid;gap:0;border-top:1px solid var(--line)}
+.dynamic-options-list-heading{display:flex;justify-content:space-between;gap:12px;padding:14px 0;color:var(--ink);font-size:12px}
+.dynamic-options-list-heading span,.dynamic-option-default{color:var(--muted);font-size:11px}
+.dynamic-option-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #f0f0ea}
+.dynamic-option-row>div{flex:1;min-width:0}
+.dynamic-option-row>div strong{font-size:12px}
+.dynamic-option-row>div p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.dynamic-option-row .scenario-icon{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border-radius:10px;font-size:16px}
+.dynamic-options-message{margin:8px 0;color:var(--green-dark);font-size:12px}
+.dynamic-options-manager .remove-word{min-height:34px}
+@media(max-width:850px){.dynamic-option-form{grid-template-columns:1fr 1fr}.dynamic-option-form button{width:100%}}
+@media(max-width:520px){.dynamic-option-form{grid-template-columns:1fr}.dynamic-option-row{align-items:flex-start}.dynamic-option-row .remove-word{flex:0 0 auto}}
