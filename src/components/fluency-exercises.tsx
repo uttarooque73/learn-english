@@ -44,7 +44,6 @@ const prompts: Record<Exercise, string[]> = {
 const fillerPattern = /\b(um+|uh+|erm+|like|you know|basically|actually)\b/gi;
 
 export function FluencyExercises() {
-  const [isHydrated, setIsHydrated] = useState(false);
   const [exercise, setExercise] = useState<Exercise>("daily");
   const [promptIndex, setPromptIndex] = useState(() => new Date().getDate() % prompts.daily.length);
   const [response, setResponse] = useState("");
@@ -57,11 +56,6 @@ export function FluencyExercises() {
   const prompt = currentPrompts[promptIndex % currentPrompts.length];
   const wordCount = useMemo(() => response.trim() ? response.trim().split(/\s+/).length : 0, [response]);
   const fillerMatches = useMemo(() => response.match(fillerPattern) ?? [], [response]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setIsHydrated(true), 0);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (!timerRunning || secondsRemaining <= 0) return;
@@ -104,7 +98,7 @@ export function FluencyExercises() {
     <section className="fluency-workspace" aria-label="Fluency exercises">
       <div className="fluency-exercise-grid">
         {exercises.map((item) => (
-          <button key={item.id} type="button" className={`fluency-exercise-card ${exercise === item.id ? "active" : ""}`} aria-pressed={exercise === item.id} onClick={() => selectExercise(item.id)} disabled={!isHydrated}>
+          <button key={item.id} type="button" className={`fluency-exercise-card ${exercise === item.id ? "active" : ""}`} aria-pressed={exercise === item.id} onClick={() => selectExercise(item.id)}>
             <span className="fluency-card-icon" aria-hidden="true">{item.icon}</span>
             <strong>{item.title}</strong>
             <span>{item.description}</span>
