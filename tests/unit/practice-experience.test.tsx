@@ -19,7 +19,7 @@ describe("PracticeExperience", () => {
     fireEvent.click(workScenario);
 
     expect(workScenario).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText((_, element) => element?.tagName === "P" && /practice a conversation about/i.test(element.textContent ?? "") && /at work/i.test(element.textContent ?? ""))).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "P" && /role-play/i.test(element.textContent ?? "") && /at work/i.test(element.textContent ?? ""))).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Help me get started/ }));
     expect(screen.getByLabelText("Your message")).toHaveValue(
@@ -46,7 +46,7 @@ describe("PracticeExperience", () => {
     await waitFor(() => expect(screen.getByText("Hello there!")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ scenario: "At work", messages: [{ role: "user", content: "Hello coach" }] }),
+      body: JSON.stringify({ scenario: "At work", difficulty: "Beginner", messages: [{ role: "user", content: "Hello coach" }] }),
     }));
     expect(screen.getByText("You")).toBeInTheDocument();
     expect(screen.getByText("SpeakUp AI")).toBeInTheDocument();
