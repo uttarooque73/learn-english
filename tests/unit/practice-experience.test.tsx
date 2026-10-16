@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PracticeExperience } from "@/components/practice-experience";
 
@@ -41,7 +41,7 @@ describe("PracticeExperience", () => {
 
     render(<PracticeExperience prompts={prompts} />);
     fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Hello coach" } });
-    fireEvent.click(screen.getByText("Send message", { selector: "button" }));
+    fireEvent.click(within(screen.getByLabelText("Your message").closest("form")!).getByRole("button", { name: /Send message/ }));
 
     await waitFor(() => expect(screen.getByText("Hello there!")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
