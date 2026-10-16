@@ -224,3 +224,22 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #9
 .fluency-disclaimer{margin:13px 2px 0;color:#999b91;font-size:10px;line-height:1.7}
 @media(max-width:950px){.fluency-exercise-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fluency-intro-art{min-width:220px}}
 @media(max-width:650px){.fluency-intro{align-items:flex-start;flex-direction:column;padding:23px 20px}.fluency-intro h2{font-size:26px}.fluency-intro-art{min-width:0;gap:7px}.fluency-exercise-grid{grid-template-columns:1fr}.fluency-exercise-card{min-height:0}.fluency-prompt-card{padding:17px}.fluency-prompt-header h2{font-size:17px}.fluency-prompt-text{font-size:13px}.fluency-response-meta{flex-direction:column}.fluency-actions{justify-content:stretch}.fluency-actions>*{flex:1;justify-content:center}}
+
+
+/* Phase 6: transcript-based session review */
+.session-review-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.session-summary-panel{margin-top:18px;padding:23px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.session-summary-panel .feedback-title{margin-bottom:18px}
+.session-summary-intro{margin:0 0 18px;padding:15px 17px;border-left:3px solid #9aad8c;border-radius:0 9px 9px 0;background:#f5f6f1;font-size:13px;line-height:1.8}
+.summary-corrections{display:grid;gap:10px}
+.summary-corrections article,.summary-vocabulary article{padding:13px 15px;border:1px solid #eceee7;border-radius:9px;background:#fcfcfa}
+.summary-corrections article p{display:flex;gap:10px;align-items:flex-start;margin:0 0 8px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.summary-corrections article p span{flex:0 0 43px;color:#85897d;font-size:10px;font-weight:700;text-transform:uppercase}
+.summary-corrections article p:nth-child(2){color:var(--green-dark);font-weight:600}
+.summary-corrections article small{display:block;margin-left:53px;color:#777b70;font-size:10px;line-height:1.7}
+.summary-vocabulary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.summary-vocabulary strong{font-family:Manrope,sans-serif;font-size:12px}
+.summary-vocabulary p{margin:6px 0 0;color:#777b70;font-size:11px;line-height:1.7}
+.summary-follow-up{margin-top:20px;padding:16px;border-radius:10px;background:#edf2e8}
+.summary-follow-up>p:last-child{margin:7px 0 0;color:#495c43;font-size:12px;line-height:1.8}
+@media(max-width:650px){.session-review-actions{width:100%}.session-review-actions>*{flex:1;justify-content:center}.session-summary-panel{padding:17px}.summary-vocabulary{grid-template-columns:1fr}.summary-corrections article small{margin-left:0}}
