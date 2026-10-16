@@ -15,6 +15,7 @@ test("dashboard renders and opens the practice room", async ({ page }) => {
 test("practice room offers guided role-play scenarios and difficulty levels", async ({ page }) => {
   await page.goto("/practice");
   await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(750); // Allow the client component to hydrate before interacting.
 
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
