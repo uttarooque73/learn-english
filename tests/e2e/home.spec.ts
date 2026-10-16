@@ -400,6 +400,7 @@ test("selected text can be saved to vocabulary from different app pages", async 
       const selection = window.getSelection();
       selection?.removeAllRanges();
       selection?.addRange(range);
+      document.dispatchEvent(new Event("selectionchange", { bubbles: true }));
       window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, view: window }));
     });
     await page.locator(".vocabulary-selection-action").getByRole("button", { name: "Add selected text to vocabulary" }).click();
