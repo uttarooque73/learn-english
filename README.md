@@ -43,6 +43,13 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Provide scenario-specific starter messages and preserve free conversation.
 - [x] Validate scenario and difficulty selections server-side before building the system prompt.
 
+### Phase 5 — Fluency and confidence exercises
+- [x] Add quick-response prompts and a rotating set of daily speaking topics.
+- [x] Add a one-minute talk exercise with start, pause, resume, and reset controls.
+- [x] Add text-based filler-word awareness for common expressions such as “um”, “uh”, and “you know”.
+- [x] Provide a supportive reflection after an exercise without claiming to measure proficiency.
+- [ ] Add adaptive follow-up questions that respond to the learner's answer.
+
 **Current limitations:** Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -222,12 +229,12 @@ Next.js Route Handlers (/api/*)
 - [x] Support free conversation without a predefined scenario.
 
 ### 6. Fluency and Confidence Exercises
-- [ ] Quick-response challenge with a limited response time.
-- [ ] Daily speaking prompt.
-- [ ] One-minute talk on a selected topic.
+- [x] Quick-response challenge with a prompt to answer without overthinking.
+- [x] Daily speaking prompt.
+- [x] One-minute talk on a selected topic with a timer.
 - [ ] Follow-up questions to encourage longer answers.
-- [ ] Filler-word awareness and concise-answer suggestions.
-- [ ] Encouraging, non-judgmental feedback focused on improvement.
+- [x] Basic text-based filler-word awareness; spoken filler detection remains future work.
+- [x] Encouraging, non-judgmental reflection focused on improvement.
 
 ### 7. Session Summary
 - [ ] Summarize the topic and key points discussed.
