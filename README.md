@@ -30,10 +30,21 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 
 ### Install and run
 
+For an existing checkout, update the code, install dependencies, ensure Ollama is available, and start the app with one command:
+
+```bash
+bash scripts/update-and-run.sh
+```
+
+The script uses fast-forward-only Git updates, preserves your existing `.env.local` custom settings, upgrades the old default model setting from `qwen3:4b` to `llama3.1:8b`, and downloads the configured model only if it is missing. It does not run `git reset` or `git clean`; it stops if tracked local edits are present.
+
+For a fresh install:
+
 ```bash
 git clone https://github.com/uttarooque73/learn-english.git
 cd learn-english
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
@@ -42,10 +53,10 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Configure Ollama for chat
 
 1. Install and start [Ollama](https://ollama.com/download).
-2. Download the default model:
+2. Ensure the configured model is installed. The default is `llama3.1:8b`:
 
    ```bash
-   ollama pull qwen3:4b
+   ollama pull llama3.1:8b
    ```
 
 3. Create your local environment file and adjust it if needed:
@@ -56,7 +67,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 4. Restart the Next.js development server after changing environment variables.
 
-The server reads `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`) and `OLLAMA_MODEL` (default `qwen3:4b`). These must remain server-only variables; do not rename them with the `NEXT_PUBLIC_` prefix. The browser sends messages only to `/api/chat`.
+The server reads `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`) and `OLLAMA_MODEL` (default `llama3.1:8b`). These must remain server-only variables; do not rename them with the `NEXT_PUBLIC_` prefix. The browser sends messages only to `/api/chat`.
 
 ## Quality checks
 
