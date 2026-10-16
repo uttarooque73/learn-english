@@ -278,3 +278,19 @@ test("immediate English feedback distinguishes grammar errors and offers a pract
   await page.getByRole("button", { name: "Practice this prompt" }).click();
   await expect(page.getByLabel("Your message")).toHaveValue("Tell your coach one more thing you did yesterday.");
 });
+
+
+test("vocabulary expression library explains and saves collocations and phrasal verbs", async ({ page }) => {
+  await page.goto("/vocabulary");
+  await page.getByRole("button", { name: "Useful expressions" }).click();
+  const library = page.getByRole("region", { name: "Collocations, phrasal verbs, and common expressions" });
+  await expect(library).toBeVisible();
+  await expect(library.getByRole("heading", { name: "make a decision" })).toBeVisible();
+  await expect(library.getByText("collocation", { exact: true }).first()).toBeVisible();
+  await expect(library.getByText("Choose what to do after thinking about the options.")).toBeVisible();
+  await library.getByRole("button", { name: "Save expression: make a decision" }).click();
+  await expect(library.getByRole("button", { name: "make a decision saved" })).toBeDisabled();
+  await page.getByRole("button", { name: "Word bank" }).click();
+  await expect(page.getByRole("heading", { name: "make a decision" })).toBeVisible();
+  await expect(page.getByText("We need to make a decision before Friday.")).toBeVisible();
+});

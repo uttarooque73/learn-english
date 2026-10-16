@@ -1,16 +1,39 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getDueVocabulary, getVocabulary, removeVocabulary, reviewVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
+import { getDueVocabulary, getVocabulary, removeVocabulary, reviewVocabulary, saveVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
 
 const statusLabels: Record<VocabularyStatus, string> = { learning: "Learning", familiar: "Familiar", mastered: "Mastered" };
+
+const usefulExpressions: { phrase: string; meaning: string; example: string; category: NonNullable<SavedVocabulary["category"]> }[] = [
+  { phrase: "make a decision", meaning: "Choose what to do after thinking about the options.", example: "We need to make a decision before Friday.", category: "collocation" },
+  { phrase: "take responsibility", meaning: "Accept that something is your duty or your mistake.", example: "I will take responsibility for fixing the issue.", category: "collocation" },
+  { phrase: "meet a deadline", meaning: "Finish work by the required time.", example: "We worked together to meet the deadline.", category: "collocation" },
+  { phrase: "raise a concern", meaning: "Tell others about a possible problem.", example: "I would like to raise a concern about the timeline.", category: "collocation" },
+  { phrase: "pay attention", meaning: "Listen or look carefully.", example: "Please pay attention to the final instructions.", category: "collocation" },
+  { phrase: "keep in touch", meaning: "Continue communicating with someone.", example: "Let's keep in touch after the project ends.", category: "expression" },
+  { phrase: "on the same page", meaning: "Sharing the same understanding or plan.", example: "Let's confirm that we are on the same page.", category: "expression" },
+  { phrase: "a piece of cake", meaning: "Something very easy to do.", example: "The first exercise was a piece of cake.", category: "expression" },
+  { phrase: "under the weather", meaning: "Feeling slightly ill.", example: "I'm feeling under the weather today.", category: "expression" },
+  { phrase: "once in a while", meaning: "Sometimes, but not often.", example: "I eat out once in a while.", category: "expression" },
+  { phrase: "figure out", meaning: "Understand or solve something.", example: "We will figure out why the test failed.", category: "phrasal verb" },
+  { phrase: "follow up", meaning: "Take another action to check progress or continue a conversation.", example: "I'll follow up with the team tomorrow.", category: "phrasal verb" },
+  { phrase: "bring up", meaning: "Start talking about a subject.", example: "She brought up an important point in the meeting.", category: "phrasal verb" },
+  { phrase: "carry on", meaning: "Continue doing something.", example: "Please carry on with your presentation.", category: "phrasal verb" },
+  { phrase: "look into", meaning: "Investigate or try to find out more about something.", example: "I'll look into the login problem.", category: "phrasal verb" },
+  { phrase: "work out", meaning: "Find a solution or reach an agreement.", example: "We can work out a better schedule.", category: "phrasal verb" },
+  { phrase: "run out of time", meaning: "Have no time remaining.", example: "We ran out of time before the final question.", category: "expression" },
+  { phrase: "in advance", meaning: "Before a particular time or event.", example: "Please let me know in advance if you cannot attend.", category: "expression" },
+  { phrase: "come up with", meaning: "Think of an idea, answer, or plan.", example: "Can you come up with another solution?", category: "phrasal verb" },
+  { phrase: "make progress", meaning: "Move closer to completing or improving something.", example: "Practising a little every day helps you make progress.", category: "collocation" },
+];
 
 export function VocabularyNotebook() {
   const [words, setWords] = useState<SavedVocabulary[]>([]);
   const [ready, setReady] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | VocabularyStatus>("all");
-  const [mode, setMode] = useState<"list" | "flashcards" | "quiz" | "review">("list");
+  const [mode, setMode] = useState<"list" | "flashcards" | "quiz" | "review" | "expressions">("list");
   const [cardIndex, setCardIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [quizChoice, setQuizChoice] = useState("");
@@ -29,6 +52,10 @@ export function VocabularyNotebook() {
   }), [words, search, filter]);
 
   function refresh() { setWords(getVocabulary()); }
+  function saveExpression(expression: (typeof usefulExpressions)[number]) {
+    saveVocabulary(expression);
+    refresh();
+  }
   function changeStatus(word: SavedVocabulary, status: VocabularyStatus) {
     updateVocabularyStatus(word.id, status);
     refresh();
@@ -65,9 +92,22 @@ export function VocabularyNotebook() {
         <button type="button" className={mode === "flashcards" ? "active" : ""} onClick={() => { setMode("flashcards"); setRevealed(false); }}>Flashcards</button>
         <button type="button" className={mode === "quiz" ? "active" : ""} onClick={() => { setMode("quiz"); setQuizChoice(""); setQuizAnswered(false); }}>Quick quiz</button>
         <button type="button" className={mode === "review" ? "active" : ""} onClick={() => { setMode("review"); setReviewIndex(0); setRevealed(false); }}>Review due <span className="review-due-count">{dueWords.length}</span></button>
+        <button type="button" className={mode === "expressions" ? "active" : ""} onClick={() => setMode("expressions")}>Useful expressions</button>
       </div>
 
-      {mode === "review" ? (
+      {mode === "expressions" ? (
+        <section className="expression-library" aria-label="Collocations, phrasal verbs, and common expressions">
+          <div className="expression-library-heading"><p className="eyebrow">SPEAK MORE NATURALLY</p><h3>Useful expressions</h3><p>Learn phrases native speakers use in everyday life and at work. Save any phrase to your word bank to review it later.</p></div>
+          <div className="expression-library-grid">{usefulExpressions.map((expression) => {
+            const saved = words.some((word) => word.phrase.toLocaleLowerCase() === expression.phrase.toLocaleLowerCase());
+            return <article className="expression-card" key={expression.phrase}>
+              <div className="expression-card-top"><span className="expression-category">{expression.category}</span>{saved && <span className="expression-saved">Saved</span>}</div>
+              <h4>{expression.phrase}</h4><p>{expression.meaning}</p><blockquote>{expression.example}</blockquote>
+              <button type="button" className="notebook-secondary" disabled={saved} onClick={() => saveExpression(expression)} aria-label={saved ? `${expression.phrase} saved` : `Save expression: ${expression.phrase}`}>{saved ? "Added to word bank" : "Save to word bank"}</button>
+            </article>;
+          })}</div>
+        </section>
+      ) : mode === "review" ? (
         <section className="vocab-study-card spaced-review-card" aria-label="Spaced repetition review">
           {currentDue ? <><p className="eyebrow">DUE REVIEW · {reviewIndex + 1} OF {dueWords.length}</p><h3>{currentDue.phrase}</h3>{revealed ? <><p>{currentDue.meaning}</p><blockquote>{currentDue.example}</blockquote><p className="review-history">Reviewed {currentDue.reviewCount ?? 0} time(s). Your answer schedules the next review.</p><div className="vocab-study-actions"><button type="button" className="button button-light" onClick={() => { reviewVocabulary(currentDue.id, "again"); refresh(); setReviewIndex(0); setRevealed(false); }}>Again · 1 day</button><button type="button" className="button button-dark" onClick={() => { reviewVocabulary(currentDue.id, "good"); refresh(); setReviewIndex(0); setRevealed(false); }}>Got it · 3 days</button><button type="button" className="button button-primary" onClick={() => { reviewVocabulary(currentDue.id, "easy"); refresh(); setReviewIndex(0); setRevealed(false); }}>Easy · 7 days</button></div></> : <><p className="vocab-study-hint">Try to recall the meaning before revealing it. Your answer schedules the next review.</p><div className="vocab-study-actions"><button type="button" className="button button-dark" onClick={() => setRevealed(true)}>Reveal meaning</button></div></>}</> : <div className="notebook-empty"><h3>You&apos;re all caught up</h3><p>No saved words are due right now. New words will appear here automatically.</p></div>}
         </section>

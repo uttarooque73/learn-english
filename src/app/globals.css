@@ -449,3 +449,24 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .feedback-practice-prompt > div { flex: 1 1 220px; }
 .feedback-practice-prompt p { margin: 3px 0; }
 @media (max-width: 520px) { .feedback-practice-prompt { align-items: stretch; } .feedback-practice-prompt button { width: 100%; min-height: 42px; } }
+
+
+/* Phase 16: curated library of natural English expressions */
+.expression-library { display: grid; gap: 18px; }
+.expression-library-heading h3 { margin: 4px 0 6px; font-size: 21px; letter-spacing: -.5px; }
+.expression-library-heading > p:last-child { max-width: 650px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.expression-library-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.expression-card { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); min-width: 0; }
+.expression-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+.expression-category, .expression-saved { padding: 4px 8px; border-radius: 999px; background: var(--paper); color: var(--muted); font-size: 10px; font-weight: 700; text-transform: capitalize; }
+.expression-saved { background: #edf0e7; color: #536449; }
+.expression-card h4 { margin: 0; font-size: 16px; }
+.expression-card p { margin: 0; font-size: 13px; line-height: 1.55; }
+.expression-card blockquote { margin: 0; padding-left: 10px; border-left: 2px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.55; }
+.expression-card button { margin-top: auto; min-height: 40px; }
+@media (max-width: 640px) { .expression-library-grid { grid-template-columns: minmax(0, 1fr); } }
+
+@media (max-width: 640px) {
+  .notebook-mode-tabs { flex-wrap: wrap; width: 100%; }
+  .notebook-mode-tabs button { flex: 1 1 auto; padding-left: 8px; padding-right: 8px; }
+}
