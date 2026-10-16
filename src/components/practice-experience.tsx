@@ -54,6 +54,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState("");
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [voiceSessionState, setVoiceSessionState] = useState<"idle" | "active" | "paused">("idle");
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState("");
   const [pronunciationAssessment, setPronunciationAssessment] = useState<TranscriptAssessment | null>(null);
@@ -64,6 +65,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const conversationEnd = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceSessionStateRef = useRef<"idle" | "active" | "paused">("idle");
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartedAtRef = useRef<string | null>(null);
 
@@ -163,6 +165,33 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setPronunciationMode(false);
   }
 
+  function updateVoiceSessionState(state: "idle" | "active" | "paused") {
+    voiceSessionStateRef.current = state;
+    setVoiceSessionState(state);
+  }
+
+  function startVoiceSession() {
+    if (!speechSupported) {
+      setVoiceError("Voice input is not supported in this browser. You can still type your message.");
+      return;
+    }
+    updateVoiceSessionState("active");
+    startListening("compose");
+  }
+
+  function pauseVoiceSession() {
+    stopListening();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    updateVoiceSessionState("paused");
+  }
+
+  function endVoiceSession() {
+    stopListening();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    updateVoiceSessionState("idle");
+    setVoiceError("");
+  }
+
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = draft.trim();
@@ -213,6 +242,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       setMessages(completeMessages);
       if (!assistantText.trim()) setError("The AI returned an empty response. Please try again.");
       else {
+        if (voiceSessionStateRef.current === "active") speak(assistantText);
         const startedAt = sessionStartedAtRef.current ?? new Date().toISOString();
         const updatedAt = new Date().toISOString();
         upsertSession({
@@ -508,7 +538,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </div>
         <div className="scenario-grid">
           {prompts.map((prompt) => (
-            <button className={`scenario-card scenario-choice ${scenario === prompt.title ? "selected" : ""}`} type="button" key={prompt.number} onClick={() => chooseScenario(prompt.title)} aria-pressed={scenario === prompt.title} disabled={isStreaming || listening}>
+            <button className={`scenario-card scenario-choice ${scenario === prompt.title ? "selected" : ""}`} type="button" key={prompt.number} onClick={() => chooseScenario(prompt.title)} aria-pressed={scenario === prompt.title} disabled={isStreaming || listening || voiceSessionState !== "idle"}>
               <span className="scenario-top"><span className={`scenario-icon ${prompt.tone}`}>{prompt.icon}</span><span className="scenario-number">{prompt.number}</span></span>
               <span className="scenario-title">{prompt.title}</span><span className="scenario-description">{prompt.description}</span>
               <span className="scenario-bottom"><span>Guided conversation</span><span className="scenario-arrow">{scenario === prompt.title ? "✓" : "↗"}</span></span>
@@ -539,6 +569,19 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
             }} disabled={!selectedSessionId || isStreaming || listening}>Restore</button>
             <button className="chat-reset" type="button" onClick={resetConversation} disabled={!messages.length && !error && !feedback}>New conversation</button>
           </div>
+        </div>
+        <div className="voice-session-controls" aria-label="Voice practice controls">
+          <div className="voice-session-actions">
+            {voiceSessionState === "idle" ? (
+              <button className="button button-voice" type="button" onClick={startVoiceSession}>Start voice practice</button>
+            ) : voiceSessionState === "active" ? (
+              <button className="button button-voice" type="button" onClick={pauseVoiceSession}>Pause voice practice</button>
+            ) : (
+              <button className="button button-voice" type="button" onClick={startVoiceSession}>Resume voice practice</button>
+            )}
+            {voiceSessionState !== "idle" && <button className="chat-reset" type="button" onClick={endVoiceSession}>End voice practice</button>}
+          </div>
+          {voiceSessionState !== "idle" && <p className="voice-session-status" role="status">{voiceSessionState === "paused" ? "Voice practice paused. Your transcript and conversation are saved in this session." : listening ? "Listening — speak naturally. Your words appear in the message box before you send them." : isStreaming ? "Your coach is responding. Its reply will be spoken aloud." : "Voice practice is active. Select Speak when you are ready to answer."}</p>}
         </div>
         <div className="chat-transcript" aria-live="polite" aria-relevant="additions text">
           {messages.length === 0 ? (

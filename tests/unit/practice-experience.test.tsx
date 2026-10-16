@@ -143,4 +143,15 @@ describe("PracticeExperience", () => {
     expect(screen.getByRole("heading", { name: "Your learning summary" })).toBeInTheDocument();
   });
 
+  it("keeps typed practice available when speech recognition is unsupported", async () => {
+    const { container } = render(<PracticeExperience prompts={prompts} />);
+    const view = within(container);
+    const startButton = view.getByRole("button", { name: "Start voice practice" });
+    await waitFor(() => expect(startButton).toBeInTheDocument());
+
+    fireEvent.click(startButton);
+    expect(view.getByRole("status")).toHaveTextContent(/Voice input is not supported in this browser/);
+    expect(container.querySelector("textarea")).toBeEnabled();
+  });
+
 });

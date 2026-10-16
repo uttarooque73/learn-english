@@ -231,3 +231,16 @@ test("mobile navigation and practice chat work without horizontal overflow", asy
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
   }
 });
+
+
+test("voice practice explains the text fallback when speech recognition is unavailable", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: undefined });
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
+  });
+  await page.goto("/practice");
+  await page.getByRole("button", { name: "Start voice practice" }).click();
+  await expect(page.getByRole("status")).toContainText(/Voice input is not supported/);
+  await expect(page.getByLabel("Your message")).toBeEnabled();
+  await expect(page.getByRole("button", { name: /Send message/ })).toBeDisabled();
+});
