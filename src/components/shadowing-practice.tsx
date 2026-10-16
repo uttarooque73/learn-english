@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
+import { speakText } from "@/lib/speech-playback";
 
 const DEFAULT_LINES = [
   "Could you give me a moment to think about that?",
@@ -114,11 +115,9 @@ export function ShadowingPractice() {
   const comparison: TranscriptAssessment | null = transcript ? assessTranscript(sentence, transcript) : null;
 
   function speakSentence() {
-    if (!("speechSynthesis" in window) || !sentence) { setFeedback("Text-to-speech is not supported in this browser."); return; }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(sentence);
-    utterance.lang = "en-US"; utterance.rate = rate;
-    window.speechSynthesis.speak(utterance);
+    if (!sentence || !speakText(sentence, undefined, rate)) {
+      setFeedback("Text-to-speech is not supported in this browser.");
+    }
   }
 
   async function startRepeat() {
