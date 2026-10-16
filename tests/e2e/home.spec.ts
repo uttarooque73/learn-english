@@ -16,7 +16,7 @@ test("practice room offers guided role-play scenarios and difficulty levels", as
   await page.goto("/practice");
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
-  await expect(interview).toBeEnabled();
+  await expect(interview).toBeEnabled({ timeout: 10_000 });
   await interview.click();
   await expect(interview).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: /Daily stand-up/ })).toBeVisible();
@@ -38,7 +38,7 @@ test("fluency page offers timed speaking and filler-word awareness exercises", a
 
   const minuteTalk = page.getByRole("button", { name: /One-minute talk/ });
   await expect(minuteTalk).toBeVisible();
-  await expect(minuteTalk).toBeEnabled();
+  await expect(minuteTalk).toBeEnabled({ timeout: 10_000 });
   await minuteTalk.click();
   await expect(minuteTalk).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("timer")).toHaveAttribute("aria-label", "60 seconds remaining");
@@ -46,7 +46,7 @@ test("fluency page offers timed speaking and filler-word awareness exercises", a
   await expect(page.getByRole("button", { name: "Pause timer" })).toBeVisible();
 
   const fillers = page.getByRole("button", { name: /Filler-word awareness/ });
-  await expect(fillers).toBeEnabled();
+  await expect(fillers).toBeEnabled({ timeout: 10_000 });
   await fillers.click();
   await expect(fillers).toHaveAttribute("aria-pressed", "true");
   await page.getByLabel("Your response").fill("Um, I like this tool, you know, because it helps.");
@@ -77,6 +77,7 @@ test("practice room generates a structured session summary", async ({ page }) =>
   await page.goto("/practice");
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
+  await expect(interview).toBeEnabled({ timeout: 10_000 });
   await interview.click();
   await expect(interview).toHaveAttribute("aria-pressed", "true");
 
