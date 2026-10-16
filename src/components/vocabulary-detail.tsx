@@ -7,6 +7,7 @@ import { getVocabulary, updateVocabularyStatus, type SavedVocabulary, type Vocab
 
 type Example = { sentence: string; context: string; tip: string };
 type VocabularyStory = { title: string; paragraph: string; takeaway: string };
+type VocabularyDetails = { pronunciation: string; partOfSpeech: string; simpleDefinition: string; nuance: string; synonyms: string[]; antonyms: string[]; collocations: string[]; wordForms: { form: string; usage: string }[]; commonMistake: string; memoryTip: string };
 const statusLabels: Record<VocabularyStatus, string> = { learning: "Learning", familiar: "Familiar", mastered: "Mastered" };
 
 export function VocabularyDetail({ id }: { id: string }) {
@@ -14,6 +15,9 @@ export function VocabularyDetail({ id }: { id: string }) {
   const [ready, setReady] = useState(false);
   const [examples, setExamples] = useState<Example[]>([]);
   const [story, setStory] = useState<VocabularyStory | null>(null);
+  const [details, setDetails] = useState<VocabularyDetails | null>(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState("");
   const [storyLoading, setStoryLoading] = useState(false);
   const [storyError, setStoryError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -55,6 +59,25 @@ export function VocabularyDetail({ id }: { id: string }) {
       setStoryError(err instanceof Error ? err.message : "Could not generate the story.");
     } finally {
       setStoryLoading(false);
+    }
+  }, []);
+
+  const loadDetails = useCallback(async (item: SavedVocabulary) => {
+    setDetailsLoading(true);
+    setDetailsError("");
+    try {
+      const response = await fetch("/api/vocabulary/examples", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phrase: item.phrase, meaning: item.meaning, mode: "details" }),
+      });
+      const result = await response.json() as { details?: VocabularyDetails; error?: string };
+      if (!response.ok || !result.details || typeof result.details.simpleDefinition !== "string") throw new Error(result.error || "Could not generate word details.");
+      setDetails(result.details);
+    } catch (err) {
+      setDetailsError(err instanceof Error ? err.message : "Could not generate word details.");
+    } finally {
+      setDetailsLoading(false);
     }
   }, []);
 
@@ -100,7 +123,30 @@ export function VocabularyDetail({ id }: { id: string }) {
         </div>
       </section>
 
-      <section className="vocabulary-story-section" aria-labelledby="vocabulary-story-heading">
+      <section className="vocabulary-word-guide" aria-labelledby="vocabulary-word-guide-heading">
+        <div className="vocabulary-word-guide-header">
+          <div><p className="eyebrow">GO BEYOND THE MEANING</p><h3 id="vocabulary-word-guide-heading">Word guide</h3><p>Explore pronunciation, word type, similar words, common phrases, and mistakes.</p></div>
+          <button type="button" className="notebook-secondary" onClick={() => void loadDetails(word)} disabled={detailsLoading}>{detailsLoading ? "Generating details…" : details ? "Refresh word guide ↻" : "Generate word details ↗"}</button>
+        </div>
+        {detailsLoading && <div className="vocabulary-examples-loading" role="status"><span className="vocabulary-loading-dot" /><div><strong>Building your word guide</strong><p>Finding useful ways to understand and use “{word.phrase}”.</p></div></div>}
+        {detailsError && <div className="vocabulary-detail-error" role="alert"><p>{detailsError}</p><button type="button" className="notebook-secondary" onClick={() => void loadDetails(word)} disabled={detailsLoading}>Try again</button></div>}
+        {!details && !detailsLoading && !detailsError && <p className="vocabulary-story-empty">Generate a word guide for a clearer definition, pronunciation, synonyms, collocations, and practical usage tips.</p>}
+        {details && !detailsLoading && <div className="vocabulary-word-guide-content">
+          <div className="vocabulary-word-guide-definition"><div><span className="vocabulary-guide-label">PRONUNCIATION</span><p>{details.pronunciation || "Not available"}</p></div><div><span className="vocabulary-guide-label">PART OF SPEECH</span><p>{details.partOfSpeech || "Not specified"}</p></div><div className="vocabulary-word-guide-definition-main"><span className="vocabulary-guide-label">IN SIMPLE ENGLISH</span><p>{details.simpleDefinition}</p></div></div>
+          {details.nuance && <div className="vocabulary-guide-note"><strong>Meaning and nuance</strong><p>{details.nuance}</p></div>}
+          <div className="vocabulary-guide-lists">
+            {details.synonyms?.length > 0 && <div><h4>Similar words</h4><div className="vocabulary-guide-chips">{details.synonyms.map((item) => <span key={item}>{item}</span>)}</div></div>}
+            {details.antonyms?.length > 0 && <div><h4>Opposite words</h4><div className="vocabulary-guide-chips">{details.antonyms.map((item) => <span key={item}>{item}</span>)}</div></div>}
+            {details.collocations?.length > 0 && <div><h4>Common word combinations</h4><div className="vocabulary-guide-chips">{details.collocations.map((item) => <span key={item}>{item}</span>)}</div></div>}
+          </div>
+          {details.wordForms?.length > 0 && <div className="vocabulary-guide-forms"><h4>Word forms</h4>{details.wordForms.map((item) => <div key={item.form}><strong>{item.form}</strong><span>{item.usage}</span></div>)}</div>}
+          {details.commonMistake && <div className="vocabulary-guide-note"><strong>Common mistake to avoid</strong><p>{details.commonMistake}</p></div>}
+          {details.memoryTip && <div className="vocabulary-guide-memory"><strong>Memory tip</strong><p>{details.memoryTip}</p></div>}
+          <ListenButton text={["Word guide for " + word.phrase, "Pronunciation: " + details.pronunciation, "Part of speech: " + details.partOfSpeech, "Meaning: " + details.simpleDefinition, details.nuance, "Similar words: " + details.synonyms.join(", "), "Common phrases: " + details.collocations.join(", "), "Common mistake: " + details.commonMistake, "Memory tip: " + details.memoryTip].filter(Boolean).join(". ")} label="Listen to word guide" />
+        </div>}
+      </section>
+
+            <section className="vocabulary-story-section" aria-labelledby="vocabulary-story-heading">
         <div className="vocabulary-story-copy">
           <div className="vocabulary-story-header">
             <div>
