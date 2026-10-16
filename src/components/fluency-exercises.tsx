@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ListenButton } from "@/components/listen-button";
 
 type Exercise = "quick" | "daily" | "minute" | "fillers";
 
@@ -111,7 +112,7 @@ export function FluencyExercises() {
           <div><p className="eyebrow">YOUR PRACTICE PROMPT</p><h2>{exercises.find((item) => item.id === exercise)?.title}</h2></div>
           {exercise === "minute" && <div className={`fluency-timer ${secondsRemaining <= 10 ? "urgent" : ""}`} role="timer" aria-label={`${secondsRemaining} seconds remaining`}>00:{String(secondsRemaining).padStart(2, "0")}</div>}
         </div>
-        <p className="fluency-prompt-text">{prompt}</p>
+        <p className="fluency-prompt-text">{prompt}</p><ListenButton text={prompt} label="Listen to this prompt" />
         <label className="fluency-response-label" htmlFor="fluency-response">Your response</label>
         <textarea id="fluency-response" value={response} onChange={(event) => { setResponse(event.target.value); setShowReflection(false); }} placeholder={exercise === "minute" ? "Keep going—write what you would say out loud…" : "Write your answer here, or speak it aloud and then note the key points…"} rows={6} />
         <div className="fluency-response-meta"><span>{wordCount} words</span>{exercise === "fillers" && <span>{fillerMatches.length} possible filler words detected</span>}</div>
