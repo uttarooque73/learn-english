@@ -1,27 +1,23 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { FluencyExercises } from "@/components/fluency-exercises";
 
 afterEach(() => cleanup());
 
 describe("FluencyExercises", () => {
-  it("switches exercises and counts words in the learner response", async () => {
+  it("switches exercises and counts words in the learner response", () => {
     render(<FluencyExercises />);
 
-    const quick = screen.getByRole("button", { name: /Quick response/ });
-    await waitFor(() => expect(quick).toBeEnabled());
-    fireEvent.click(quick);
+    fireEvent.click(screen.getByRole("button", { name: /Quick response/ }));
     expect(screen.getByText("What is one skill you would like to learn, and why?")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Your response"), { target: { value: "I want to learn English." } });
     expect(screen.getByText("5 words")).toBeInTheDocument();
   });
 
-  it("counts possible filler words and shows a supportive reflection", async () => {
+  it("counts possible filler words and shows a supportive reflection", () => {
     render(<FluencyExercises />);
-    const fillers = screen.getByRole("button", { name: /Filler-word awareness/ });
-    await waitFor(() => expect(fillers).toBeEnabled());
-    fireEvent.click(fillers);
+    fireEvent.click(screen.getByRole("button", { name: /Filler-word awareness/ }));
     fireEvent.change(screen.getByLabelText("Your response"), { target: { value: "Um, I like this, you know." } });
 
     expect(screen.getByText("3 possible filler words detected")).toBeInTheDocument();
@@ -30,11 +26,9 @@ describe("FluencyExercises", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Review the 3 possible filler word(s)");
   });
 
-  it("starts and pauses the one-minute timer", async () => {
+  it("starts and pauses the one-minute timer", () => {
     render(<FluencyExercises />);
-    const minuteTalk = screen.getByRole("button", { name: /One-minute talk/ });
-    await waitFor(() => expect(minuteTalk).toBeEnabled());
-    fireEvent.click(minuteTalk);
+    fireEvent.click(screen.getByRole("button", { name: /One-minute talk/ }));
 
     expect(screen.getByRole("timer")).toHaveAttribute("aria-label", "60 seconds remaining");
     fireEvent.click(screen.getByRole("button", { name: "Start 1-minute timer" }));

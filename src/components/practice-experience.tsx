@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { getSessions, saveVocabulary, upsertSession, type PracticeSession } from "@/lib/learning-storage";
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
+import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
 
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
 type Message = { role: "user" | "assistant"; content: string };
@@ -50,6 +51,7 @@ function createId() {
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [scenario, setScenario] = useState(prompts[0]?.title ?? "Free conversation");
   const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
+  const [learningPreferences, setLearningPreferences] = useState<LearningPreferences | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -83,6 +85,10 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       const speech = window as SpeechWindow;
       setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
       setSavedSessions(getSessions());
+      const preferences = getLearningPreferences();
+      setLearningPreferences(preferences);
+      setDifficulty(preferences.englishLevel);
+      applyAccessibilityPreferences(preferences);
     }, 0);
     return () => {
       window.clearTimeout(timer);
@@ -193,7 +199,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenario, difficulty, messages: nextMessages }),
+        body: JSON.stringify({ scenario, difficulty, feedbackStyle: learningPreferences?.feedbackStyle ?? "balanced", preferredTopics: learningPreferences?.preferredTopics ?? [], messages: nextMessages }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -348,7 +354,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </div>
       </section>
 
-      <section className="roleplay-settings" aria-label="Role-play settings"><div><p className="eyebrow">SET YOUR PACE</p><strong>Choose your English level</strong><p>The coach adapts its vocabulary and question complexity to your level.</p></div><label htmlFor="practice-difficulty">Difficulty<select id="practice-difficulty" value={difficulty} disabled={isStreaming || listening} onChange={(event) => { setDifficulty(event.target.value as typeof difficulty); resetConversation(); }}><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></label></section>
+      <section className="roleplay-settings" aria-label="Role-play settings"><div><p className="eyebrow">SET YOUR PACE</p><strong>Choose your English level</strong><p>The coach adapts its vocabulary and question complexity to your level.</p></div><label htmlFor="practice-difficulty">Difficulty<select id="practice-difficulty" value={difficulty} disabled={isStreaming || listening || !learningPreferences} onChange={(event) => { setDifficulty(event.target.value as typeof difficulty); resetConversation(); }}><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></label></section>
 
       <section className="chat-panel" aria-label="AI English conversation">
         <div className="chat-header">

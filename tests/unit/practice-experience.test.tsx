@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PracticeExperience } from "@/components/practice-experience";
 
@@ -8,17 +8,14 @@ const prompts = [
 ];
 
 afterEach(() => {
-  cleanup();
   vi.unstubAllGlobals();
 });
 
 describe("PracticeExperience", () => {
-  it("lets the learner select a scenario and offers a starter prompt", async () => {
+  it("lets the learner select a scenario and offers a starter prompt", () => {
     render(<PracticeExperience prompts={prompts} />);
 
-    const scenarios = within(screen.getByRole("heading", { name: /What feels right today/ }).closest("section")!);
-    const workScenario = scenarios.getByRole("button", { name: /At work/ });
-    await waitFor(() => expect(workScenario).toBeEnabled());
+    const workScenario = screen.getByRole("button", { name: /At work/ });
     fireEvent.click(workScenario);
 
     expect(workScenario).toHaveAttribute("aria-pressed", "true");
@@ -43,17 +40,13 @@ describe("PracticeExperience", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PracticeExperience prompts={prompts} />);
-    const scenarios = within(screen.getByRole("heading", { name: /What feels right today/ }).closest("section")!);
-    const workScenario = scenarios.getByRole("button", { name: /At work/ });
-    await waitFor(() => expect(workScenario).toBeEnabled());
-    fireEvent.click(workScenario);
     fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Hello coach" } });
     fireEvent.click(within(screen.getByLabelText("Your message").closest("form")!).getByRole("button", { name: /Send message/ }));
 
     await waitFor(() => expect(screen.getByText("Hello there!")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ scenario: "At work", difficulty: "Beginner", messages: [{ role: "user", content: "Hello coach" }] }),
+      body: JSON.stringify({ scenario: "At work", difficulty: "Beginner", feedbackStyle: "balanced", preferredTopics: [], messages: [{ role: "user", content: "Hello coach" }] }),
     }));
     expect(screen.getByText("You")).toBeInTheDocument();
     expect(screen.getByText("SpeakUp AI")).toBeInTheDocument();
