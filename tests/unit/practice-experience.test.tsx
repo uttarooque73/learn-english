@@ -12,10 +12,11 @@ afterEach(() => {
 });
 
 describe("PracticeExperience", () => {
-  it("lets the learner select a scenario and offers a starter prompt", () => {
+  it("lets the learner select a scenario and offers a starter prompt", async () => {
     render(<PracticeExperience prompts={prompts} />);
 
     const workScenario = screen.getByRole("button", { name: /At work/ });
+    await waitFor(() => expect(workScenario).toBeEnabled());
     fireEvent.click(workScenario);
 
     expect(workScenario).toHaveAttribute("aria-pressed", "true");
@@ -40,6 +41,9 @@ describe("PracticeExperience", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PracticeExperience prompts={prompts} />);
+    const workScenario = screen.getByRole("button", { name: /At work/ });
+    await waitFor(() => expect(workScenario).toBeEnabled());
+    fireEvent.click(workScenario);
     fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Hello coach" } });
     fireEvent.click(within(screen.getByLabelText("Your message").closest("form")!).getByRole("button", { name: /Send message/ }));
 
