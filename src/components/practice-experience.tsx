@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { getSessions, saveVocabulary, upsertSession, type PracticeSession } from "@/lib/learning-storage";
+import { getSessions, saveVocabulary, upsertSession, type PracticeSession, type SessionSummary } from "@/lib/learning-storage";
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
 
@@ -13,15 +13,6 @@ type Feedback = {
   tips: string[];
   pronunciationTip: string;
   vocabulary: { phrase: string; meaning: string; example: string }[];
-};
-type SessionSummary = {
-  topicSummary: string;
-  keyPoints: string[];
-  corrections: { original: string; improved: string; reason: string }[];
-  vocabulary: { phrase: string; meaning: string }[];
-  strengths: string[];
-  improvements: string[];
-  followUpExercise: string;
 };
 type SpeechAlternative = { transcript: string };
 type SpeechResult = ArrayLike<SpeechAlternative>;
@@ -281,6 +272,24 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       });
       const result = await response.json() as SessionSummary & { error?: string };
       if (!response.ok) throw new Error(result.error || "Could not generate the session summary.");
+      const completeMessages = messages.filter((message) => message.content.trim()).slice(-100);
+      const sessionId = sessionIdRef.current ?? createId();
+      sessionIdRef.current = sessionId;
+      const startedAt = sessionStartedAtRef.current ?? new Date().toISOString();
+      sessionStartedAtRef.current = startedAt;
+      const updatedAt = new Date().toISOString();
+      upsertSession({
+        id: sessionId,
+        scenario,
+        startedAt,
+        updatedAt,
+        durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
+        messageCount: completeMessages.filter((message) => message.role === "user").length,
+        learnerMessages: completeMessages.filter((message) => message.role === "user").map((message) => message.content).slice(-40),
+        messages: completeMessages,
+        summary: result,
+      });
+      setSavedSessions(getSessions());
       setSessionSummary(result);
     } catch (caught) {
       setSummaryError(caught instanceof Error ? caught.message : "Could not generate the session summary.");
@@ -320,7 +329,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setError("");
     setFeedback(null);
     setFeedbackError("");
-    setSessionSummary(null);
+    setSessionSummary(session.summary ?? null);
     setSummaryError("");
     setPronunciationAssessment(null);
     setSavedPhrases([]);
@@ -366,7 +375,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
               <option value="">Recent conversations ({savedSessions.length})</option>
               {savedSessions.map((session) => (
                 <option key={session.id} value={session.id}>
-                  {session.scenario} · {new Date(session.updatedAt).toLocaleDateString()} · {session.messageCount} messages
+                  {session.scenario} · {new Date(session.updatedAt).toLocaleDateString()} · {session.messageCount} messages{session.summary ? " · summary saved" : ""}
                 </option>
               ))}
             </select>

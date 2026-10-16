@@ -57,7 +57,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Identify observed strengths and practical improvement ideas without assigning a proficiency score.
 - [x] Suggest one follow-up exercise based on the conversation.
 - [x] Validate summary requests and bound output lists on the server; add API tests.
-- [ ] Persist generated summaries with saved conversations and show them in session history.
+- [x] Persist generated summaries with saved conversations and show them in session history.
 
 ### Phase 7 — Personalized learning and accessibility
 - [x] Add a Learning preferences page for English level, daily practice goal, feedback style, and preferred topics.
@@ -77,6 +77,13 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Keep existing saved vocabulary compatible; items without review metadata are due immediately.
 - [x] Add unit tests for interval scheduling, due-date selection, and unknown vocabulary IDs.
 - [x] Add responsive review controls and a visible due-count indicator.
+
+### Phase 9 — Persistent session summaries and review history
+- [x] Save generated learning summaries alongside the matching conversation transcript.
+- [x] Restore the saved summary when reopening a conversation from Practice Room history.
+- [x] Indicate which saved conversations include a summary.
+- [x] Preserve compatibility with older sessions that do not contain summary data.
+- [x] Add storage/component integration tests and Playwright coverage for summary restoration.
 
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
@@ -270,6 +277,7 @@ Next.js Route Handlers (/api/*)
 - [x] List useful vocabulary from the session when present in the transcript.
 - [x] Identify observed strengths and practical improvement ideas.
 - [x] Generate a short follow-up exercise based on the session.
+- [x] Persist summaries with conversations and restore them from saved session history.
 
 ### 8. Progress Tracking
 - [x] Save conversation history with date, topic, duration, and transcript.

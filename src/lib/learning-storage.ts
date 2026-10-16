@@ -14,6 +14,16 @@ export type VocabularyStatus = "learning" | "familiar" | "mastered";
 
 export type PracticeMessage = { role: "user" | "assistant"; content: string };
 
+export type SessionSummary = {
+  topicSummary: string;
+  keyPoints: string[];
+  corrections: { original: string; improved: string; reason: string }[];
+  vocabulary: { phrase: string; meaning: string }[];
+  strengths: string[];
+  improvements: string[];
+  followUpExercise: string;
+};
+
 export type PracticeSession = {
   id: string;
   scenario: string;
@@ -23,6 +33,7 @@ export type PracticeSession = {
   messageCount: number;
   learnerMessages: string[];
   messages?: PracticeMessage[];
+  summary?: SessionSummary;
 };
 
 function createId() {
