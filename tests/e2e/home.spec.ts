@@ -36,6 +36,8 @@ test("fluency page offers timed speaking and filler-word awareness exercises", a
   await page.goto("/fluency");
   await expect(page.getByRole("heading", { name: "Fluency & confidence" })).toBeVisible();
 
+  // Client controls become interactive after the hydration effect runs.
+  await expect(page.getByRole("button", { name: /Quick response/ })).toBeEnabled({ timeout: 10_000 });
   const minuteTalk = page.getByRole("button", { name: /One-minute talk/ });
   await expect(minuteTalk).toBeVisible();
   await expect(minuteTalk).toBeEnabled({ timeout: 10_000 });
