@@ -1,3 +1,5 @@
+import { readPersistedValue, writePersistedValue } from "@/lib/client-persistence";
+
 export type EnglishLevel = "Beginner" | "Intermediate" | "Advanced";
 export type FeedbackStyle = "gentle" | "balanced" | "detailed";
 export type FeedbackTiming = "immediate" | "end";
@@ -48,7 +50,7 @@ const PREFERENCES_KEY = "speakup:preferences:v1";
 export function getLearningPreferences(): LearningPreferences {
   if (typeof window === "undefined") return { ...DEFAULT_LEARNING_PREFERENCES };
   try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(PREFERENCES_KEY) ?? "null");
+    const parsed: unknown = JSON.parse(readPersistedValue(PREFERENCES_KEY) ?? "null");
     if (!parsed || typeof parsed !== "object") return { ...DEFAULT_LEARNING_PREFERENCES };
     const value = parsed as Record<string, unknown>;
     const levels: EnglishLevel[] = ["Beginner", "Intermediate", "Advanced"];
@@ -77,7 +79,6 @@ export function getLearningPreferences(): LearningPreferences {
 }
 
 export function saveLearningPreferences(preferences: LearningPreferences): void {
-  if (typeof window === "undefined") return;
   const safe: LearningPreferences = {
     englishLevel: ["Beginner", "Intermediate", "Advanced"].includes(preferences.englishLevel) ? preferences.englishLevel : "Beginner",
     dailyGoalMinutes: [5, 10, 15, 20, 30].includes(preferences.dailyGoalMinutes) ? preferences.dailyGoalMinutes : 10,
@@ -90,7 +91,7 @@ export function saveLearningPreferences(preferences: LearningPreferences): void 
     largerText: Boolean(preferences.largerText),
     reducedMotion: Boolean(preferences.reducedMotion),
   };
-  window.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(safe));
+  writePersistedValue(PREFERENCES_KEY, JSON.stringify(safe));
 }
 
 export function applyAccessibilityPreferences(preferences: LearningPreferences): void {
