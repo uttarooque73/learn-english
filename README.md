@@ -28,7 +28,15 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Add tests for transcript similarity scoring.
 - [ ] Add true phoneme-level pronunciation assessment with a dedicated speech model.
 
-**Current limitations:** Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary, and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
+### Phase 3 — Vocabulary notebook and active review
+- [x] Organize saved words and phrases in a searchable personal notebook.
+- [x] Track each item as Learning, Familiar, or Mastered.
+- [x] Review saved phrases with reveal-answer flashcards.
+- [x] Practice meanings with a multiple-choice quick quiz when at least two items are saved.
+- [x] Update vocabulary status and delete individual items; persist changes locally.
+- [x] Preserve compatibility with existing saved vocabulary items.
+
+**Current limitations:** Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
@@ -194,8 +202,8 @@ Next.js Route Handlers (/api/*)
 - [ ] Highlight useful words and phrases from conversations.
 - [ ] Explain meanings in context with example sentences.
 - [ ] Save words and phrases to a personal vocabulary notebook.
-- [ ] Mark vocabulary as learning, familiar, or mastered.
-- [ ] Review saved vocabulary with flashcards and short quizzes.
+- [x] Mark vocabulary as learning, familiar, or mastered.
+- [x] Review saved vocabulary with flashcards and short quizzes.
 - [ ] Practice collocations, phrasal verbs, and common expressions.
 
 ### 5. Guided Scenarios and Role-play

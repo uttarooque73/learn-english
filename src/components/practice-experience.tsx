@@ -92,7 +92,13 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 0.92;
+    utterance.rate = 0.98;
+    utterance.pitch = 1.15;
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith("en"));
+    const preferredVoice = englishVoices.find((voice) => /samantha|ava|jenny|aria|female|google us english/i.test(voice.name))
+      ?? englishVoices.find((voice) => /natural|enhanced|premium/i.test(voice.name));
+    if (preferredVoice) utterance.voice = preferredVoice;
     window.speechSynthesis.speak(utterance);
     setVoiceError("");
   }
@@ -347,7 +353,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           <textarea id="chat-message" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Write what you would like to say…" rows={2} maxLength={4000} disabled={isStreaming || listening}
             onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
           <div className="composer-footer"><span>Enter to send · Shift + Enter for a new line</span><div className="composer-actions">
-            {speechSupported && <button className="button button-voice" type="button" onClick={() => listening ? stopListening() : startListening("compose")} disabled={isStreaming}>{listening && !pronunciationMode ? "Stop mic" : "🎙 Speak"}</button>}
+            <button className="button button-voice" type="button" aria-label={listening && !pronunciationMode ? "Stop microphone" : "Start voice input"} title={speechSupported ? "Speak your message" : "Voice input is not supported in this browser"} onClick={() => listening ? stopListening() : startListening("compose")} disabled={isStreaming || !speechSupported}>{listening && !pronunciationMode ? "■ Stop mic" : "🎙 Speak"}</button>
             <button className="button button-dark send-button" type="submit" disabled={isStreaming || listening || !draft.trim()}>{isStreaming ? "Thinking…" : "Send message"} <span>↗</span></button>
           </div></div>
         </form>
