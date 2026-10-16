@@ -80,14 +80,12 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   }, [messages, isStreaming]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const speech = window as SpeechWindow;
-      setIsHydrated(true);
-      setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
-      setSavedSessions(getSessions());
-    }, 0);
+    const speech = window as SpeechWindow;
+    setIsHydrated(true);
+    setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
+    setSavedSessions(getSessions());
+
     return () => {
-      window.clearTimeout(timer);
       recognitionRef.current?.stop();
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     };
