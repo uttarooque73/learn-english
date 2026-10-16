@@ -128,13 +128,27 @@ export function LearningSettings() {
             </select>
             <span>Changes text-to-speech playback where the browser supports it.</span>
           </label>
-          <label className="settings-field">English voice
-            <select value={preferences.speechVoiceURI} onChange={(event) => update("speechVoiceURI", event.target.value)} disabled={!speechPlaybackSupported}>
-              <option value="">Automatic (recommended)</option>
+          <label className="settings-field">Voice style
+            <select value={preferences.speechVoiceGender} onChange={(event) => {
+              setPreferences((current) => ({ ...current, speechVoiceGender: event.target.value as LearningPreferences["speechVoiceGender"], speechVoiceURI: "" }));
+              setSaved(false);
+            }} disabled={!speechPlaybackSupported}>
+              <option value="automatic">Automatic</option>
+              <option value="female">Female voice</option>
+              <option value="male">Male voice</option>
+            </select>
+            <span>Applies to vocabulary, examples, stories, practice conversations, and shadowing. Voice availability depends on your browser and device.</span>
+          </label>
+          <label className="settings-field">Specific English voice (optional)
+            <select value={preferences.speechVoiceURI} onChange={(event) => {
+              setPreferences((current) => ({ ...current, speechVoiceURI: event.target.value, speechVoiceGender: event.target.value ? "automatic" : current.speechVoiceGender }));
+              setSaved(false);
+            }} disabled={!speechPlaybackSupported}>
+              <option value="">Use voice style above</option>
               {preferences.speechVoiceURI && !speechVoices.some((voice) => voice.voiceURI === preferences.speechVoiceURI) && <option value={preferences.speechVoiceURI}>Saved voice (not available on this device)</option>}
               {speechVoices.map((voice) => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} ({voice.lang})</option>)}
             </select>
-            <span>{speechPlaybackSupported ? speechVoices.length ? "Voices come from your browser and operating system; available choices vary by device." : "The browser has text-to-speech, but no English voices are currently available." : "Text-to-speech is not supported in this browser; playback controls will explain the fallback."}</span>
+            <span>{speechPlaybackSupported ? speechVoices.length ? "Choosing a specific voice uses that voice and resets voice style to Automatic. Available choices vary by device." : "The browser has text-to-speech, but no English voices are currently available." : "Text-to-speech is not supported in this browser; playback controls will explain the fallback."}</span>
           </label>
         </div>
       </section>
