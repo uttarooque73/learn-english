@@ -162,7 +162,7 @@ export function ShadowingPractice() {
           setPhonemeMessage("Checking sound-level pronunciation…");
           try {
             const response = await fetch("/api/pronunciation", { method: "POST", body: form });
-            const payload = await response.json() as { score?: number; errors?: { word: string; expected: string; actual: string | null; phones: { expected: string; heard: string | null }[] }[]; error?: string };
+            const payload = await response.json() as { score?: number; transcript?: string; errors?: { word: string; expected: string; actual: string | null; phones: { expected: string; heard: string | null }[] }[]; error?: string };
             if (response.ok && typeof payload.score === "number") {
               setPhonemeResult({ score: payload.score, errors: payload.errors ?? [] });
               setPhonemeMessage("Sound-level assessment complete.");
