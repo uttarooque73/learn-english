@@ -2,14 +2,70 @@
 
 SpeakUp AI is a personal English-practice app designed to help learners speak more confidently, improve grammar, expand vocabulary, and track progress through realistic conversations with an AI tutor.
 
-## Goals
+The project uses **Next.js App Router + React + TypeScript** for a single full-stack codebase. The AI service and database will be connected in later implementation phases.
 
-- Make daily English speaking practice easy and low-pressure.
-- Give clear, actionable feedback without interrupting the conversation constantly.
-- Help learners notice recurring mistakes and measure improvement over time.
-- Support a local-first setup using Ollama for language-model responses.
+## Current implementation status
 
-## Feature Roadmap
+### Phase 1 — Project foundation and UI
+- [x] Set up the Next.js App Router and TypeScript project structure.
+- [x] Create a responsive shared application shell and navigation.
+- [x] Build the overview dashboard and practice, vocabulary, and progress pages.
+- [x] Add responsive styling and clear empty/coming-soon states.
+- [x] Document local setup and the next implementation phases.
+- [ ] Connect the chat interface to Ollama (Phase 2).
+- [ ] Add conversation persistence and context (later phase).
+- [ ] Add grammar feedback, vocabulary saving, and progress analytics (later phases).
+
+**Important:** Phase 1 is the UI foundation only. Chat, saved vocabulary, and progress figures are currently placeholders; no AI requests or session data are processed yet.
+
+## Getting started
+
+### Requirements
+- Node.js 20.9 or newer
+- npm
+- Ollama will be needed for Phase 2, but is not required to run the Phase 1 UI.
+
+### Install and run
+
+```bash
+git clone https://github.com/uttarooque73/learn-english.git
+cd learn-english
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+### Available commands
+
+```bash
+npm run dev       # Start the local development server
+npm run build     # Create a production build
+npm run start     # Run the production server after building
+npm run typecheck # Run TypeScript checks
+```
+
+## Architecture
+
+```text
+Browser (Next.js UI)
+        |
+        v
+Next.js Route Handlers (/api/*)
+        |
+        +------> Ollama (local LLM service)
+        |
+        +------> SQLite database (through Prisma)
+```
+
+- **Full-stack framework:** Next.js App Router, React, TypeScript.
+- **Server API:** Next.js Route Handlers; no separate Express server is planned for the MVP.
+- **AI runtime:** Ollama with a configurable local chat model (Phase 2).
+- **Database and ORM:** SQLite + Prisma (planned for the persistence phase).
+- **Speech:** Browser speech recognition and speech synthesis APIs, with a text-only fallback (planned).
+- **Styling:** Responsive CSS with no UI component library required.
+
+## Feature roadmap
 
 ### 1. AI Conversation Practice
 - [ ] Chat with an AI tutor on everyday and professional topics.
@@ -94,52 +150,7 @@ SpeakUp AI is a personal English-practice app designed to help learners speak mo
 - [ ] Document setup, configuration, and troubleshooting.
 - [ ] Clearly explain that browser speech services may process audio differently depending on the browser; local LLM use does not automatically make voice processing fully offline.
 
-## Architecture
-
-Use **Next.js with the App Router and TypeScript** for a single full-stack application. The user interface and server-side API routes live in the same codebase; a separate Express server is not required for the MVP.
-
-```text
-Browser (Next.js UI)
-        |
-        v
-Next.js Route Handlers (/api/*)
-        |
-        +------> Ollama (local LLM service)
-        |
-        +------> SQLite database (through Prisma)
-```
-
-- **Frontend:** React components rendered through Next.js.
-- **Backend:** Next.js Route Handlers for chat, sessions, feedback, vocabulary, and progress.
-- **AI:** Ollama running locally, with a configurable model and endpoint. Ollama remains a separate service that Next.js calls from the server.
-- **Persistence:** SQLite with Prisma ORM for the MVP; PostgreSQL can be considered later.
-- **Speech:** Browser speech-recognition and speech-synthesis APIs initially, with text-only fallback.
-- **Validation:** Validate API input on the server and keep model configuration and prompts out of client-side code.
-- **Testing:** Unit tests for prompt construction and validation, plus integration tests for Route Handlers and session persistence.
-
-## Suggested MVP
-
-Build these in order so the project becomes usable quickly:
-
-1. Create the Next.js App Router project with TypeScript.
-2. Build a responsive chat interface with topic and difficulty selection.
-3. Add a server-side chat Route Handler that connects to Ollama.
-4. Preserve conversation context within each session.
-5. Add grammar corrections and natural-sentence suggestions.
-6. Save conversation history in SQLite using Prisma.
-7. Generate an end-of-session summary.
-8. Add browser speech input and AI text-to-speech, with a text-only fallback.
-
-## Suggested Technology Stack
-
-- **Full-stack framework:** Next.js (App Router) + React + TypeScript.
-- **Server API:** Next.js Route Handlers at `src/app/api/**/route.ts`; no separate Express server for the MVP.
-- **AI runtime:** Ollama with a configurable local chat model.
-- **Database and ORM:** SQLite + Prisma.
-- **Speech:** Browser Speech Recognition and Speech Synthesis APIs initially.
-- **Testing:** Unit and integration tests for API routes, prompts, and persistence.
-
-## Development Principles
+## Development principles
 
 - Prioritize a responsive, uncluttered interface.
 - Keep conversation flow natural; avoid correcting every sentence unless the learner asks for it.
@@ -147,7 +158,3 @@ Build these in order so the project becomes usable quickly:
 - Do not expose secrets or internal server configuration to the browser.
 - Treat voice support as an optional enhancement, not a requirement for text practice.
 - Deliver the MVP before implementing advanced analytics and gamification.
-
-## Status
-
-This repository currently defines the product direction and feature roadmap. Features are planned, not implemented, until their checkboxes are completed and verified.
