@@ -1,6 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { FluencyExercises } from "@/components/fluency-exercises";
+
+afterEach(() => cleanup());
 
 describe("FluencyExercises", () => {
   it("switches exercises and counts words in the learner response", () => {
