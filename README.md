@@ -36,7 +36,14 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Update vocabulary status and delete individual items; persist changes locally.
 - [x] Preserve compatibility with existing saved vocabulary items.
 
-**Current limitations:** Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
+### Phase 4 — Guided scenarios and role-play
+- [x] Add realistic practice scenarios for job interviews, stand-ups, team meetings, technical explanations, restaurants, travel, and phone calls.
+- [x] Prompt the AI to remain in character and move the role-play forward one turn at a time.
+- [x] Let learners choose Beginner, Intermediate, or Advanced response complexity.
+- [x] Provide scenario-specific starter messages and preserve free conversation.
+- [x] Validate scenario and difficulty selections server-side before building the system prompt.
+
+**Current limitations:** Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
@@ -207,12 +214,12 @@ Next.js Route Handlers (/api/*)
 - [ ] Practice collocations, phrasal verbs, and common expressions.
 
 ### 5. Guided Scenarios and Role-play
-- [ ] Practice job interviews and workplace discussions.
-- [ ] Role-play meetings, presentations, and stand-up updates.
-- [ ] Practice travel, shopping, restaurants, and everyday conversations.
-- [ ] Practice phone calls and asking for help.
-- [ ] Practice explaining technical concepts and discussing software development.
-- [ ] Support free conversation without a predefined scenario.
+- [x] Practice job interviews and workplace discussions.
+- [x] Role-play meetings and stand-up updates.
+- [x] Practice travel, restaurants, and everyday conversations.
+- [x] Practice phone calls and asking for help.
+- [x] Practice explaining technical concepts and discussing software development.
+- [x] Support free conversation without a predefined scenario.
 
 ### 6. Fluency and Confidence Exercises
 - [ ] Quick-response challenge with a limited response time.
