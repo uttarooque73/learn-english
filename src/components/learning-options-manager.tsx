@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { addLearningScenario, getLearningScenarios, removeLearningScenario, type LearningScenario } from "@/lib/learning-scenarios";
 
 export function LearningOptionsManager() {
@@ -13,8 +13,8 @@ export function LearningOptionsManager() {
 
   useEffect(() => { const timer = window.setTimeout(() => setItems(getLearningScenarios()), 0); return () => window.clearTimeout(timer); }, []);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setError(""); setStatus("");
+  function submit() {
+    setError(""); setStatus("");
     try {
       addLearningScenario(title, description, icon);
       setItems(getLearningScenarios()); setTitle(""); setDescription("");
@@ -24,12 +24,12 @@ export function LearningOptionsManager() {
 
   return <section className="settings-card dynamic-options-manager" aria-labelledby="dynamic-options-heading">
     <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">＋</span><div><h2 id="dynamic-options-heading">Customize your practice options</h2><p>Add your own situations, topics, and role-plays. They will appear alongside the built-in options throughout the practice experience. Your options are saved in this browser.</p></div></div>
-    <form className="dynamic-option-form" onSubmit={submit}>
+    <div className="dynamic-option-form">
       <label className="settings-field">Option title<input required maxLength={60} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Explain my project to a client" /></label>
       <label className="settings-field">What should you practice?<textarea required maxLength={180} rows={2} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="e.g. Describe the project clearly, explain trade-offs, and answer questions." /></label>
       <label className="settings-field">Icon<select value={icon} onChange={(event) => setIcon(event.target.value)}>{["✦","☕","💼","🎯","🌍","☎","◎","↗","⌘","♨"].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
-      <button className="button button-dark" type="submit" disabled={!title.trim() || !description.trim()}>＋ Add option</button>
-    </form>
+      <button className="button button-dark" type="button" disabled={!title.trim() || !description.trim()} onClick={submit}>＋ Add option</button>
+    </div>
     {error && <p className="dynamic-options-message" role="alert">{error}</p>}
     {status && <p className="dynamic-options-message" role="status">{status}</p>}
     <div className="dynamic-options-list"><div className="dynamic-options-list-heading"><strong>Your available options</strong><span>{items.length} total · {items.filter((item) => item.custom).length} custom</span></div>
