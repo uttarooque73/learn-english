@@ -400,14 +400,14 @@ test("selected text can be saved to vocabulary from different app pages", async 
       const selection = window.getSelection();
       selection?.removeAllRanges();
       selection?.addRange(range);
-      window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      heading.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, view: window }));
     });
-    await page.getByRole("button", { name: "Add selected text to vocabulary" }).click();
+    await page.locator(".vocabulary-selection-action").getByRole("button", { name: "Add selected text to vocabulary" }).click();
     await expect(page.getByRole("form", { name: "Add selected text to vocabulary" })).toBeVisible();
     await page.getByLabel("Meaning (optional)").fill("A test meaning");
     await page.getByLabel("Example (optional)").fill("This is an example.");
     await page.getByRole("button", { name: "Save to vocabulary" }).click();
-    await expect(page.getByRole("status")).toContainText(/Saved .* to your vocabulary/);
+    await expect(page.locator(".vocabulary-selection-status")).toContainText(/Saved .* to your vocabulary/);
     await expect.poll(() => page.evaluate(() => {
       const words = JSON.parse(localStorage.getItem("speakup:vocabulary:v1") ?? "[]") as { phrase: string; meaning: string; example: string }[];
       return words.some((word) => word.meaning === "A test meaning" && word.example === "This is an example.");
