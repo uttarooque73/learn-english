@@ -83,7 +83,8 @@ test("practice room generates a structured session summary", async ({ page }) =>
 
   await page.locator("#chat-message").fill("I work here since 2020.");
   await page.getByRole("button", { name: /Send message/ }).click();
-  await expect(page.getByText("Tell me about your experience.")).toBeVisible();
+  await expect(page.getByText("Tell me about your experience.")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: /Summarize session/ })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole("button", { name: /Summarize session/ }).click();
   await expect(page.getByRole("heading", { name: "Your learning summary" })).toBeVisible();
   await expect(page.getByText("hands-on experience")).toBeVisible();
