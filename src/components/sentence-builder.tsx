@@ -24,7 +24,7 @@ export function SentenceBuilder() {
     finally { setLoading(false); }
   }
 
-  function useSuggestion(sentence: string) {
+  function applySuggestion(sentence: string) {
     const input = document.querySelector<HTMLTextAreaElement>(".chat-composer textarea, .practice-chat-input textarea, textarea[name='message']");
     if (!input) { setError("Suggestion selected. Copy it into the conversation input to use it."); return; }
     const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
@@ -38,7 +38,7 @@ export function SentenceBuilder() {
     <div className="learning-feature-heading"><div><p className="eyebrow">NEED A STARTING POINT?</p><h2>Help me phrase this</h2><p>Write a rough thought in English or your own language. AI will suggest three natural English versions.</p></div><button type="button" className="button button-outline" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? "Hide helper" : "Open helper"}</button></div>
     {open && <form onSubmit={suggest} className="sentence-builder-form"><label className="feature-field">What do you want to say?<textarea value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={1000} rows={3} placeholder="e.g. I not come office because health not good" required /></label><button className="button button-primary" type="submit" disabled={loading || !draft.trim()}>{loading ? "Thinking…" : "Suggest 3 natural sentences"}</button>
       {error && <p className="feature-feedback" role="status">{error}</p>}
-      {alternatives.length > 0 && <ol className="sentence-alternatives">{alternatives.map((sentence, i) => <li key={sentence}><p>{sentence}</p><button type="button" className="button button-outline" onClick={() => useSuggestion(sentence)}>Use this sentence</button></li>)}</ol>}
+      {alternatives.length > 0 && <ol className="sentence-alternatives">{alternatives.map((sentence) => <li key={sentence}><p>{sentence}</p><button type="button" className="button button-outline" onClick={() => applySuggestion(sentence)}>Use this sentence</button></li>)}</ol>}
     </form>}
   </section>;
 }
