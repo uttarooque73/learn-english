@@ -485,3 +485,24 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 
 
 /* Phase 18: configurable speech playback */
+
+
+/* Phase 19: phoneme-level pronunciation feedback */
+.phoneme-assessment { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; margin-top: 14px; padding: 14px; border: 1px solid #dfe5d7; border-radius: 10px; background: #f6f8f2; }
+.phoneme-assessment > div:first-child > p { margin: 5px 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.phoneme-assessment small { color: var(--muted); font-size: 10px; line-height: 1.6; }
+.phoneme-record-controls { display: flex; justify-content: flex-end; }
+.phoneme-assessment-error, .phoneme-assessment-loading { grid-column: 1 / -1; margin: 0; font-size: 12px; line-height: 1.6; }
+.phoneme-assessment-error { color: #963d30; }
+.phoneme-assessment-result { grid-column: 1 / -1; display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid #dfe5d7; }
+.phoneme-assessment-result > p { margin: 0; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.phoneme-score { display: flex; align-items: baseline; gap: 9px; }
+.phoneme-score strong { font-family: Manrope, sans-serif; font-size: 30px; color: var(--green); }
+.phoneme-score span { color: var(--muted); font-size: 11px; }
+.phoneme-issue-list { display: grid; gap: 8px; }
+.phoneme-issue { padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.phoneme-issue strong { font-size: 12px; }
+.phoneme-issue p { margin: 5px 0; font-size: 11px; }
+.phoneme-issue code { white-space: normal; overflow-wrap: anywhere; }
+.phoneme-issue small { display: block; margin-top: 5px; }
+@media (max-width: 520px) { .phoneme-assessment { grid-template-columns: minmax(0, 1fr); } .phoneme-record-controls { justify-content: stretch; } .phoneme-record-controls button { width: 100%; min-height: 42px; } }

@@ -327,3 +327,41 @@ test("a learner can delete one saved conversation from Practice Room history", a
   await expect(page.getByLabel("Saved conversations")).toContainText("Recent conversations (1)");
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("speakup:sessions:v1") || "[]").map((session: { id: string }) => session.id))).toEqual(["session-to-keep"]);
 });
+
+
+test("phoneme assessment records audio and displays sound-level feedback from the local service", async ({ page }) => {
+  await page.addInitScript(() => {
+    class FakeMediaRecorder {
+      state = "inactive";
+      mimeType = "audio/webm";
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      constructor(_stream: MediaStream) {}
+      start() { this.state = "recording"; this.ondataavailable?.({ data: new Blob(["fake audio"], { type: this.mimeType }) }); }
+      stop() { this.state = "inactive"; this.onstop?.(); }
+    }
+    Object.defineProperty(window, "MediaRecorder", { configurable: true, value: FakeMediaRecorder });
+    Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) } });
+  });
+  await page.route("**/api/chat", async (route) => route.fulfill({ status: 200, contentType: "text/plain", body: "Tell me what you did yesterday." }));
+  await page.route("**/api/feedback", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+    originalSentence: "I go yesterday.", correctedSentence: "I went yesterday.", explanation: "Use past tense.", issues: [], practicePrompt: "Tell me one more thing you did yesterday.", tips: [], pronunciationTip: "Say each word clearly.", vocabulary: []
+  }) }));
+  await page.route("**/api/pronunciation", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+    score: 82, transcript: "I went yesterday", phonemeErrorRate: 0.12, wordErrorRate: 0,
+    errors: [{ word: "went", expected: "w ɛ n t", actual: "w ɪ n", confidence: 0.88, phones: [{ expected: "ɛ", heard: "ɪ", confidence: 0.88 }] }]
+  }) }));
+  await page.goto("/practice");
+  await page.getByLabel("Your message").fill("I go yesterday.");
+  await page.getByRole("button", { name: /Send message/ }).click();
+  await expect(page.getByText("Tell me what you did yesterday.")).toBeVisible();
+  await page.getByRole("button", { name: "Get feedback" }).click();
+  const feedback = page.getByRole("region", { name: "English feedback" });
+  await expect(feedback).toBeVisible();
+  await feedback.getByRole("button", { name: "Record pronunciation" }).click();
+  await feedback.getByRole("button", { name: "Stop and assess" }).click();
+  await expect(feedback.getByText("82", { exact: true })).toBeVisible();
+  await expect(feedback.getByText("Sounds to practice")).toBeVisible();
+  await expect(feedback.getByText("went", { exact: true })).toBeVisible();
+});
