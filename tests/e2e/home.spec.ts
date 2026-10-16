@@ -121,7 +121,7 @@ test("learning preferences save and persist personalization and accessibility ch
   await page.getByLabel("Larger text").check();
   await page.getByLabel("Reduce animation").check();
   await page.getByRole("button", { name: /Save preferences/ }).click();
-  await expect(page.getByRole("status")).toContainText("Your preferences are saved on this device.");
+  await expect(page.getByText("Your preferences are saved on this device.", { exact: true })).toBeVisible();
 
   await page.reload();
   await page.waitForTimeout(1000);
