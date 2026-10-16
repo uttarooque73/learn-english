@@ -9,11 +9,14 @@ type QuizQuestion = { prompt: string; answer: string; explanation: string };
 function collectWeaknesses(sessions: PracticeSession[]): Weakness[] {
   const map = new Map<string, Weakness>();
   for (const session of sessions) {
+    const seenInSession = new Set<string>();
     for (const correction of session.summary?.corrections ?? []) {
       const original = correction.original.trim();
       const improved = correction.improved.trim();
       if (!original || !improved || original.toLowerCase() === improved.toLowerCase()) continue;
       const key = original.toLowerCase() + "=>" + improved.toLowerCase();
+      if (seenInSession.has(key)) continue;
+      seenInSession.add(key);
       const current = map.get(key);
       if (current) current.count += 1;
       else map.set(key, { original, improved, reason: correction.reason, count: 1, scenario: session.scenario });
