@@ -1,39 +1,45 @@
-import { Pool } from "pg";
+import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 
-const globalForDatabase = globalThis as typeof globalThis & { speakupPool?: Pool };
+const globalForDatabase = globalThis as typeof globalThis & {
+  speakupDatabase?: Database.Database;
+};
 
-export function getDatabasePool(): Pool {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is not configured. Add a PostgreSQL connection string to the server environment.");
+export function getDatabase(): Database.Database {
+  if (!globalForDatabase.speakupDatabase) {
+    const configuredPath = process.env.SQLITE_DATABASE_PATH;
+    const databasePath = configuredPath
+      ? path.resolve(configuredPath)
+      : path.join(process.cwd(), "data", "speakup.sqlite");
+
+    mkdirSync(path.dirname(databasePath), { recursive: true });
+    const database = new Database(databasePath);
+    database.pragma("journal_mode = WAL");
+    database.pragma("foreign_keys = ON");
+    database.pragma("busy_timeout = 5000");
+    globalForDatabase.speakupDatabase = database;
   }
-  if (!globalForDatabase.speakupPool) {
-    globalForDatabase.speakupPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 10,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 5_000,
-      ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: false } : undefined,
-    });
-  }
-  return globalForDatabase.speakupPool;
+
+  return globalForDatabase.speakupDatabase;
 }
 
-let schemaReady: Promise<void> | undefined;
+let schemaReady = false;
 
-export function ensurePersistenceSchema(): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = getDatabasePool().query(`
-      CREATE TABLE IF NOT EXISTS app_user_data (
-        owner_id UUID NOT NULL,
-        data_key TEXT NOT NULL,
-        data_value JSONB NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        PRIMARY KEY (owner_id, data_key)
-      )
-    `).then(() => undefined).catch((error: unknown) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  return schemaReady;
+export function ensurePersistenceSchema(): void {
+  if (schemaReady) return;
+
+  getDatabase().exec(`
+    CREATE TABLE IF NOT EXISTS app_user_data (
+      owner_id TEXT NOT NULL,
+      data_key TEXT NOT NULL,
+      data_value TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      PRIMARY KEY (owner_id, data_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_app_user_data_owner
+      ON app_user_data(owner_id);
+  `);
+
+  schemaReady = true;
 }
