@@ -4,6 +4,7 @@ export type SavedVocabulary = {
   meaning: string;
   example: string;
   savedAt: string;
+  category?: "word" | "collocation" | "phrasal verb" | "expression";
   status?: VocabularyStatus;
   lastReviewedAt?: string;
   nextReviewAt?: string;
