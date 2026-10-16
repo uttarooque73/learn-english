@@ -41,10 +41,12 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: new () => SpeechRecognitionLike;
 };
 
+function getCurrentTimestamp() { return getCurrentTimestamp(); }
+
 function createId() {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
     ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    : `${getCurrentTimestamp()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
@@ -127,25 +129,23 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   }
 
   useEffect(() => {
-    if (sessionDeadline === null) { setRemainingSeconds(null); return; }
-    let timer: number | undefined;
+    if (sessionDeadline === null) return;
     let finished = false;
     const tick = () => {
       if (finished) return;
-      const remaining = Math.max(0, Math.ceil((sessionDeadline - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.ceil((sessionDeadline - getCurrentTimestamp()) / 1000));
       setRemainingSeconds(remaining);
       if (remaining === 0) {
         finished = true;
         setSessionExpired(true);
         recognitionRef.current?.stop();
         if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-        if (timer !== undefined) window.clearInterval(timer);
+        window.clearInterval(timer);
       }
     };
+    const timer = window.setInterval(tick, 1000);
     tick();
-    timer = window.setInterval(tick, 1000);
-    if (finished) window.clearInterval(timer);
-    return () => { if (timer !== undefined) window.clearInterval(timer); };
+    return () => window.clearInterval(timer);
   }, [sessionDeadline]);
 
   function chooseScenario(title: string) {
@@ -336,7 +336,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       sessionStartedAtRef.current = new Date().toISOString();
       setSessionExpired(false);
       if (sessionDurationMinutes !== null) {
-        const deadline = Date.now() + sessionDurationMinutes * 60 * 1000;
+        const deadline = getCurrentTimestamp() + sessionDurationMinutes * 60 * 1000;
         setSessionDeadline(deadline);
         setRemainingSeconds(sessionDurationMinutes * 60);
       }
@@ -657,8 +657,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     const started = Date.parse(session.startedAt);
     const deadline = duration !== null && Number.isFinite(started) ? started + duration * 60 * 1000 : null;
     setSessionDeadline(deadline);
-    setSessionExpired(deadline !== null && deadline <= Date.now());
-    setRemainingSeconds(deadline === null ? null : Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    setSessionExpired(deadline !== null && deadline <= getCurrentTimestamp());
+    setRemainingSeconds(deadline === null ? null : Math.max(0, Math.ceil((deadline - getCurrentTimestamp()) / 1000)));
     setMessages(restoredMessages);
     setDraft("");
     setError("");

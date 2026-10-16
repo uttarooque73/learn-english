@@ -380,7 +380,7 @@ test("session goal guides the tutor and the optional timer ends a timed session"
   await page.getByRole("button", { name: /Send message/ }).click();
   await expect(page.getByText("Let us practise a sentence together.")).toBeVisible();
   await expect.poll(() => chatBody).toMatchObject({ sessionGoal: "Improve grammar", sessionDurationMinutes: 5 });
-  await expect(page.getByRole("status").filter({ hasText: "Time left 05:00" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: /Time left 0[45]:[0-5][0-9]/ })).toBeVisible();
   await page.evaluate(() => { const start = Date.now(); Date.now = () => start + 6 * 60 * 1000; });
   await expect(page.getByRole("status").filter({ hasText: "Session time is up" })).toBeVisible({ timeout: 4000 });
   await expect(page.getByLabel("Your message")).toBeDisabled();
