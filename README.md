@@ -140,6 +140,12 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Show local saved-data counts and explain exactly what will be deleted; preserve learning preferences.
 - [x] Add storage unit tests and Playwright coverage for individual and bulk deletion.
 
+### Phase 18 — Configurable speech playback
+- [x] Add saved speaking-speed preferences (slow, normal, fast) and apply them to text-to-speech playback.
+- [x] Let learners choose from available English voices supplied by their browser/operating system.
+- [x] Keep automatic voice selection as the default and gracefully handle unavailable saved voices or unsupported browsers.
+- [x] Add preference validation, persistence, and browser coverage.
+
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -346,7 +352,7 @@ Next.js Route Handlers (/api/*)
 ### 9. Personalization and Accessibility
 - [x] Configure English level, daily goal, and preferred topics.
 - [x] Choose feedback style: gentle, balanced, or detailed.
-- [ ] Configure AI response speed and voice where supported.
+- [x] Configure speech playback speed and select an available English voice where supported, with a safe automatic fallback.
 - [x] Add accessible native controls, keyboard focus styling, larger text, and reduced motion.
 - [ ] Provide clear microphone-permission and browser-compatibility messages.
 - [x] Allow users to delete an individual saved session or clear all saved conversations, transcripts, summaries, and vocabulary from Learning Settings with explicit confirmation.

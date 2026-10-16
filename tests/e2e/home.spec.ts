@@ -117,6 +117,8 @@ test("learning preferences save and persist personalization and accessibility ch
   await page.getByLabel("Current English level").selectOption("Intermediate");
   await page.getByLabel("Feedback style").selectOption("detailed");
   await page.getByLabel("Daily practice goal").selectOption("15");
+  await page.getByLabel("Speaking speed").selectOption("1.2");
+  await page.getByLabel("English voice").selectOption("");
   await page.getByLabel("Explain a technical concept").check();
   await page.getByLabel("Larger text").check();
   await page.getByLabel("Reduce animation").check();
@@ -128,6 +130,8 @@ test("learning preferences save and persist personalization and accessibility ch
   await expect(page.getByLabel("Current English level")).toHaveValue("Intermediate");
   await expect(page.getByLabel("Feedback style")).toHaveValue("detailed");
   await expect(page.getByLabel("Daily practice goal")).toHaveValue("15");
+  await expect(page.getByLabel("Speaking speed")).toHaveValue("1.2");
+  await expect(page.getByLabel("English voice")).toHaveValue("");
   await expect(page.getByLabel("Explain a technical concept")).toBeChecked();
   await expect(page.getByLabel("Larger text")).toBeChecked();
   await expect(page.getByLabel("Reduce animation")).toBeChecked();
