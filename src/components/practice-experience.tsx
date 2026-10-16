@@ -354,7 +354,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </div>
       </section>
 
-      <section className="roleplay-settings" aria-label="Role-play settings"><div><p className="eyebrow">SET YOUR PACE</p><strong>Choose your English level</strong><p>The coach adapts its vocabulary and question complexity to your level.</p></div><label htmlFor="practice-difficulty">Difficulty<select id="practice-difficulty" value={difficulty} disabled={isStreaming || listening} onChange={(event) => { setDifficulty(event.target.value as typeof difficulty); resetConversation(); }}><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></label></section>
+      <section className="roleplay-settings" aria-label="Role-play settings"><div><p className="eyebrow">SET YOUR PACE</p><strong>Choose your English level</strong><p>The coach adapts its vocabulary and question complexity to your level.</p></div><label htmlFor="practice-difficulty">Difficulty<select id="practice-difficulty" value={difficulty} disabled={isStreaming || listening || !learningPreferences} onChange={(event) => { setDifficulty(event.target.value as typeof difficulty); resetConversation(); }}><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></label></section>
 
       <section className="chat-panel" aria-label="AI English conversation">
         <div className="chat-header">
