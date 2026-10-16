@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PracticeExperience } from "@/components/practice-experience";
 
@@ -8,6 +8,7 @@ const prompts = [
 ];
 
 afterEach(() => {
+  cleanup();
   vi.unstubAllGlobals();
 });
 
