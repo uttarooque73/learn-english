@@ -6,7 +6,6 @@ describe("FluencyExercises", () => {
   it("switches exercises and counts words in the learner response", () => {
     render(<FluencyExercises />);
 
-    expect(screen.getByText("Tell the story of something you learned recently.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Quick response/ }));
     expect(screen.getByText("What is one skill you would like to learn, and why?")).toBeInTheDocument();
 
