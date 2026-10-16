@@ -45,7 +45,7 @@ const fillerPattern = /\b(um+|uh+|erm+|like|you know|basically|actually)\b/gi;
 
 export function FluencyExercises() {
   const [exercise, setExercise] = useState<Exercise>("daily");
-  const [promptIndex, setPromptIndex] = useState(0);
+  const [promptIndex, setPromptIndex] = useState(() => new Date().getDate() % prompts.daily.length);
   const [response, setResponse] = useState("");
   const [secondsRemaining, setSecondsRemaining] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
