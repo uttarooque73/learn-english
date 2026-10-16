@@ -14,10 +14,12 @@ test("dashboard renders and opens the practice room", async ({ page }) => {
 
 test("practice room offers guided role-play scenarios and difficulty levels", async ({ page }) => {
   await page.goto("/practice");
+  await page.waitForLoadState("networkidle");
 
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
   await interview.click();
+  await expect(interview).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".chat-header-copy")).toContainText("Topic: Job interview");
 
   const difficulty = page.getByRole("combobox", { name: "Difficulty" });
