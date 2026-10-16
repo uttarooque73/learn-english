@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { getSessions, removeSession, saveVocabulary, upsertSession, type PracticeSession, type SessionSummary } from "@/lib/learning-storage";
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
+import { getLearningScenarios } from "@/lib/learning-scenarios";
 
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
 const SESSION_GOALS = ["Speak more confidently", "Improve grammar", "Expand vocabulary", "Practice workplace English", "Prepare for an interview", "Improve fluency"] as const;
@@ -50,6 +51,7 @@ function createId() {
 }
 
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
+  const [availablePrompts, setAvailablePrompts] = useState<Scenario[]>(prompts);
   const [scenario, setScenario] = useState(prompts[0]?.title ?? "Free conversation");
   const [difficulty, setDifficulty] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
   const [sessionGoal, setSessionGoal] = useState<SessionGoal>("Speak more confidently");
@@ -104,6 +106,8 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     const timer = window.setTimeout(() => {
       const speech = window as SpeechWindow;
       setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
+      const customPrompts = getLearningScenarios().filter((item) => item.custom).map((item, index) => ({ number: String(prompts.length + index + 1).padStart(2, "0"), title: item.title, description: item.description, icon: item.icon, tone: item.tone }));
+      setAvailablePrompts([...prompts, ...customPrompts]);
       setSavedSessions(getSessions());
       const preferences = getLearningPreferences();
       setLearningPreferences(preferences);
@@ -739,7 +743,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           <span className="section-note">Choose a topic to guide your coach</span>
         </div>
         <div className="scenario-grid">
-          {prompts.map((prompt) => (
+          {availablePrompts.map((prompt) => (
             <button className={`scenario-card scenario-choice ${scenario === prompt.title ? "selected" : ""}`} type="button" key={prompt.number} onClick={() => chooseScenario(prompt.title)} aria-pressed={scenario === prompt.title} disabled={isStreaming || listening || voiceSessionState !== "idle"}>
               <span className="scenario-top"><span className={`scenario-icon ${prompt.tone}`}>{prompt.icon}</span><span className="scenario-number">{prompt.number}</span></span>
               <span className="scenario-title">{prompt.title}</span><span className="scenario-description">{prompt.description}</span>
