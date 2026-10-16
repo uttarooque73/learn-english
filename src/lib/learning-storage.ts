@@ -76,7 +76,7 @@ export function reviewVocabulary(id: string, rating: VocabularyReviewRating, rev
   const updated = items.map((item) => {
     if (item.id !== id) return item;
     const nextReview = new Date(reviewedAt);
-    nextReview.setDate(nextReview.getDate() + intervals[rating]);
+    nextReview.setTime(nextReview.getTime() + intervals[rating] * 24 * 60 * 60 * 1000);
     reviewed = {
       ...item,
       lastReviewedAt: reviewedAt.toISOString(),
