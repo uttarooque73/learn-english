@@ -2,7 +2,7 @@
 
 SpeakUp AI is a personal English-practice app designed to help learners speak more confidently, improve grammar, expand vocabulary, and track progress through realistic conversations with an AI tutor.
 
-The project uses **Next.js App Router + React + TypeScript** for a single full-stack codebase. Phase 2 connects the Practice Room to a local Ollama model through a server-side streaming API.
+The project uses **Next.js App Router + React + TypeScript** for a single full-stack codebase. A server-side streaming API connects the Practice Room to local Ollama; browser speech features and local learning storage support practice, feedback, vocabulary, and progress.
 
 ## Current implementation status
 
@@ -16,10 +16,14 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Connect the Practice Room to Ollama through a streaming Next.js Route Handler.
 - [x] Add scenario selection, streaming chat UI, input validation, and actionable connection errors.
 - [x] Add unit and integration tests for chat behavior and API validation.
-- [ ] Persist conversation history and restore sessions (Phase 3).
-- [ ] Add grammar feedback, vocabulary saving, and progress analytics (later phases).
+- [x] Add browser speech-to-text input and text-to-speech playback where supported.
+- [x] Add Ollama-powered grammar feedback, natural phrasing, learning tips, and suggested vocabulary.
+- [x] Save suggested phrases and track practice summaries locally in the browser.
+- [x] Show real local practice metrics on the overview and progress pages.
+- [ ] Persist full conversation transcripts and restore them after refresh (future phase).
+- [ ] Add true phoneme-level pronunciation assessment with a dedicated speech model (future phase).
 
-**Current limitation:** Chat now calls the configured local Ollama service. Messages and context are held in React state only and are not saved after refresh or navigation. Vocabulary and progress figures remain placeholders.
+**Current limitations:** Voice input depends on browser support and microphone permission. Pronunciation practice currently compares the browser's speech transcript with the target sentence; this is an approximate word-match indicator, not an acoustic pronunciation score. Vocabulary and practice summaries use browser local storage and are not synced across devices. Full conversation transcripts are not restored after refresh.
 
 ## Getting started
 
