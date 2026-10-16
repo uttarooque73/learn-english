@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ListenButton } from "@/components/listen-button";
 import { useCallback, useEffect, useState } from "react";
 import { getVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
 
@@ -71,7 +72,7 @@ export function VocabularyDetail({ id }: { id: string }) {
         <div className="vocabulary-detail-heading">
           <p className="eyebrow">YOUR WORD, IN CONTEXT</p>
           <h2>{word.phrase}</h2>
-          <p>{word.meaning || "Keep exploring how this word is used in natural English."}</p>
+          <p>{word.meaning || "Keep exploring how this word is used in natural English."}</p><ListenButton text={`${word.phrase}. ${word.meaning}`} label={`Listen to ${word.phrase}`} />
           <div className="vocabulary-detail-meta"><span className="vocabulary-detail-category">{word.category || "vocabulary"}</span><span className={`vocab-status status-${word.status ?? "learning"}`}>{statusLabels[word.status ?? "learning"]}</span></div>
         </div>
       </section>
@@ -80,7 +81,7 @@ export function VocabularyDetail({ id }: { id: string }) {
         <div className="vocabulary-detail-section-heading"><div><p className="eyebrow">LEARN THROUGH EXAMPLES</p><h3>See it in real sentences</h3><p>Different situations help you understand when and how to use this word naturally.</p></div><button type="button" className="notebook-secondary" onClick={() => void loadExamples(word)} disabled={loading}>{loading ? "Creating examples…" : examples.length ? "Generate new examples ↻" : "Generate examples ↗"}</button></div>
         {loading && examples.length === 0 && <div className="vocabulary-examples-loading" role="status"><span className="vocabulary-loading-dot" /><div><strong>Building your example set</strong><p>Creating natural sentences across everyday life, work, and conversation.</p></div></div>}
         {error && <div className="vocabulary-detail-error" role="alert"><p>{error}</p><button type="button" className="notebook-secondary" onClick={() => void loadExamples(word)} disabled={loading}>Try again</button></div>}
-        {examples.length > 0 && <div className="vocabulary-example-grid">{examples.map((example, index) => <article className="vocabulary-example-card" key={`${index}-${example.sentence}`}><div className="vocabulary-example-top"><span className="vocabulary-example-number">{String(index + 1).padStart(2, "0")}</span><span className="vocabulary-example-context">{example.context}</span></div><p className="vocabulary-example-sentence">{example.sentence}</p><p className="vocabulary-example-tip"><span>Usage tip</span>{example.tip}</p><button type="button" className="vocabulary-copy-example" onClick={() => void copySentence(example.sentence, index)}>{copiedExample === index ? "Copied ✓" : "Copy sentence ↗"}</button></article>)}</div>}
+        {examples.length > 0 && <div className="vocabulary-example-grid">{examples.map((example, index) => <article className="vocabulary-example-card" key={`${index}-${example.sentence}`}><div className="vocabulary-example-top"><span className="vocabulary-example-number">{String(index + 1).padStart(2, "0")}</span><span className="vocabulary-example-context">{example.context}</span></div><p className="vocabulary-example-sentence">{example.sentence}</p><ListenButton text={example.sentence} label={`Listen to example ${index + 1}`} /><p className="vocabulary-example-tip"><span>Usage tip</span>{example.tip}</p><ListenButton text={example.tip} label={`Listen to usage tip ${index + 1}`} /><button type="button" className="vocabulary-copy-example" onClick={() => void copySentence(example.sentence, index)}>{copiedExample === index ? "Copied ✓" : "Copy sentence ↗"}</button></article>)}</div>}
         {!loading && !error && examples.length === 0 && <div className="notebook-empty"><h3>Let’s build your examples</h3><p>Generate several natural sentences that show how to use this word.</p><button type="button" className="button button-dark" onClick={() => void loadExamples(word)}>Generate examples</button></div>}
       </section>
 
