@@ -1,3 +1,5 @@
+import { readPersistedValue, writePersistedValue } from "@/lib/client-persistence";
+
 export type LearningScenario = { id: string; title: string; description: string; icon: string; tone: string; custom?: boolean };
 
 export const DEFAULT_SCENARIOS: LearningScenario[] = [
@@ -18,7 +20,7 @@ const ICONS = ["✦", "☕", "💼", "🎯", "🌍", "☎", "◎", "↗", "⌘",
 export function getLearningScenarios(): LearningScenario[] {
   if (typeof window === "undefined") return DEFAULT_SCENARIOS;
   try {
-    const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    const saved: unknown = JSON.parse(readPersistedValue(STORAGE_KEY) ?? "[]");
     if (!Array.isArray(saved)) return DEFAULT_SCENARIOS;
     const valid = saved.filter((item): item is LearningScenario =>
       Boolean(item && typeof item.id === "string" && typeof item.title === "string" &&
@@ -43,11 +45,11 @@ export function addLearningScenario(title: string, description: string, icon = "
     title: cleanTitle, description: cleanDescription, icon: ICONS.includes(icon) ? icon : "✦",
     tone: TONES[current.length % TONES.length], custom: true,
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...current, scenario]));
+  writePersistedValue(STORAGE_KEY, JSON.stringify([...current, scenario]));
   return scenario;
 }
 
 export function removeLearningScenario(id: string): void {
   const current = getLearningScenarios().filter((item) => item.custom && item.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+  writePersistedValue(STORAGE_KEY, JSON.stringify(current));
 }
