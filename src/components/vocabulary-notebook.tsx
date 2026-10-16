@@ -102,7 +102,7 @@ export function VocabularyNotebook() {
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => { setWords(getVocabulary()); setReady(true); }, 0);
+    const timer = window.setTimeout(() => { setWords(getVocabulary()); if (new URLSearchParams(window.location.search).get("mode") === "review") setMode("review"); setReady(true); }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
