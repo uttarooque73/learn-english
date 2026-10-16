@@ -2,7 +2,7 @@
 
 SpeakUp AI is a personal English-practice app designed to help learners speak more confidently, improve grammar, expand vocabulary, and track progress through realistic conversations with an AI tutor.
 
-The project uses **Next.js App Router + React + TypeScript** for a single full-stack codebase. The AI service and database will be connected in later implementation phases.
+The project uses **Next.js App Router + React + TypeScript** for a single full-stack codebase. Ollama and persistence are connected in later implementation phases.
 
 ## Current implementation status
 
@@ -11,19 +11,19 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Create a responsive shared application shell and navigation.
 - [x] Build the overview dashboard and practice, vocabulary, and progress pages.
 - [x] Add responsive styling and clear empty/coming-soon states.
-- [x] Document local setup and the next implementation phases.
+- [x] Document local setup and the implementation roadmap.
 - [ ] Connect the chat interface to Ollama (Phase 2).
 - [ ] Add conversation persistence and context (later phase).
 - [ ] Add grammar feedback, vocabulary saving, and progress analytics (later phases).
 
-**Important:** Phase 1 is the UI foundation only. Chat, saved vocabulary, and progress figures are currently placeholders; no AI requests or session data are processed yet.
+**Important:** Phase 1 is the UI foundation only. Chat, saved vocabulary, and progress figures are placeholders; no AI requests or session data are processed yet.
 
 ## Getting started
 
 ### Requirements
-- Node.js 20.9 or newer
+- Node.js 20.9 or newer (Node.js 22 is used in CI)
 - npm
-- Ollama will be needed for Phase 2, but is not required to run the Phase 1 UI.
+- Ollama is not required to run the current UI or tests; it will be needed for the AI integration phase.
 
 ### Install and run
 
@@ -36,13 +36,53 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Available commands
+## Quality checks
+
+Run these checks before considering a change complete:
 
 ```bash
-npm run dev       # Start the local development server
+npm run lint          # ESLint / Next.js rules
+npm run typecheck     # TypeScript checks
+npm test              # Unit and integration tests
+npm run test:coverage # Tests plus coverage thresholds
+npm run build         # Production build
+npm run test:e2e      # Playwright browser/UI tests
+```
+
+For interactive test development, run `npm run test:watch`.
+
+### Testing strategy
+- **Unit tests:** Vitest + React Testing Library. Test individual components, helpers, and isolated behavior.
+- **Integration tests:** Vitest. Test how app components and application modules work together; add API/route-handler and persistence integration tests when those features are implemented.
+- **UI / end-to-end tests:** Playwright. Test user-visible flows in a real browser, including navigation and critical practice workflows.
+- **Coverage:** Coverage is collected with V8. Initial global thresholds are deliberately modest (30% statements/lines and 20% branches/functions) while the project is young. Increase thresholds as meaningful tests are added; do not lower them just to make a failing build pass.
+- **Lint and types:** ESLint and TypeScript checks must pass.
+- **Build:** A production build must succeed.
+
+### Continuous integration
+GitHub Actions runs on every push to `main` and every pull request targeting `main`. It runs linting, type-checking, unit/integration tests with coverage thresholds, the production build, and Playwright browser tests.
+
+**Definition of done for each phase**
+1. Implement the complete phase scope.
+2. Add or update unit, integration, and UI tests for the behavior introduced; if a test category is not applicable, document why.
+3. Run all applicable quality checks locally and fix failures.
+4. Never claim a check passed unless it was actually run and passed.
+5. Update this README when setup, architecture, commands, or behavior changes.
+6. Commit the completed phase once, with a descriptive commit message. Do not split a single phase into a series of partial feature commits.
+
+CI runs on push/PR, not at the moment of a local commit. Do not treat a commit as verified until the relevant CI checks have completed successfully. Configure branch protection in GitHub repository settings if you want GitHub to block merging when required checks fail.
+
+## Available commands
+
+```bash
+npm run dev       # Start local development server
 npm run build     # Create a production build
 npm run start     # Run the production server after building
 npm run typecheck # Run TypeScript checks
+npm run lint      # Run ESLint
+npm test          # Run unit and integration tests
+npm run test:coverage
+npm run test:e2e  # Run Playwright browser tests
 ```
 
 ## Architecture
