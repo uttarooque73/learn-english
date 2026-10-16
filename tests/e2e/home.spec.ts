@@ -17,7 +17,6 @@ test("dashboard renders and opens the practice room", async ({ page }) => {
 test("practice room offers guided role-play scenarios and difficulty levels", async ({ page }) => {
   await page.goto("/practice");
   await page.waitForTimeout(1000);
-  await page.waitForLoadState("networkidle");
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
   await expect(page.getByRole("button", { name: /Daily stand-up/ })).toBeVisible();
@@ -43,7 +42,7 @@ test("fluency page offers timed speaking and filler-word awareness exercises", a
   await expect(page.getByRole("button", { name: /Daily speaking prompt/ })).toBeVisible();
 
   await page.getByRole("button", { name: /One-minute talk/ }).click();
-  await expect(page.getByRole("timer")).toHaveAttribute("aria-label", "60 seconds remaining");
+  await expect(page.locator(".fluency-timer")).toHaveAttribute("aria-label", "60 seconds remaining");
   await page.getByRole("button", { name: "Start 1-minute timer" }).click();
   await expect(page.getByRole("button", { name: "Pause timer" })).toBeVisible();
 
@@ -92,6 +91,7 @@ test("learning preferences save and persist personalization and accessibility ch
   await page.waitForTimeout(1000);
   await expect(page.getByRole("heading", { name: "Learning preferences" })).toBeVisible();
 
+  await expect(page.getByLabel("Current English level")).toBeEnabled();
   await page.getByLabel("Current English level").selectOption("Intermediate");
   await page.getByLabel("Feedback style").selectOption("detailed");
   await page.getByLabel("Daily practice goal").selectOption("15");
@@ -99,7 +99,7 @@ test("learning preferences save and persist personalization and accessibility ch
   await page.getByLabel("Larger text").check();
   await page.getByLabel("Reduce animation").check();
   await page.getByRole("button", { name: /Save preferences/ }).click();
-  await expect(page.getByRole("status")).toContainText("saved on this device");
+  await expect(page.getByRole("status")).toContainText("Your preferences are saved on this device.");
 
   await page.reload();
   await page.waitForTimeout(1000);
