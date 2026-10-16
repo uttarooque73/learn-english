@@ -15,7 +15,8 @@ describe("PracticeExperience", () => {
   it("lets the learner select a scenario and offers a starter prompt", async () => {
     render(<PracticeExperience prompts={prompts} />);
 
-    const workScenario = screen.getByRole("button", { name: /At work/ });
+    const scenarios = within(screen.getByRole("region", { name: /What feels right today/ }));
+    const workScenario = scenarios.getByRole("button", { name: /At work/ });
     await waitFor(() => expect(workScenario).toBeEnabled());
     fireEvent.click(workScenario);
 
@@ -41,7 +42,8 @@ describe("PracticeExperience", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PracticeExperience prompts={prompts} />);
-    const workScenario = screen.getByRole("button", { name: /At work/ });
+    const scenarios = within(screen.getByRole("region", { name: /What feels right today/ }));
+    const workScenario = scenarios.getByRole("button", { name: /At work/ });
     await waitFor(() => expect(workScenario).toBeEnabled());
     fireEvent.click(workScenario);
     fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Hello coach" } });
