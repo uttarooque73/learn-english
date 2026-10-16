@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getSessions, getVocabulary, removeVocabulary, type PracticeSession, type SavedVocabulary } from "@/lib/learning-storage";
 
-export function LearningInsights({ mode }: { mode: "progress" | "vocabulary" }) {
+export function LearningInsights({ mode }: { mode: "overview" | "progress" | "vocabulary" }) {
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [words, setWords] = useState<SavedVocabulary[]>([]);
   const [ready, setReady] = useState(false);
@@ -20,6 +20,16 @@ export function LearningInsights({ mode }: { mode: "progress" | "vocabulary" }) 
   const messages = sessions.reduce((sum, session) => sum + session.messageCount, 0);
 
   if (!ready) return <section className="learning-insights" aria-live="polite"><p>Loading your learning data…</p></section>;
+
+  if (mode === "overview") {
+    return (
+      <div className="stats-grid">
+        <article className="stat-card"><div className="stat-top"><span className="stat-icon peach">◷</span><span className="stat-tag">PRACTICE</span></div><div className="stat-value">{minutes} <small>min</small></div><p>Practice time</p><div className="stat-foot"><span className="stat-line peach-line" />Time spent learning</div></article>
+        <article className="stat-card"><div className="stat-top"><span className="stat-icon lavender">✦</span><span className="stat-tag">CONSISTENCY</span></div><div className="stat-value">{sessions.length}</div><p>Sessions completed</p><div className="stat-foot"><span className="stat-line lavender-line" />Every conversation counts</div></article>
+        <article className="stat-card"><div className="stat-top"><span className="stat-icon mint">Aa</span><span className="stat-tag">VOCABULARY</span></div><div className="stat-value">{words.length}</div><p>Words and phrases saved</p><div className="stat-foot"><span className="stat-line mint-line" />Collect useful expressions</div></article>
+      </div>
+    );
+  }
 
   if (mode === "progress") {
     return (
