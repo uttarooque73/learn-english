@@ -18,6 +18,7 @@ describe("AppShell", () => {
     expect(screen.getByText("Choose a comfortable starting point.")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Practice room/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /Shadowing & pronunciation/i })).toHaveAttribute("href", "/shadowing");
     expect(screen.getByText("Practice content")).toBeInTheDocument();
   });
 });
