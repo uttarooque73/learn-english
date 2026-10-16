@@ -48,3 +48,34 @@ test("fluency page offers timed speaking and filler-word awareness exercises", a
   await page.getByRole("button", { name: "Finish exercise" }).click();
   await expect(page.getByRole("status")).toContainText("You wrote 10 words.");
 });
+
+
+test("practice room generates a structured session summary", async ({ page }) => {
+  await page.route("**/api/chat", async (route) => {
+    await route.fulfill({ status: 200, contentType: "text/plain", body: "Tell me about your experience." });
+  });
+  await page.route("**/api/session-summary", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        topicSummary: "Practised introducing work experience.",
+        keyPoints: ["Introduced current role"],
+        corrections: [{ original: "I work here since 2020.", improved: "I have worked here since 2020.", reason: "Use present perfect for an action continuing to now." }],
+        vocabulary: [{ phrase: "hands-on experience", meaning: "Practical experience doing something." }],
+        strengths: ["Gave a relevant example"],
+        improvements: ["Add a specific result"],
+        followUpExercise: "Repeat the answer and include one measurable result.",
+      }),
+    });
+  });
+  await page.goto("/practice");
+  await page.waitForLoadState("networkidle");
+  await page.locator("#chat-message").fill("I work here since 2020.");
+  await page.getByRole("button", { name: /Send message/ }).click();
+  await expect(page.getByText("Tell me about your experience.")).toBeVisible();
+  await page.getByRole("button", { name: /Summarize session/ }).click();
+  await expect(page.getByRole("heading", { name: "Your learning summary" })).toBeVisible();
+  await expect(page.getByText("hands-on experience")).toBeVisible();
+  await expect(page.getByText("Repeat the answer and include one measurable result.")).toBeVisible();
+});
