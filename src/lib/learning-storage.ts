@@ -16,7 +16,7 @@ export type PracticeSession = {
   learnerMessages: string[];
 };
 
-const VOCABULARY_KEY = "speakup:vocabulary:v1";
+function createId() {\n  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"\n    ? crypto.randomUUID()\n    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;\n}\n\nconst VOCABULARY_KEY = "speakup:vocabulary:v1";
 const SESSIONS_KEY = "speakup:sessions:v1";
 
 function readList<T>(key: string): T[] {
@@ -42,7 +42,7 @@ export function saveVocabulary(item: Omit<SavedVocabulary, "id" | "savedAt">): S
   const normalized = item.phrase.trim().toLocaleLowerCase();
   const existing = items.find((entry) => entry.phrase.trim().toLocaleLowerCase() === normalized);
   if (existing) return existing;
-  const saved: SavedVocabulary = { ...item, id: crypto.randomUUID(), savedAt: new Date().toISOString() };
+  const saved: SavedVocabulary = { ...item, id: createId(), savedAt: new Date().toISOString() };
   writeList(VOCABULARY_KEY, [saved, ...items]);
   return saved;
 }
