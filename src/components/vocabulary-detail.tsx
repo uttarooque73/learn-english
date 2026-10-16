@@ -6,12 +6,14 @@ import { useCallback, useEffect, useState } from "react";
 import { getVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
 
 type Example = { sentence: string; context: string; tip: string };
+type VocabularyStory = { title: string; paragraph: string; takeaway: string };
 const statusLabels: Record<VocabularyStatus, string> = { learning: "Learning", familiar: "Familiar", mastered: "Mastered" };
 
 export function VocabularyDetail({ id }: { id: string }) {
   const [word, setWord] = useState<SavedVocabulary | null>(null);
   const [ready, setReady] = useState(false);
   const [examples, setExamples] = useState<Example[]>([]);
+  const [story, setStory] = useState<VocabularyStory | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copiedExample, setCopiedExample] = useState(-1);
@@ -25,9 +27,10 @@ export function VocabularyDetail({ id }: { id: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phrase: item.phrase, meaning: item.meaning }),
       });
-      const result = await response.json() as { examples?: Example[]; error?: string };
+      const result = await response.json() as { examples?: Example[]; story?: VocabularyStory; error?: string };
       if (!response.ok || !Array.isArray(result.examples)) throw new Error(result.error || "Could not generate examples.");
       setExamples(result.examples);
+      setStory(result.story && typeof result.story.paragraph === "string" ? result.story : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate examples.");
     } finally {
@@ -76,6 +79,18 @@ export function VocabularyDetail({ id }: { id: string }) {
           <div className="vocabulary-detail-meta"><span className="vocabulary-detail-category">{word.category || "vocabulary"}</span><span className={`vocab-status status-${word.status ?? "learning"}`}>{statusLabels[word.status ?? "learning"]}</span></div>
         </div>
       </section>
+
+      {story && (
+        <section className="vocabulary-story-section" aria-labelledby="vocabulary-story-heading">
+          <div className="vocabulary-story-copy">
+            <p className="eyebrow">LEARN IT IN CONTEXT</p>
+            <h3 id="vocabulary-story-heading">{story.title || `A short story with “${word.phrase}”`}</h3>
+            <p className="vocabulary-story-paragraph">{story.paragraph}</p>
+            <ListenButton text={`${story.title}. ${story.paragraph}. Key takeaway: ${story.takeaway}`} label="Listen to the short story" />
+            {story.takeaway && <p className="vocabulary-story-takeaway"><strong>Remember:</strong> {story.takeaway}</p>}
+          </div>
+        </section>
+      )}
 
       <section className="vocabulary-detail-section">
         <div className="vocabulary-detail-section-heading"><div><p className="eyebrow">LEARN THROUGH EXAMPLES</p><h3>See it in real sentences</h3><p>Different situations help you understand when and how to use this word naturally.</p></div><button type="button" className="notebook-secondary" onClick={() => void loadExamples(word)} disabled={loading}>{loading ? "Creating examples…" : examples.length ? "Generate new examples ↻" : "Generate examples ↗"}</button></div>
