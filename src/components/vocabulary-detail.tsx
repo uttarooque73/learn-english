@@ -14,6 +14,8 @@ export function VocabularyDetail({ id }: { id: string }) {
   const [ready, setReady] = useState(false);
   const [examples, setExamples] = useState<Example[]>([]);
   const [story, setStory] = useState<VocabularyStory | null>(null);
+  const [storyLoading, setStoryLoading] = useState(false);
+  const [storyError, setStoryError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copiedExample, setCopiedExample] = useState(-1);
@@ -27,14 +29,32 @@ export function VocabularyDetail({ id }: { id: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phrase: item.phrase, meaning: item.meaning }),
       });
-      const result = await response.json() as { examples?: Example[]; story?: VocabularyStory; error?: string };
+      const result = await response.json() as { examples?: Example[]; error?: string };
       if (!response.ok || !Array.isArray(result.examples)) throw new Error(result.error || "Could not generate examples.");
       setExamples(result.examples);
-      setStory(result.story && typeof result.story.paragraph === "string" ? result.story : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate examples.");
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadStory = useCallback(async (item: SavedVocabulary) => {
+    setStoryLoading(true);
+    setStoryError("");
+    try {
+      const response = await fetch("/api/vocabulary/examples", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phrase: item.phrase, meaning: item.meaning, mode: "story" }),
+      });
+      const result = await response.json() as { story?: VocabularyStory; error?: string };
+      if (!response.ok || !result.story || typeof result.story.paragraph !== "string") throw new Error(result.error || "Could not generate the story.");
+      setStory(result.story);
+    } catch (err) {
+      setStoryError(err instanceof Error ? err.message : "Could not generate the story.");
+    } finally {
+      setStoryLoading(false);
     }
   }, []);
 
@@ -80,19 +100,31 @@ export function VocabularyDetail({ id }: { id: string }) {
         </div>
       </section>
 
-      {story && (
-        <section className="vocabulary-story-section" aria-labelledby="vocabulary-story-heading">
-          <div className="vocabulary-story-copy">
-            <p className="eyebrow">LEARN IT IN CONTEXT</p>
-            <h3 id="vocabulary-story-heading">{story.title || `A short story with “${word.phrase}”`}</h3>
+      <section className="vocabulary-story-section" aria-labelledby="vocabulary-story-heading">
+        <div className="vocabulary-story-copy">
+          <div className="vocabulary-story-header">
+            <div>
+              <p className="eyebrow">READ AND LISTEN</p>
+              <h3 id="vocabulary-story-heading">Learn “{word.phrase}” through a short story</h3>
+              <p className="vocabulary-story-intro">Generate a short, easy-to-read story using this word in a natural situation.</p>
+            </div>
+            <button type="button" className="notebook-secondary" onClick={() => void loadStory(word)} disabled={storyLoading}>
+              {storyLoading ? "Generating story…" : story ? "Generate another story ↻" : "Generate story ↗"}
+            </button>
+          </div>
+          {storyLoading && <div className="vocabulary-examples-loading" role="status"><span className="vocabulary-loading-dot" /><div><strong>Writing your story</strong><p>Creating a simple story around “{word.phrase}”.</p></div></div>}
+          {storyError && <div className="vocabulary-detail-error" role="alert"><p>{storyError}</p><button type="button" className="notebook-secondary" onClick={() => void loadStory(word)} disabled={storyLoading}>Try again</button></div>}
+          {!story && !storyLoading && !storyError && <p className="vocabulary-story-empty">Your story will appear here. Select <strong>Generate story</strong> when you’re ready.</p>}
+          {story && !storyLoading && <>
+            <h4 className="vocabulary-story-title">{story.title || `A short story with “${word.phrase}”`}</h4>
             <p className="vocabulary-story-paragraph">{story.paragraph}</p>
             <ListenButton text={`${story.title}. ${story.paragraph}. Key takeaway: ${story.takeaway}`} label="Listen to the short story" />
             {story.takeaway && <p className="vocabulary-story-takeaway"><strong>Remember:</strong> {story.takeaway}</p>}
-          </div>
-        </section>
-      )}
+          </>}
+        </div>
+      </section>
 
-      <section className="vocabulary-detail-section">
+            <section className="vocabulary-detail-section">
         <div className="vocabulary-detail-section-heading"><div><p className="eyebrow">LEARN THROUGH EXAMPLES</p><h3>See it in real sentences</h3><p>Different situations help you understand when and how to use this word naturally.</p></div><button type="button" className="notebook-secondary" onClick={() => void loadExamples(word)} disabled={loading}>{loading ? "Creating examples…" : examples.length ? "Generate new examples ↻" : "Generate examples ↗"}</button></div>
         {loading && examples.length === 0 && <div className="vocabulary-examples-loading" role="status"><span className="vocabulary-loading-dot" /><div><strong>Building your example set</strong><p>Creating natural sentences across everyday life, work, and conversation.</p></div></div>}
         {error && <div className="vocabulary-detail-error" role="alert"><p>{error}</p><button type="button" className="notebook-secondary" onClick={() => void loadExamples(word)} disabled={loading}>Try again</button></div>}
