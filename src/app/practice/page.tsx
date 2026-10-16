@@ -19,16 +19,40 @@ const prompts = [
 
 export default function PracticePage() {
   return (
-    <AppShell activePage="practice" title="Practice room" subtitle="Choose a comfortable starting point. There is no perfect answer.">
+    <AppShell activePage="practice" title="Practice room" subtitle="One conversation at a time. Build confidence at your own pace.">
       <section className="practice-intro">
-        <div><span className="intro-label"><span className="status-dot" /> YOUR SPACE TO SPEAK</span><h2>Let’s make English<br /><em>feel more natural.</em></h2><p>Choose a scenario, speak or type, and get personal feedback to improve with every exchange.</p></div>
+        <div>
+          <span className="intro-label"><span className="status-dot" /> YOUR DAILY SPEAKING SPACE</span>
+          <h2>Speak a little.<br /><em>Grow every day.</em></h2>
+          <p>Pick a real-life situation, start talking, and get useful feedback when you are ready.</p>
+        </div>
         <div className="practice-illustration" aria-hidden="true"><div className="practice-circle circle-back" /><div className="practice-circle circle-front"><span>Hi!</span></div><span className="practice-star star-a">✦</span><span className="practice-star star-b">✳</span></div>
       </section>
-      <SentenceBuilder />
+
       <PracticeExperience prompts={prompts} />
-      <ShadowingPractice />
-      <ConversationFlashcardExport />
-      <section className="coming-panel"><div className="coming-icon">✦</div><div><span className="eyebrow">LOCAL-FIRST LEARNING</span><h2>Practice, review, and keep growing</h2><p>Use browser speech recognition and spoken replies where supported. Your saved phrases and practice summaries stay in your learning notebook.</p></div><Link href="/progress" className="text-link">View progress <span>→</span></Link></section>
+
+      <section className="practice-tools-section" aria-labelledby="practice-tools-heading">
+        <div className="section-heading practice-tools-heading">
+          <div><p className="eyebrow">OPTIONAL EXTRAS</p><h2 id="practice-tools-heading">More ways to improve</h2></div>
+          <span className="section-note">Open a tool only when you need it</span>
+        </div>
+        <div className="practice-tools-list">
+          <details className="practice-tool-accordion">
+            <summary><span className="practice-tool-icon mint">Aa</span><span className="practice-tool-copy"><strong>Help me phrase this</strong><small>Turn a rough thought into natural English.</small></span><span className="practice-tool-chevron" aria-hidden="true">+</span></summary>
+            <div className="practice-tool-content"><SentenceBuilder /></div>
+          </details>
+          <details className="practice-tool-accordion">
+            <summary><span className="practice-tool-icon lavender">♫</span><span className="practice-tool-copy"><strong>Shadowing & pronunciation</strong><small>Listen to a sentence, repeat it, and review your speech.</small></span><span className="practice-tool-chevron" aria-hidden="true">+</span></summary>
+            <div className="practice-tool-content"><ShadowingPractice /></div>
+          </details>
+          <details className="practice-tool-accordion">
+            <summary><span className="practice-tool-icon peach">✧</span><span className="practice-tool-copy"><strong>Keep useful phrases</strong><small>Export phrases from your conversations as flashcards.</small></span><span className="practice-tool-chevron" aria-hidden="true">+</span></summary>
+            <div className="practice-tool-content"><ConversationFlashcardExport /></div>
+          </details>
+        </div>
+      </section>
+
+      <section className="coming-panel"><div className="coming-icon">✦</div><div><span className="eyebrow">YOUR LEARNING NOTEBOOK</span><h2>Keep the progress you make</h2><p>Your saved phrases and practice summaries stay in your learning notebook on this device.</p></div><Link href="/progress" className="text-link">View progress <span>→</span></Link></section>
     </AppShell>
   );
 }
