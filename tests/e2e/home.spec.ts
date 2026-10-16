@@ -151,3 +151,41 @@ test("vocabulary review schedules the next review from learner recall", async ({
   await expect(page.getByRole("heading", { name: "You're all caught up" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Review due/ })).toContainText("0");
 });
+
+test("progress page shows streaks, weekly activity, vocabulary review stats, and correction patterns", async ({ page }) => {
+  await page.addInitScript(() => {
+    const now = new Date();
+    const dayAt = (offset: number) => {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+      date.setDate(date.getDate() + offset);
+      return date.toISOString();
+    };
+    const summary = {
+      topicSummary: "Practised work introductions.",
+      keyPoints: ["Introduced role"],
+      corrections: [{ original: "I am work here.", improved: "I work here.", reason: "Use the simple present." }],
+      vocabulary: [],
+      strengths: ["Clear example"],
+      improvements: ["Add a result"],
+      followUpExercise: "Try once more.",
+    };
+    window.localStorage.setItem("speakup:sessions:v1", JSON.stringify([
+      { id: "today", scenario: "Daily stand-up", startedAt: dayAt(0), updatedAt: dayAt(0), durationSeconds: 900, messageCount: 2, learnerMessages: ["I am work here."], summary },
+      { id: "yesterday", scenario: "Job interview", startedAt: dayAt(-1), updatedAt: dayAt(-1), durationSeconds: 1800, messageCount: 3, learnerMessages: ["Tell me about your role."], summary },
+    ]));
+    window.localStorage.setItem("speakup:vocabulary:v1", JSON.stringify([
+      { id: "reviewed", phrase: "follow up", meaning: "Continue later", example: "I'll follow up.", savedAt: dayAt(0), status: "familiar", reviewCount: 2, lastReviewedAt: dayAt(0), nextReviewAt: dayAt(1) },
+      { id: "mastered", phrase: "clear up", meaning: "Explain", example: "Let me clear this up.", savedAt: dayAt(0), status: "mastered", reviewCount: 1 },
+    ]));
+  });
+  await page.goto("/progress");
+  await expect(page.getByRole("heading", { name: "My progress" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Practice streak" })).toBeVisible();
+  await expect(page.getByText("Current days")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your weekly rhythm" })).toBeVisible();
+  await expect(page.getByText("Sessions this week")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review progress" })).toBeVisible();
+  await expect(page.getByText("Items reviewed")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Correction patterns" })).toBeVisible();
+  await expect(page.getByText("I work here.")).toBeVisible();
+});
