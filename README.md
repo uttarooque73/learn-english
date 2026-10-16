@@ -120,6 +120,14 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Explain that speech recognition and synthesis are browser/OS capabilities and may not be processed fully offline.
 - [x] Add unit and Playwright coverage for the unsupported-browser fallback and text input availability.
 
+### Phase 15 — Structured English feedback and corrections
+- [x] Show the learner's original sentence next to a corrected version and a simple explanation.
+- [x] Classify important grammar errors separately from optional natural phrasing improvements.
+- [x] Generate a targeted practice prompt that can be sent directly to the coach.
+- [x] Let learners choose feedback after every reply or at session review in Learning Preferences.
+- [x] Validate and normalize structured feedback returned by the local model.
+- [x] Add route integration, preference persistence, and Playwright coverage.
+
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -274,13 +282,13 @@ Next.js Route Handlers (/api/*)
 - [x] Allow users to replay AI responses and practice saying them aloud.
 
 ### 3. English Feedback and Corrections
-- [ ] Identify grammar mistakes in the learner's messages.
-- [ ] Show the original sentence and a corrected version.
-- [ ] Suggest a more natural, fluent way to express the same idea.
-- [ ] Explain corrections in simple English.
-- [ ] Distinguish important errors from optional style improvements.
-- [ ] Offer a short practice prompt based on a correction.
-- [ ] Let the learner choose immediate feedback or a summary at the end.
+- [x] Identify grammar mistakes in the learner's messages.
+- [x] Show the original sentence and a corrected version.
+- [x] Suggest a more natural, fluent way to express the same idea.
+- [x] Explain corrections in simple English.
+- [x] Distinguish important grammar errors from optional naturalness improvements.
+- [x] Offer a short practice prompt based on a correction.
+- [x] Let the learner choose immediate feedback or feedback at session review in Learning Preferences.
 
 ### 4. Vocabulary Builder
 - [ ] Highlight useful words and phrases from conversations.

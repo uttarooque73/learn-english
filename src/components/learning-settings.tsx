@@ -59,6 +59,13 @@ export function LearningSettings() {
             </select>
             <span>Controls how the AI coach responds when you ask for help.</span>
           </label>
+          <label className="settings-field">Feedback timing
+            <select value={preferences.feedbackTiming} onChange={(event) => update("feedbackTiming", event.target.value as LearningPreferences["feedbackTiming"])}>
+              <option value="immediate">After every reply</option>
+              <option value="end">At session review</option>
+            </select>
+            <span>Choose immediate corrections or review feedback when you finish practicing.</span>
+          </label>
           <label className="settings-field">Daily practice goal
             <select value={String(preferences.dailyGoalMinutes)} onChange={(event) => update("dailyGoalMinutes", Number(event.target.value))}>
               {[5, 10, 15, 20, 30].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes a day</option>)}

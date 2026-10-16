@@ -431,3 +431,21 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
   .voice-session-actions button { flex: 1 1 auto; }
   .voice-session-status { flex-basis: 100%; }
 }
+
+
+/* Phase 15: actionable grammar and style feedback */
+.original-sentence { margin: 0 0 10px; padding: 12px 14px; border-left: 3px solid var(--line); border-radius: 0 8px 8px 0; background: var(--paper); color: var(--muted); }
+.feedback-issues { display: grid; gap: 10px; margin: 10px 0 16px; }
+.feedback-issue { padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); }
+.feedback-issue-tags { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 9px; }
+.issue-priority, .issue-category { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+.issue-important { background: #f8e5df; color: #85412f; }
+.issue-optional { background: #edf0e7; color: #536449; }
+.issue-category { background: var(--paper); color: var(--muted); }
+.feedback-issue p { margin: 6px 0; font-size: 13px; }
+.feedback-issue p span { display: inline-block; min-width: 42px; color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.feedback-issue small { display: block; margin-top: 7px; color: var(--muted); line-height: 1.5; }
+.feedback-practice-prompt { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding: 14px; border-radius: 10px; background: var(--paper); }
+.feedback-practice-prompt > div { flex: 1 1 220px; }
+.feedback-practice-prompt p { margin: 3px 0; }
+@media (max-width: 520px) { .feedback-practice-prompt { align-items: stretch; } .feedback-practice-prompt button { width: 100%; min-height: 42px; } }

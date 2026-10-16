@@ -244,3 +244,37 @@ test("voice practice explains the text fallback when speech recognition is unava
   await expect(page.getByLabel("Your message")).toBeEnabled();
   await expect(page.getByRole("button", { name: /Send message/ })).toBeDisabled();
 });
+
+
+test("immediate English feedback distinguishes grammar errors and offers a practice prompt", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("speakup:preferences:v1", JSON.stringify({
+      englishLevel: "Beginner", dailyGoalMinutes: 10, feedbackStyle: "balanced",
+      feedbackTiming: "immediate", preferredTopics: ["Everyday life", "At work"],
+      largerText: false, reducedMotion: false
+    }));
+  });
+  await page.route("**/api/chat", async (route) => {
+    await route.fulfill({ status: 200, contentType: "text/plain", body: "What did you do yesterday?" });
+  });
+  await page.route("**/api/feedback", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+      originalSentence: "I go to work yesterday.",
+      correctedSentence: "I went to work yesterday.",
+      explanation: "Use the past tense for something that finished yesterday.",
+      issues: [{ original: "I go", corrected: "I went", category: "grammar", importance: "important", explanation: "Yesterday is in the past, so use went." }],
+      practicePrompt: "Tell your coach one more thing you did yesterday.",
+      tips: ["Use went for yesterday."], pronunciationTip: "Say the final consonants clearly.", vocabulary: []
+    }) });
+  });
+  await page.goto("/practice");
+  await page.getByLabel("Your message").fill("I go to work yesterday.");
+  await page.getByRole("button", { name: /Send message/ }).click();
+  await expect(page.getByRole("region", { name: "English feedback" })).toBeVisible();
+  await expect(page.getByText("You wrote")).toBeVisible();
+  await expect(page.getByText("Corrected version")).toBeVisible();
+  await expect(page.getByText("Important correction")).toBeVisible();
+  await expect(page.getByText("Use went for yesterday.")).toBeVisible();
+  await page.getByRole("button", { name: "Practice this prompt" }).click();
+  await expect(page.getByLabel("Your message")).toHaveValue("Tell your coach one more thing you did yesterday.");
+});

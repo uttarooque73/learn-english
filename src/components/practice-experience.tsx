@@ -8,8 +8,11 @@ import { applyAccessibilityPreferences, getLearningPreferences, type LearningPre
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
 type Message = { role: "user" | "assistant"; content: string };
 type Feedback = {
+  originalSentence: string;
   correctedSentence: string;
   explanation: string;
+  issues: { original: string; corrected: string; category: "grammar" | "naturalness"; importance: "important" | "optional"; explanation: string }[];
+  practicePrompt: string;
   tips: string[];
   pronunciationTip: string;
   vocabulary: { phrase: string; meaning: string; example: string }[];
@@ -256,6 +259,9 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           messages: completeMessages.slice(-100),
         });
         setSavedSessions(getSessions());
+        if (learningPreferences?.feedbackTiming === "immediate") {
+          void requestFeedback(content, assistantText);
+        }
       }
     } catch (caught) {
       if (caught instanceof Error && caught.name === "AbortError") return;
@@ -421,9 +427,9 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     }
   }
 
-  async function requestFeedback() {
-    const learnerMessage = [...messages].reverse().find((message) => message.role === "user")?.content;
-    const assistantMessage = [...messages].reverse().find((message) => message.role === "assistant" && message.content.trim())?.content;
+  async function requestFeedback(learnerMessageOverride?: string, assistantMessageOverride?: string) {
+    const learnerMessage = learnerMessageOverride ?? [...messages].reverse().find((message) => message.role === "user")?.content;
+    const assistantMessage = assistantMessageOverride ?? [...messages].reverse().find((message) => message.role === "assistant" && message.content.trim())?.content;
     if (!learnerMessage || !assistantMessage || feedbackLoading) return;
     setFeedbackLoading(true);
     setFeedbackError("");
@@ -627,8 +633,11 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         </section>}
         {feedback && <section className="feedback-panel" aria-label="English feedback">
           <div className="feedback-title"><span className="stat-icon lavender">✦</span><div><p className="eyebrow">YOUR PERSONAL COACH</p><h3>English feedback</h3></div></div>
-          <p className="feedback-label">A more natural sentence</p><blockquote className="corrected-sentence">{feedback.correctedSentence}</blockquote><p className="feedback-explanation">{feedback.explanation}</p>
+          <p className="feedback-label">You wrote</p><blockquote className="original-sentence">{feedback.originalSentence}</blockquote>
+          <p className="feedback-label">Corrected version</p><blockquote className="corrected-sentence">{feedback.correctedSentence}</blockquote><p className="feedback-explanation">{feedback.explanation}</p>
+          {feedback.issues.length > 0 && <><p className="feedback-label">What to focus on</p><div className="feedback-issues">{feedback.issues.map((issue, index) => <article className="feedback-issue" key={index}><div className="feedback-issue-tags"><span className={issue.importance === "important" ? "issue-priority issue-important" : "issue-priority issue-optional"}>{issue.importance === "important" ? "Important correction" : "Optional improvement"}</span><span className="issue-category">{issue.category === "grammar" ? "Grammar" : "Natural phrasing"}</span></div><p><span>Before</span> {issue.original}</p><p><span>Try</span> {issue.corrected}</p><small>{issue.explanation}</small></article>)}</div></>}
           {feedback.tips.length > 0 && <><p className="feedback-label">Quick tips</p><ul className="feedback-tips">{feedback.tips.map((tip, index) => <li key={index}>{tip}</li>)}</ul></>}
+          <div className="feedback-practice-prompt"><div><p className="feedback-label">Try it yourself</p><p>{feedback.practicePrompt}</p></div><button className="notebook-secondary" type="button" onClick={() => setDraft(feedback.practicePrompt)}>Practice this prompt</button></div>
           <div className="pronunciation-practice"><div><p className="feedback-label">Pronunciation practice</p><p>{feedback.pronunciationTip}</p><small>Word-match is an approximate transcript comparison, not a phoneme-level pronunciation score.</small></div><div className="pronunciation-controls"><button className="button button-voice" type="button" onClick={() => speak(feedback.correctedSentence)}>🔊 Hear it</button>{speechSupported && <button className="button button-voice" type="button" disabled={listening} onClick={() => startListening("pronunciation")}>🎙 Repeat it</button>}</div>
             {pronunciationAssessment && <div className="match-score" role="status">
               <strong>{pronunciationAssessment.score}%</strong>

@@ -3,9 +3,20 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type FeedbackIssue = {
+  original: string;
+  corrected: string;
+  category: "grammar" | "naturalness";
+  importance: "important" | "optional";
+  explanation: string;
+};
+
 type Feedback = {
+  originalSentence: string;
   correctedSentence: string;
   explanation: string;
+  issues: FeedbackIssue[];
+  practicePrompt: string;
   tips: string[];
   pronunciationTip: string;
   vocabulary: { phrase: string; meaning: string; example: string }[];
@@ -48,7 +59,7 @@ export async function POST(request: Request) {
         messages: [
           {
             role: "system",
-            content: "You are a supportive English tutor. Return only valid JSON with this exact shape: {\"correctedSentence\":string,\"explanation\":string,\"tips\":string[],\"pronunciationTip\":string,\"vocabulary\":[{\"phrase\":string,\"meaning\":string,\"example\":string}]}. Correct the learner's English while preserving intended meaning. If already natural, keep the sentence and say so. Give 1-3 concise actionable tips, one general pronunciation practice tip, and at most 3 useful vocabulary phrases drawn from the AI reply. Never claim to measure actual pronunciation quality.",
+            content: "You are a supportive English tutor. Return only valid JSON with this exact shape: {\"originalSentence\":string,\"correctedSentence\":string,\"explanation\":string,\"issues\":[{\"original\":string,\"corrected\":string,\"category\":\"grammar\"|\"naturalness\",\"importance\":\"important\"|\"optional\",\"explanation\":string}],\"practicePrompt\":string,\"tips\":string[],\"pronunciationTip\":string,\"vocabulary\":[{\"phrase\":string,\"meaning\":string,\"example\":string}]}. Preserve the learner's intended meaning. Identify important grammar/meaning errors separately from optional naturalness/style improvements. Give 0-4 specific issues with simple explanations, a short practice prompt based on the most useful correction, 1-3 concise tips, one general pronunciation practice tip, and at most 3 useful vocabulary phrases drawn from the AI reply. If the sentence is already natural, say so and do not invent errors. Never claim to measure actual pronunciation quality.",
           },
           {
             role: "user",
@@ -78,9 +89,20 @@ export async function POST(request: Request) {
       catch { return NextResponse.json({ error: "The AI returned feedback in an unexpected format. Please retry." }, { status: 502 }); }
     }
 
+    const validIssues = Array.isArray(parsed.issues) ? parsed.issues.filter((item): item is FeedbackIssue =>
+      !!item && typeof item.original === "string" && typeof item.corrected === "string" &&
+      (item.category === "grammar" || item.category === "naturalness") &&
+      (item.importance === "important" || item.importance === "optional") &&
+      typeof item.explanation === "string"
+    ).slice(0, 4) : [];
     const feedback: Feedback = {
+      originalSentence: body.learnerMessage,
       correctedSentence: typeof parsed.correctedSentence === "string" ? parsed.correctedSentence : body.learnerMessage,
       explanation: typeof parsed.explanation === "string" ? parsed.explanation : "Review the corrected sentence and try saying it aloud.",
+      issues: validIssues,
+      practicePrompt: typeof parsed.practicePrompt === "string" && parsed.practicePrompt.trim()
+        ? parsed.practicePrompt.slice(0, 500)
+        : "Say the corrected sentence in your own words.",
       tips: Array.isArray(parsed.tips) ? parsed.tips.filter((tip): tip is string => typeof tip === "string").slice(0, 3) : [],
       pronunciationTip: typeof parsed.pronunciationTip === "string" ? parsed.pronunciationTip : "Speak slowly and clearly, then repeat the sentence naturally.",
       vocabulary: Array.isArray(parsed.vocabulary) ? parsed.vocabulary.filter((item): item is Feedback["vocabulary"][number] =>

@@ -22,6 +22,7 @@ describe("learning preferences", () => {
       englishLevel: "Advanced",
       dailyGoalMinutes: 15,
       feedbackStyle: "detailed",
+      feedbackTiming: "immediate",
       preferredTopics: ["Job interview", "not-a-real-topic"],
       largerText: true,
     });
@@ -30,6 +31,7 @@ describe("learning preferences", () => {
       englishLevel: "Advanced",
       dailyGoalMinutes: 15,
       feedbackStyle: "detailed",
+      feedbackTiming: "immediate",
       preferredTopics: ["Job interview"],
       largerText: true,
       reducedMotion: false,
@@ -51,6 +53,7 @@ describe("learning preferences", () => {
       englishLevel: "Beginner",
       dailyGoalMinutes: 10,
       feedbackStyle: "balanced",
+      feedbackTiming: "end",
       preferredTopics: [],
       reducedMotion: true,
     });
