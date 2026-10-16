@@ -41,7 +41,7 @@ describe("PracticeExperience", () => {
 
     render(<PracticeExperience prompts={prompts} />);
     fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Hello coach" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send message ↗", exact: true }));
+    fireEvent.click(screen.getByText("Send message", { selector: "button" }));
 
     await waitFor(() => expect(screen.getByText("Hello there!")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
