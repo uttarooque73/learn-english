@@ -6,6 +6,8 @@ export type SavedVocabulary = {
   savedAt: string;
 };
 
+export type PracticeMessage = { role: "user" | "assistant"; content: string };
+
 export type PracticeSession = {
   id: string;
   scenario: string;
@@ -14,6 +16,7 @@ export type PracticeSession = {
   durationSeconds: number;
   messageCount: number;
   learnerMessages: string[];
+  messages?: PracticeMessage[];
 };
 
 function createId() {
@@ -63,8 +66,13 @@ export function getSessions(): PracticeSession[] {
 
 export function upsertSession(session: PracticeSession) {
   const sessions = getSessions();
+  const normalizedSession = {
+    ...session,
+    learnerMessages: session.learnerMessages.slice(-40),
+    messages: session.messages?.slice(-100),
+  };
   const index = sessions.findIndex((item) => item.id === session.id);
-  if (index >= 0) sessions[index] = session;
-  else sessions.push(session);
-  writeList(SESSIONS_KEY, sessions);
+  if (index >= 0) sessions[index] = normalizedSession;
+  else sessions.unshift(normalizedSession);
+  writeList(SESSIONS_KEY, sessions.slice(0, 100));
 }

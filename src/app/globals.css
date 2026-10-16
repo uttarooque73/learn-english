@@ -141,3 +141,13 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #9
 .saved-date{color:#a0a196;font-size:9px}
 @media(max-width:900px){.pronunciation-practice{grid-template-columns:1fr}.pronunciation-controls{flex-wrap:wrap}.saved-word-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.feedback-panel{padding:17px 14px}.feedback-actions{align-items:flex-start;flex-direction:column}.feedback-actions .button{width:100%}.composer-actions{gap:6px}.composer-actions .button{padding:0 10px;gap:7px}.composer-footer{align-items:flex-start;gap:10px;flex-direction:column}.composer-actions{width:100%;justify-content:flex-end}.feedback-word{align-items:flex-start}.feedback-word small{display:block}.pronunciation-controls .button{flex:1}.activity-row{align-items:flex-start}.activity-duration{padding-top:4px}}
+
+
+/* Phase 3: restored conversation history and transcript assessment */
+.session-history-controls{display:flex;align-items:center;gap:6px;margin-left:auto}
+.session-history-controls select{min-width:0;max-width:210px;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:#73786c;font-size:10px}
+.session-history-controls .chat-reset{white-space:nowrap}
+.match-score>div{display:grid;gap:4px}
+.match-score p{margin:0;color:#8a8c81;font-size:10px;line-height:1.6}
+@media(max-width:800px){.chat-header{flex-wrap:wrap}.session-history-controls{width:100%;margin-left:47px;flex-wrap:wrap}.session-history-controls select{flex:1;max-width:none}}
+@media(max-width:520px){.session-history-controls{margin-left:0}.session-history-controls select{width:100%;flex-basis:100%}.session-history-controls .chat-reset{flex:1}}

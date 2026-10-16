@@ -20,10 +20,15 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Add Ollama-powered grammar feedback, natural phrasing, learning tips, and suggested vocabulary.
 - [x] Save suggested phrases and track practice summaries locally in the browser.
 - [x] Show real local practice metrics on the overview and progress pages.
-- [ ] Persist full conversation transcripts and restore them after refresh (future phase).
-- [ ] Add true phoneme-level pronunciation assessment with a dedicated speech model (future phase).
+### Phase 2 — Saved conversations and improved transcript practice
+- [x] Persist complete conversation transcripts in browser local storage.
+- [x] Restore a saved conversation from the Practice Room after refresh.
+- [x] Keep recent session history bounded to avoid unbounded local storage growth.
+- [x] Compare recognized words in sequence and show likely missing or extra/substituted words.
+- [x] Add tests for transcript similarity scoring.
+- [ ] Add true phoneme-level pronunciation assessment with a dedicated speech model.
 
-**Current limitations:** Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Pronunciation practice currently compares the browser's speech transcript with the target sentence; this is an approximate word-match indicator, not an acoustic pronunciation score. Vocabulary and practice summaries use browser local storage and are not synced across devices. Full conversation transcripts are not restored after refresh.
+**Current limitations:** Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary, and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
@@ -40,7 +45,7 @@ For an existing checkout, update the code, install dependencies, ensure Ollama i
 git pull --ff-only && bash scripts/update-and-run.sh
 ```
 
-The script uses fast-forward-only Git updates, preserves your existing `.env.local` custom settings, upgrades the old default model setting from `qwen3:4b` to `llama3.1:8b`, and downloads the configured model only if it is missing. It does not run `git reset` or `git clean`; it stops if tracked local edits are present.
+The script discards tracked local changes with `git reset --hard` and removes untracked files/directories with `git clean -fd` before pulling. **This is destructive:** do not run it if you need any uncommitted or untracked work. Git-ignored files such as `.env.local` and `node_modules` are preserved. It keeps your existing `.env.local` custom settings, upgrades the old default model setting from `qwen3:4b` to `llama3.1:8b`, and downloads the configured model only if it is missing.
 
 For a fresh install:
 
@@ -148,13 +153,13 @@ Next.js Route Handlers (/api/*)
         |
         +------> /api/chat -> Ollama (local LLM service)
         |
-        +------> SQLite database (through Prisma)
+        +------> Browser localStorage (sessions, vocabulary, progress)
 ```
 
 - **Full-stack framework:** Next.js App Router, React, TypeScript.
 - **Server API:** Next.js Route Handlers; no separate Express server is planned for the MVP.
 - **AI runtime:** Ollama with a configurable local chat model. The API streams response text from Ollama to the browser.
-- **Database and ORM:** SQLite + Prisma (planned for the persistence phase).
+- **Learning data persistence:** Browser `localStorage` for conversation transcripts, vocabulary, and practice summaries; data is device/browser-profile specific and is not synced.
 - **Speech:** Browser speech recognition and speech synthesis APIs, with a text-only fallback (planned).
 - **Styling:** Responsive CSS with no UI component library required.
 
@@ -166,7 +171,7 @@ Next.js Route Handlers (/api/*)
 - [ ] Select a difficulty level: Beginner, Intermediate, or Advanced.
 - [ ] Set a conversation goal and optional session duration.
 - [ ] Ask follow-up questions and request simpler explanations.
-- [ ] Continue a previous conversation from saved history.
+- [x] Continue a previous conversation from saved local history.
 
 ### 2. Voice Practice
 - [ ] Speech-to-text input using browser speech recognition where supported.
@@ -217,7 +222,7 @@ Next.js Route Handlers (/api/*)
 - [ ] Generate a short follow-up exercise based on the session.
 
 ### 8. Progress Tracking
-- [ ] Save conversation history with date, topic, and duration.
+- [x] Save conversation history with date, topic, duration, and transcript.
 - [ ] Track practice frequency, session count, and speaking time.
 - [ ] Track recurring grammar mistakes and improvement over time.
 - [ ] Track vocabulary learned and reviewed.
@@ -237,10 +242,10 @@ Next.js Route Handlers (/api/*)
 - [x] Use Ollama as the local LLM provider.
 - [x] Make the model name and Ollama endpoint configurable.
 - [x] Keep model prompts and response handling on the server.
-- [ ] Store sessions locally for the MVP, with a path to a database later.
+- [x] Store full session transcripts locally for the MVP, with a path to a database later.
 - [x] Handle Ollama unavailable, timeout, and unsuccessful upstream responses.
 - [x] Add input validation and safe error messages.
-- [ ] Document setup, configuration, and troubleshooting.
+- [x] Document setup, configuration, and troubleshooting.
 - [ ] Clearly explain that browser speech services may process audio differently depending on the browser; local LLM use does not automatically make voice processing fully offline.
 
 ## Development principles
