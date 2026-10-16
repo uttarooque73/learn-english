@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { ListenPageControl } from "@/components/listen-button";
 
 type PageKey = "home" | "practice" | "vocabulary" | "progress" | "fluency" | "settings";
 
@@ -91,6 +92,7 @@ export function AppShell({
             <div><p className="eyebrow">YOUR ENGLISH JOURNEY</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div>
             <div className="heading-date"><span className="date-icon">◷</span><span>One step at a time</span></div>
           </div>
+          <ListenPageControl />
           {children}
           <footer className="page-footer"><span>SpeakUp AI</span><span>Practice at your own pace. Progress over perfection.</span></footer>
         </div>
