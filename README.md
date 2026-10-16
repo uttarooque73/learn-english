@@ -99,6 +99,13 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Save follow-up responses into the existing conversation transcript and preserve session history.
 - [x] Add API integration, component, and Playwright coverage for the new follow-up flow.
 
+### Phase 12 — Simpler explanations on demand
+- [x] Let learners ask the coach to explain its latest response in simpler English.
+- [x] Preserve the original meaning, adapt wording to the selected English level, and avoid adding unsupported facts.
+- [x] Validate the request mode on the server and keep the simplification instructions server-controlled.
+- [x] Save simplified responses into the current conversation and existing local session history.
+- [x] Add API integration, component, and Playwright coverage for simpler explanations.
+
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -241,7 +248,7 @@ Next.js Route Handlers (/api/*)
 - [ ] Choose a topic before starting a session.
 - [ ] Select a difficulty level: Beginner, Intermediate, or Advanced.
 - [ ] Set a conversation goal and optional session duration.
-- [ ] Ask follow-up questions and request simpler explanations.
+- [x] Ask adaptive follow-up questions and request simpler explanations.
 - [x] Continue a previous conversation from saved local history.
 
 ### 2. Voice Practice

@@ -314,6 +314,83 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     }
   }
 
+  async function requestSimplerExplanation() {
+    const conversationMessages = messages.filter((message) => message.content.trim()).slice(-40);
+    if (
+      isStreaming ||
+      conversationMessages[conversationMessages.length - 1]?.role !== "assistant" ||
+      !conversationMessages.some((message) => message.role === "user")
+    ) return;
+
+    setIsStreaming(true);
+    setError("");
+    setFeedback(null);
+    setFeedbackError("");
+    setSessionSummary(null);
+    setSummaryError("");
+    setPronunciationAssessment(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "simplify",
+          scenario,
+          difficulty,
+          feedbackStyle: learningPreferences?.feedbackStyle ?? "balanced",
+          preferredTopics: learningPreferences?.preferredTopics ?? [],
+          messages: conversationMessages,
+        }),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const result = await response.json() as { error?: string };
+        throw new Error(result.error || "Unable to simplify the explanation.");
+      }
+      if (!response.body) throw new Error("The server did not return a response stream.");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        assistantText += decoder.decode(value, { stream: true });
+        setMessages([...conversationMessages, { role: "assistant", content: assistantText }]);
+      }
+      assistantText += decoder.decode();
+      if (!assistantText.trim()) throw new Error("The AI returned an empty explanation. Please try again.");
+      const completeMessages = [...conversationMessages, { role: "assistant" as const, content: assistantText }];
+      setMessages(completeMessages);
+      const startedAt = sessionStartedAtRef.current ?? new Date().toISOString();
+      const updatedAt = new Date().toISOString();
+      const sessionId = sessionIdRef.current ?? createId();
+      sessionIdRef.current = sessionId;
+      sessionStartedAtRef.current = startedAt;
+      upsertSession({
+        id: sessionId,
+        scenario,
+        startedAt,
+        updatedAt,
+        durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
+        messageCount: completeMessages.filter((message) => message.role === "user").length,
+        learnerMessages: completeMessages.filter((message) => message.role === "user").map((message) => message.content).slice(-40),
+        messages: completeMessages.slice(-100),
+      });
+      setSavedSessions(getSessions());
+    } catch (caught) {
+      if (caught instanceof Error && caught.name === "AbortError") return;
+      setMessages(conversationMessages);
+      setError(caught instanceof Error ? caught.message : "Could not simplify the explanation.");
+    } finally {
+      abortRef.current = null;
+      setIsStreaming(false);
+    }
+  }
+
   async function requestFeedback() {
     const learnerMessage = [...messages].reverse().find((message) => message.role === "user")?.content;
     const assistantMessage = [...messages].reverse().find((message) => message.role === "assistant" && message.content.trim())?.content;
@@ -491,7 +568,7 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           </div></div>
         </form>
         {voiceError && <p className="voice-status" role="status">{voiceError}</p>}
-        {hasReply && <div className="feedback-actions"><div><strong>Review your session</strong><p>Get a conversation summary, corrections, vocabulary, strengths, and a follow-up exercise.</p></div><div className="session-review-actions"><button className="notebook-secondary" type="button" onClick={requestFollowUp} disabled={isStreaming || messages[messages.length - 1]?.role !== "assistant"}>{isStreaming ? "Thinking…" : "Ask a follow-up question"}</button><button className="notebook-secondary" type="button" onClick={requestFeedback} disabled={feedbackLoading || isStreaming}>{feedbackLoading ? "Reviewing…" : "Get feedback"}</button><button className="button button-dark" type="button" onClick={requestSessionSummary} disabled={summaryLoading || isStreaming}>{summaryLoading ? "Summarizing…" : "Summarize session"} <span>✦</span></button></div></div>}
+        {hasReply && <div className="feedback-actions"><div><strong>Review your session</strong><p>Get a conversation summary, corrections, vocabulary, strengths, and a follow-up exercise.</p></div><div className="session-review-actions"><button className="notebook-secondary" type="button" onClick={requestFollowUp} disabled={isStreaming || messages[messages.length - 1]?.role !== "assistant"}>{isStreaming ? "Thinking…" : "Ask a follow-up question"}</button><button className="notebook-secondary" type="button" onClick={requestSimplerExplanation} disabled={isStreaming || messages[messages.length - 1]?.role !== "assistant"}>{isStreaming ? "Thinking…" : "Explain more simply"}</button><button className="notebook-secondary" type="button" onClick={requestFeedback} disabled={feedbackLoading || isStreaming}>{feedbackLoading ? "Reviewing…" : "Get feedback"}</button><button className="button button-dark" type="button" onClick={requestSessionSummary} disabled={summaryLoading || isStreaming}>{summaryLoading ? "Summarizing…" : "Summarize session"} <span>✦</span></button></div></div>}
         {feedbackError && <p className="chat-error" role="alert">{feedbackError}</p>}
         {summaryError && <p className="chat-error" role="alert">{summaryError}</p>}
         {sessionSummary && <section className="session-summary-panel" aria-label="Session summary" aria-live="polite">
