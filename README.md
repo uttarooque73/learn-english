@@ -44,7 +44,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Validate scenario and difficulty selections server-side before building the system prompt.
 
 ### Phase 5 — Fluency and confidence exercises
-- [x] Add quick-response prompts and a rotating set of daily speaking topics.
+- [x] Add quick-response prompts and a date-based daily speaking prompt.
 - [x] Add a one-minute talk exercise with start, pause, resume, and reset controls.
 - [x] Add text-based filler-word awareness for common expressions such as “um”, “uh”, and “you know”.
 - [x] Provide a supportive reflection after an exercise without claiming to measure proficiency.
