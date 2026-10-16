@@ -90,6 +90,13 @@ export async function POST(request: Request) {
   const difficulty = typeof payload.difficulty === "string" && Object.hasOwn(DIFFICULTY_GUIDES, payload.difficulty)
     ? payload.difficulty
     : "Beginner";
+  const feedbackStyle = typeof payload.feedbackStyle === "string" && Object.hasOwn(FEEDBACK_GUIDES, payload.feedbackStyle) ? payload.feedbackStyle : "balanced";
+  const preferredTopics = Array.isArray(payload.preferredTopics)
+    ? payload.preferredTopics.filter((topic): topic is string => typeof topic === "string" && ALLOWED_TOPICS.has(topic)).slice(0, 10)
+    : [];
+  const topicGuidance = preferredTopics.length
+    ? "The learner is interested in these topics when a natural opportunity arises: " + preferredTopics.join(", ") + ". Do not derail the selected role-play to force a topic."
+    : "Follow the selected role-play naturally without forcing unrelated topics.";
   const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
   const model = process.env.OLLAMA_MODEL || "llama3.1:8b";
   const controller = new AbortController();
