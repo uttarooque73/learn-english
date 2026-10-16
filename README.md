@@ -159,7 +159,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Stop accepting new messages when time runs out while preserving the conversation for review.
 - [x] Add API, storage, and Playwright coverage and reconcile stale roadmap checkboxes for already-shipped features.
 
-**Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice includes an optional local OpenPronounce phoneme model when the companion service is running; without it, the app falls back to browser transcript comparison, which is approximate and not an acoustic score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
+**Current limitations:** Preferences and progress are stored in SQLite and mirrored in browser local storage. Anonymous data is scoped to this browser cookie and does not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice includes an optional local OpenPronounce phoneme model when the companion service is running; without it, the app falls back to browser transcript comparison, which is approximate and not an acoustic score. Conversation transcripts, vocabulary (including review status and next-review dates), preferences, and practice summaries are mirrored from browser local storage to SQLite when the database API is available. Anonymous data remains scoped to this browser cookie and is not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
@@ -284,13 +284,15 @@ Next.js Route Handlers (/api/*)
         |
         +------> /api/chat -> Ollama (local LLM service)
         |
-        +------> Browser localStorage (sessions, vocabulary, progress)
+        +------> SQLite file (durable app data)
+        |
+        +------> Browser localStorage (synchronous client cache)
 ```
 
 - **Full-stack framework:** Next.js App Router, React, TypeScript.
 - **Server API:** Next.js Route Handlers; no separate Express server is planned for the MVP.
 - **AI runtime:** Ollama with a configurable local chat model. The API streams response text from Ollama to the browser.
-- **Learning data persistence:** Browser `localStorage` for conversation transcripts, vocabulary, and practice summaries; data is device/browser-profile specific and is not synced.
+- **Learning data persistence:** SQLite stores app-owned browser data through `/api/persistence`; `localStorage` remains a synchronous client cache. Anonymous data is scoped to a browser-owner cookie, not a signed-in account.
 - **Speech:** Browser speech recognition and speech synthesis APIs, with a text-only fallback. Browser and operating-system capabilities determine available voices and how speech recognition is processed.
 - **Styling:** Responsive CSS with no UI component library required.
 
@@ -390,13 +392,13 @@ Next.js Route Handlers (/api/*)
 - Deliver the MVP before implementing advanced analytics and gamification.
 
 
-## PostgreSQL persistence
+## SQLite persistence
 
-The application persists its app-owned browser data through `/api/persistence` to PostgreSQL. This includes saved practice sessions and summaries, vocabulary/review metadata, learning preferences, and custom learning scenarios/options. Existing browser data is migrated on the first successful connection; the browser copy is retained as a cache so the UI can read data synchronously while writes are mirrored to PostgreSQL.
+The application persists its app-owned browser data through `/api/persistence` to a local SQLite file. This includes saved practice sessions and summaries, vocabulary/review metadata, learning preferences, and custom learning scenarios/options. Existing browser data is migrated on the first successful connection; the browser copy is retained as a cache so the UI can read data synchronously while writes are mirrored to SQLite.
 
-1. Create a PostgreSQL database with your hosting provider.
-2. Set `DATABASE_URL` in the server environment (never expose it as a `NEXT_PUBLIC_*` variable). Set `DATABASE_SSL=true` only when your provider requires that TLS mode.
-3. Deploy the app. The API creates `app_user_data` on first use; the equivalent SQL migration is in `db/migrations/001_app_user_data.sql`.
+1. The app creates its SQLite database file automatically on first use.
+2. Optionally set `SQLITE_DATABASE_PATH` to a writable path on persistent storage. The default is `./data/speakup.sqlite`. Set `=true` only when your provider requires that TLS mode.
+3. Deploy the app. The app creates `app_user_data` on first use; the equivalent SQL migration is in `db/migrations/001_app_user_data.sql`.
 4. Existing browser data is uploaded for keys not yet present in the database. Database values take precedence when the same key already exists.
 
-Data is partitioned by a random, HTTP-only browser-owner cookie because this repository currently has no account/authentication system. This provides server persistence for a browser but does **not** synchronize data across different browsers/devices or provide authenticated user accounts. Add account authentication and bind the owner ID to the authenticated user before treating this as a multi-device account store. Configure a real PostgreSQL instance before deployment; without `DATABASE_URL`, the API returns a storage-unavailable response and client-side behavior falls back to its local cache.
+Data is partitioned by a random, HTTP-only browser-owner cookie because this repository currently has no account/authentication system. This provides server persistence for a browser but does **not** synchronize data across different browsers/devices or provide authenticated user accounts. Add account authentication and bind the owner ID to the authenticated user before treating this as a multi-device account store. The default database file is `./data/speakup.sqlite`. Ensure its directory is writable and stored on a persistent disk; serverless or ephemeral filesystems may lose data across restarts or redeployments.
