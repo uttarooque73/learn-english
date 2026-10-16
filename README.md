@@ -65,9 +65,9 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Add larger-text and reduced-motion options that apply across the app.
 - [x] Add keyboard-friendly native form controls, visible focus treatment, responsive layouts, and accessible status messages.
 - [x] Add integration and browser tests for preference-driven tutor behavior and persistence.
-- [ ] Track daily practice time against the selected goal on the overview and progress pages.
+- [x] Track daily practice time against the selected goal on the overview and progress pages.
 
-**Current limitations:** Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
+**Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
@@ -266,7 +266,7 @@ Next.js Route Handlers (/api/*)
 - [ ] Track recurring grammar mistakes and improvement over time.
 - [ ] Track vocabulary learned and reviewed.
 - [ ] Show weekly and monthly progress summaries.
-- [ ] Maintain a practice streak and optional daily goal.
+- [x] Set an optional daily practice goal and track today's saved conversation time.
 - [ ] Use transparent indicators rather than claiming a precise English-proficiency score without a validated assessment.
 
 ### 9. Personalization and Accessibility
