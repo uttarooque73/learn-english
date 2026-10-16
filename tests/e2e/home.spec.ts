@@ -214,7 +214,7 @@ test("mobile navigation and practice chat work without horizontal overflow", asy
   const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await expect(navigation).toBeVisible();
   await page.getByRole("link", { name: "Practice room" }).click();
-  await expect(page).toHaveURL(/\\/practice$/);
+  await expect(page).toHaveURL(/\/practice$/);
   await expect(page.getByRole("button", { name: "Open menu" })).toHaveAttribute("aria-expanded", "false");
 
   const interview = page.getByRole("button", { name: /Job interview/ });
