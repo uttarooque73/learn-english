@@ -1,73 +1,78 @@
 "use client";
 
 type PersistedEntry = { key: string; value: string };
-type PersistenceWindow = Window & { __speakupPersistenceInitialized?: boolean };
+type PersistenceWindow = Window & { __speakupDatabaseInitialized?: boolean };
+const values = new Map<string, string>();
+const dirtyKeys = new Set<string>();
+let initialization: Promise<void> | undefined;
 
 async function requestPersistence(input: RequestInfo | URL, init?: RequestInit) {
-  try {
-    return await fetch(input, { ...init, credentials: "same-origin", headers: { "Content-Type": "application/json", ...init?.headers } });
-  } catch {
-    return undefined;
-  }
+  return fetch(input, { ...init, credentials: "same-origin", headers: { "Content-Type": "application/json", ...init?.headers } });
 }
 
-/**
- * Hydrates app-owned localStorage keys from PostgreSQL, migrates existing local
- * data on first use, and mirrors subsequent mutations to the server.
- * localStorage remains a fast client cache; PostgreSQL is the durable copy.
- */
-export async function initializeDatabasePersistence(): Promise<void> {
-  if (typeof window === "undefined") return;
+/** Load durable values from SQLite and import legacy app keys from localStorage once. */
+export function initializeDatabasePersistence(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
   const appWindow = window as PersistenceWindow;
-  if (appWindow.__speakupPersistenceInitialized) return;
-  appWindow.__speakupPersistenceInitialized = true;
+  if (appWindow.__speakupDatabaseInitialized) return Promise.resolve();
+  if (initialization) return initialization;
+  initialization = (async () => {
+    const legacy: Array<[string, string]> = [];
+    try {
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index);
+        if (key?.startsWith("speakup:")) {
+          const value = window.localStorage.getItem(key);
+          if (value !== null) legacy.push([key, value]);
+        }
+      }
+    } catch { /* Restricted browser storage must not prevent database reads. */ }
 
-  const storage = window.localStorage;
-  const nativeGetItem = Storage.prototype.getItem;
-  const nativeSetItem = Storage.prototype.setItem;
-  const nativeRemoveItem = Storage.prototype.removeItem;
-  const nativeClear = Storage.prototype.clear;
-  const existing = new Map<string, string>();
-  for (let index = 0; index < storage.length; index += 1) {
-    const key = storage.key(index);
-    if (key !== null) {
-      const value = nativeGetItem.call(storage, key);
-      if (value !== null) existing.set(key, value);
-    }
-  }
-
-  const response = await requestPersistence("/api/persistence", { method: "GET" });
-  if (response?.ok) {
+    const response = await requestPersistence("/api/persistence", { method: "GET" });
+    if (!response.ok) throw new Error("Could not load saved learning data from the database.");
     const payload = await response.json() as { entries?: PersistedEntry[] };
-    const serverEntries = new Set<string>();
+    const serverKeys = new Set<string>();
     for (const entry of payload.entries ?? []) {
       if (typeof entry.key !== "string" || typeof entry.value !== "string") continue;
-      serverEntries.add(entry.key);
-      nativeSetItem.call(storage, entry.key, entry.value);
+      serverKeys.add(entry.key);
+      if (!dirtyKeys.has(entry.key)) values.set(entry.key, entry.value);
     }
-    // Migrate existing browser data into PostgreSQL without overwriting newer
-    // database values. The server response establishes the source-of-truth keys.
-    for (const [key, value] of existing) {
-      if (!serverEntries.has(key)) {
-        void requestPersistence("/api/persistence", { method: "POST", body: JSON.stringify({ key, value }) });
+
+    for (const [key, value] of legacy) {
+      if (!serverKeys.has(key) && !dirtyKeys.has(key)) {
+        const migration = await requestPersistence("/api/persistence", { method: "POST", body: JSON.stringify({ key, value }) });
+        if (!migration.ok) throw new Error("Could not migrate saved learning data to the database.");
+        values.set(key, value);
+      }
+      if (serverKeys.has(key) || !dirtyKeys.has(key)) {
+        try { window.localStorage.removeItem(key); } catch { /* Ignore restricted browser storage. */ }
       }
     }
-  }
+    appWindow.__speakupDatabaseInitialized = true;
+  })().catch((error) => { initialization = undefined; throw error; });
+  return initialization;
+}
 
-  Storage.prototype.setItem = function (key: string, value: string) {
-    nativeSetItem.call(this, key, value);
-    if (this === storage) {
-      void requestPersistence("/api/persistence", { method: "POST", body: JSON.stringify({ key, value }) });
-    }
-  };
-  Storage.prototype.removeItem = function (key: string) {
-    nativeRemoveItem.call(this, key);
-    if (this === storage) {
-      void requestPersistence(`/api/persistence?key=${encodeURIComponent(key)}`, { method: "DELETE" });
-    }
-  };
-  Storage.prototype.clear = function () {
-    nativeClear.call(this);
-    if (this === storage) void requestPersistence("/api/persistence", { method: "DELETE" });
-  };
+export function readPersistedValue(key: string): string | null { return values.get(key) ?? null; }
+
+export function writePersistedValue(key: string, value: string): void {
+  values.set(key, value);
+  dirtyKeys.add(key);
+  void requestPersistence("/api/persistence", { method: "POST", body: JSON.stringify({ key, value }) })
+    .then((response) => { if (response.ok) dirtyKeys.delete(key); })
+    .catch(() => { /* Keep the dirty value in memory; retry after reconnection. */ });
+}
+
+export function deletePersistedValue(key: string): void {
+  values.delete(key);
+  dirtyKeys.add(key);
+  void requestPersistence("/api/persistence?key=" + encodeURIComponent(key), { method: "DELETE" })
+    .then((response) => { if (response.ok) dirtyKeys.delete(key); })
+    .catch(() => { /* Keep the dirty marker so a later initialization can retry. */ });
+}
+
+/** Reset the in-memory cache in isolated unit tests. */
+export function resetPersistenceCacheForTests(): void {
+  values.clear(); dirtyKeys.clear(); initialization = undefined;
+  if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized;
 }
