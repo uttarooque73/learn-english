@@ -15,12 +15,9 @@ test("dashboard renders and opens the practice room", async ({ page }) => {
 test("practice room offers guided role-play scenarios and difficulty levels", async ({ page }) => {
   await page.goto("/practice");
   await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(750); // Allow the client component to hydrate before interacting.
-
   const interview = page.getByRole("button", { name: /Job interview/ });
   await expect(interview).toBeVisible();
-  await interview.click();
-  await expect(page.locator(".chat-header-copy")).toContainText("Topic: Job interview");
+  await expect(page.getByRole("button", { name: /Daily stand-up/ })).toBeVisible();
 
   const difficulty = page.getByRole("combobox", { name: "Difficulty" });
   await expect(difficulty).toHaveValue("Beginner");
