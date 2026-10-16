@@ -3,10 +3,15 @@ import { AppShell } from "@/components/app-shell";
 import { PracticeExperience } from "@/components/practice-experience";
 
 const prompts = [
-  { number: "01", title: "Everyday life", description: "Talk about your day, interests, and routines.", icon: "☕", tone: "peach" },
-  { number: "02", title: "At work", description: "Practice meetings, updates, and sharing ideas.", icon: "↗", tone: "lavender" },
-  { number: "03", title: "Interview practice", description: "Prepare clear, confident answers to common questions.", icon: "✦", tone: "mint" },
-  { number: "04", title: "Free conversation", description: "Choose your own subject and speak naturally.", icon: "◎", tone: "blue" },
+  { number: "01", title: "Everyday life", description: "Talk about routines, hobbies, and everyday plans.", icon: "☕", tone: "peach" },
+  { number: "02", title: "Job interview", description: "Practice interview questions and confident answers.", icon: "✦", tone: "mint" },
+  { number: "03", title: "Daily stand-up", description: "Share yesterday's work, today's plan, and blockers.", icon: "↗", tone: "lavender" },
+  { number: "04", title: "Team meeting", description: "Share ideas, agree politely, and clarify decisions.", icon: "◎", tone: "blue" },
+  { number: "05", title: "Explain a technical concept", description: "Explain software topics clearly and answer follow-ups.", icon: "⌘", tone: "lavender" },
+  { number: "06", title: "Restaurant conversation", description: "Order a meal, ask about options, and request the bill.", icon: "♨", tone: "peach" },
+  { number: "07", title: "Travel and directions", description: "Ask for directions, tickets, and travel information.", icon: "↗", tone: "blue" },
+  { number: "08", title: "Phone call", description: "Practice introductions, requests, and polite call endings.", icon: "☎", tone: "mint" },
+  { number: "09", title: "Free conversation", description: "Choose any subject and speak naturally.", icon: "◎", tone: "blue" },
 ];
 
 export default function PracticePage() {
