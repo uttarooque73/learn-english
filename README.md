@@ -2,7 +2,7 @@
 
 SpeakUp AI is a personal English-practice app designed to help learners speak more confidently, improve grammar, expand vocabulary, and track progress through realistic conversations with an AI tutor.
 
-The project uses **Next.js App Router + React + TypeScript** for a single full-stack codebase. Ollama and persistence are connected in later implementation phases.
+The project uses **Next.js App Router + React + TypeScript** for a single full-stack codebase. Phase 2 connects the Practice Room to a local Ollama model through a server-side streaming API.
 
 ## Current implementation status
 
@@ -12,18 +12,20 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Build the overview dashboard and practice, vocabulary, and progress pages.
 - [x] Add responsive styling and clear empty/coming-soon states.
 - [x] Document local setup and the implementation roadmap.
-- [ ] Connect the chat interface to Ollama (Phase 2).
-- [ ] Add conversation persistence and context (later phase).
+- [x] Connect the Practice Room to Ollama through a streaming Next.js Route Handler.
+- [x] Add scenario selection, streaming chat UI, input validation, and actionable connection errors.
+- [x] Add unit and integration tests for chat behavior and API validation.
+- [ ] Persist conversation history and restore sessions (Phase 3).
 - [ ] Add grammar feedback, vocabulary saving, and progress analytics (later phases).
 
-**Important:** Phase 1 is the UI foundation only. Chat, saved vocabulary, and progress figures are placeholders; no AI requests or session data are processed yet.
+**Current limitation:** Chat now calls the configured local Ollama service. Messages and context are held in React state only and are not saved after refresh or navigation. Vocabulary and progress figures remain placeholders.
 
 ## Getting started
 
 ### Requirements
 - Node.js 20.9 or newer (Node.js 22 is used in CI)
 - npm
-- Ollama is not required to run the current UI or tests; it will be needed for the AI integration phase.
+- Ollama is required to use AI chat, but not to run the UI, unit tests, or integration tests.
 
 ### Install and run
 
@@ -35,6 +37,25 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+### Configure Ollama for chat
+
+1. Install and start [Ollama](https://ollama.com/download).
+2. Download the default model:
+
+   ```bash
+   ollama pull qwen3:4b
+   ```
+
+3. Create your local environment file and adjust it if needed:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Restart the Next.js development server after changing environment variables.
+
+The server reads `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`) and `OLLAMA_MODEL` (default `qwen3:4b`). These must remain server-only variables; do not rename them with the `NEXT_PUBLIC_` prefix. The browser sends messages only to `/api/chat`.
 
 ## Quality checks
 
@@ -93,14 +114,14 @@ Browser (Next.js UI)
         v
 Next.js Route Handlers (/api/*)
         |
-        +------> Ollama (local LLM service)
+        +------> /api/chat -> Ollama (local LLM service)
         |
         +------> SQLite database (through Prisma)
 ```
 
 - **Full-stack framework:** Next.js App Router, React, TypeScript.
 - **Server API:** Next.js Route Handlers; no separate Express server is planned for the MVP.
-- **AI runtime:** Ollama with a configurable local chat model (Phase 2).
+- **AI runtime:** Ollama with a configurable local chat model. The API streams response text from Ollama to the browser.
 - **Database and ORM:** SQLite + Prisma (planned for the persistence phase).
 - **Speech:** Browser speech recognition and speech synthesis APIs, with a text-only fallback (planned).
 - **Styling:** Responsive CSS with no UI component library required.
@@ -181,12 +202,12 @@ Next.js Route Handlers (/api/*)
 - [ ] Allow users to delete individual sessions or all saved practice data.
 
 ### 10. Technical and Privacy Features
-- [ ] Use Ollama as the local LLM provider.
-- [ ] Make the model name and Ollama endpoint configurable.
-- [ ] Keep model prompts and response handling on the server.
+- [x] Use Ollama as the local LLM provider.
+- [x] Make the model name and Ollama endpoint configurable.
+- [x] Keep model prompts and response handling on the server.
 - [ ] Store sessions locally for the MVP, with a path to a database later.
-- [ ] Handle Ollama unavailable, timeout, and malformed-response errors.
-- [ ] Add input validation and safe error messages.
+- [x] Handle Ollama unavailable, timeout, and unsuccessful upstream responses.
+- [x] Add input validation and safe error messages.
 - [ ] Document setup, configuration, and troubleshooting.
 - [ ] Clearly explain that browser speech services may process audio differently depending on the browser; local LLM use does not automatically make voice processing fully offline.
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
+import { PracticeExperience } from "@/components/practice-experience";
 
 const prompts = [
   { number: "01", title: "Everyday life", description: "Talk about your day, interests, and routines.", icon: "☕", tone: "peach" },
@@ -16,16 +17,9 @@ export default function PracticePage() {
         <div className="practice-illustration" aria-hidden="true"><div className="practice-circle circle-back" /><div className="practice-circle circle-front"><span>Hi!</span></div><span className="practice-star star-a">✦</span><span className="practice-star star-b">✳</span></div>
       </section>
 
-      <section className="section-block">
-        <div className="section-heading"><div><p className="eyebrow">CHOOSE YOUR SCENARIO</p><h2>What feels right today?</h2></div><span className="section-note">Start simple. Build from there.</span></div>
-        <div className="scenario-grid">{prompts.map((prompt) => <article className="scenario-card" key={prompt.number}>
-          <div className="scenario-top"><span className={`scenario-icon ${prompt.tone}`}>{prompt.icon}</span><span className="scenario-number">{prompt.number}</span></div>
-          <h3>{prompt.title}</h3><p>{prompt.description}</p>
-          <div className="scenario-bottom"><span>Guided conversation</span><span className="scenario-arrow">↗</span></div>
-        </article>)}</div>
-      </section>
+      <PracticeExperience prompts={prompts} />
 
-      <section className="coming-panel"><div className="coming-icon">✦</div><div><span className="eyebrow">COMING IN PHASE 2</span><h2>Your AI conversation partner</h2><p>The next phase connects this practice space to Ollama so you can have real conversations with your local language model. This page is currently a UI foundation; messages are not sent to an AI yet.</p></div><Link href="/" className="text-link">Back to overview <span>→</span></Link></section>
+      <section className="coming-panel"><div className="coming-icon">✦</div><div><span className="eyebrow">PHASE 2</span><h2>Practice with your local AI</h2><p>Messages are processed by your configured Ollama model. Conversation history is kept in this browser session only and is not saved to a database yet.</p></div><Link href="/" className="text-link">Back to overview <span>→</span></Link></section>
     </AppShell>
   );
 }
