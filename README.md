@@ -388,3 +388,15 @@ Next.js Route Handlers (/api/*)
 - Do not expose secrets or internal server configuration to the browser.
 - Treat voice support as an optional enhancement, not a requirement for text practice.
 - Deliver the MVP before implementing advanced analytics and gamification.
+
+
+## PostgreSQL persistence
+
+The application persists its app-owned browser data through `/api/persistence` to PostgreSQL. This includes saved practice sessions and summaries, vocabulary/review metadata, learning preferences, and custom learning scenarios/options. Existing browser data is migrated on the first successful connection; the browser copy is retained as a cache so the UI can read data synchronously while writes are mirrored to PostgreSQL.
+
+1. Create a PostgreSQL database with your hosting provider.
+2. Set `DATABASE_URL` in the server environment (never expose it as a `NEXT_PUBLIC_*` variable). Set `DATABASE_SSL=true` only when your provider requires that TLS mode.
+3. Deploy the app. The API creates `app_user_data` on first use; the equivalent SQL migration is in `db/migrations/001_app_user_data.sql`.
+4. Existing browser data is uploaded for keys not yet present in the database. Database values take precedence when the same key already exists.
+
+Data is partitioned by a random, HTTP-only browser-owner cookie because this repository currently has no account/authentication system. This provides server persistence for a browser but does **not** synchronize data across different browsers/devices or provide authenticated user accounts. Add account authentication and bind the owner ID to the authenticated user before treating this as a multi-device account store. Configure a real PostgreSQL instance before deployment; without `DATABASE_URL`, the API returns a storage-unavailable response and client-side behavior falls back to its local cache.
