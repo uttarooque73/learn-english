@@ -9,9 +9,12 @@ export function LearningInsights({ mode }: { mode: "overview" | "progress" | "vo
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setSessions(getSessions());
-    setWords(getVocabulary());
-    setReady(true);
+    const timer = window.setTimeout(() => {
+      setSessions(getSessions());
+      setWords(getVocabulary());
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const totalSeconds = useMemo(() => sessions.reduce((sum, session) => sum + session.durationSeconds, 0), [sessions]);
