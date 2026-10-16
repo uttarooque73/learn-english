@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-type PageKey = "home" | "practice" | "vocabulary" | "progress" | "fluency";
+type PageKey = "home" | "practice" | "vocabulary" | "progress" | "fluency" | "settings";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
@@ -9,6 +9,7 @@ const navigation: { key: PageKey; label: string; href: string; icon: string }[] 
   { key: "vocabulary", label: "Vocabulary", href: "/vocabulary", icon: "Aa" },
   { key: "progress", label: "My progress", href: "/progress", icon: "↗" },
   { key: "fluency", label: "Fluency exercises", href: "/fluency", icon: "◷" },
+  { key: "settings", label: "Learning preferences", href: "/settings", icon: "⚙" },
 ];
 
 export function AppShell({
