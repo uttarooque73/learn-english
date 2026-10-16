@@ -159,7 +159,21 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Stop accepting new messages when time runs out while preserving the conversation for review.
 - [x] Add API, storage, and Playwright coverage and reconcile stale roadmap checkboxes for already-shipped features.
 
-**Current limitations:** Preferences and progress are stored in SQLite and mirrored in browser local storage. Anonymous data is scoped to this browser cookie and does not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice includes an optional local OpenPronounce phoneme model when the companion service is running; without it, the app falls back to browser transcript comparison, which is approximate and not an acoustic score. Conversation transcripts, vocabulary (including review status and next-review dates), preferences, and practice summaries are mirrored from browser local storage to SQLite when the database API is available. Anonymous data remains scoped to this browser cookie and is not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
+
+### Phase 21 — SQLite persistence and personalized practice tools
+- [x] Persist practice sessions and summaries, vocabulary and review metadata, learning preferences, and custom learning options in SQLite through `/api/persistence`.
+- [x] Configure the database location with `SQLITE_DATABASE_PATH`; default to `./data/speakup.sqlite` and create the schema automatically.
+- [x] Migrate existing browser-stored learning data into SQLite while retaining localStorage as the synchronous client cache.
+- [x] Allow learners to create and manage custom practice options and scenarios.
+- [x] Add a manual vocabulary form that uses Ollama to generate a definition, example sentence, and category.
+- [x] Let learners select text across the app and add it to their vocabulary notebook with AI-assisted meaning support.
+- [x] Add Shadowing Practice with adjustable speech speed, custom sentences, browser speech, and approximate word-match feedback.
+- [x] Add “Help me phrase this” to generate three natural English alternatives from a rough thought and insert a chosen suggestion into practice.
+- [x] Turn recurring corrections from at least two saved session summaries into contextual three-question micro-lessons on Progress.
+- [x] Convert selected vocabulary and corrections from a session summary into the existing spaced-repetition flashcard queue, with duplicate handling.
+- [x] Add unit, integration, and Playwright coverage for persistence and the new learning flows.
+
+**Current limitations:** Preferences and progress are stored in SQLite and mirrored in browser local storage. Anonymous data is scoped to this browser cookie and does not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice includes an optional local OpenPronounce phoneme model when the companion service is running; without it, the app falls back to browser transcript comparison, which is approximate and not an acoustic score. Shadowing word-match feedback is also approximate and does not assess phonemes, cadence, or intonation. AI-generated vocabulary definitions and phrase alternatives, as well as contextual micro-lessons, require the configured Ollama service/model. Conversation transcripts, summaries, vocabulary (including review status and next-review dates), preferences, and custom learning options are mirrored from browser local storage to SQLite when the database API is available. The SQLite file must be writable and kept on persistent storage; ephemeral/serverless filesystems may lose data after restarts or redeployments. Anonymous data remains scoped to this browser cookie and is not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
@@ -292,7 +306,7 @@ Next.js Route Handlers (/api/*)
 - **Full-stack framework:** Next.js App Router, React, TypeScript.
 - **Server API:** Next.js Route Handlers; no separate Express server is planned for the MVP.
 - **AI runtime:** Ollama with a configurable local chat model. The API streams response text from Ollama to the browser.
-- **Learning data persistence:** SQLite stores app-owned browser data through `/api/persistence`; `localStorage` remains a synchronous client cache. Anonymous data is scoped to a browser-owner cookie, not a signed-in account.
+- **Learning data persistence:** SQLite stores sessions and summaries, vocabulary and review metadata, preferences, and custom learning options through `/api/persistence`; `localStorage` remains a synchronous client cache. Anonymous data is scoped to an HTTP-only browser-owner cookie, not a signed-in account.
 - **Speech:** Browser speech recognition and speech synthesis APIs, with a text-only fallback. Browser and operating-system capabilities determine available voices and how speech recognition is processed.
 - **Styling:** Responsive CSS with no UI component library required.
 
@@ -376,7 +390,7 @@ Next.js Route Handlers (/api/*)
 - [x] Use Ollama as the local LLM provider.
 - [x] Make the model name and Ollama endpoint configurable.
 - [x] Keep model prompts and response handling on the server.
-- [x] Store full session transcripts locally for the MVP, with a path to a database later.
+- [x] Persist app-owned learning data in SQLite, with browser localStorage retained as a synchronous client cache.
 - [x] Handle Ollama unavailable, timeout, and unsuccessful upstream responses.
 - [x] Add input validation and safe error messages.
 - [x] Document setup, configuration, and troubleshooting.
