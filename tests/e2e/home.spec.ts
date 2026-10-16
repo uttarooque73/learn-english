@@ -200,7 +200,7 @@ test("progress page shows streaks, weekly activity, vocabulary review stats, and
   await expect(page.getByRole("heading", { name: "Review progress" })).toBeVisible();
   await expect(page.getByText("Items reviewed")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Correction patterns" })).toBeVisible();
-  await expect(page.getByText("I work here.")).toBeVisible();
+  await expect(page.getByText("I work here.", { exact: true })).toBeVisible();
 });
 
 
@@ -400,7 +400,7 @@ test("selected text can be saved to vocabulary from different app pages", async 
       const selection = window.getSelection();
       selection?.removeAllRanges();
       selection?.addRange(range);
-      heading.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, view: window }));
+      window.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, view: window }));
     });
     await page.locator(".vocabulary-selection-action").getByRole("button", { name: "Add selected text to vocabulary" }).click();
     await expect(page.getByRole("form", { name: "Add selected text to vocabulary" })).toBeVisible();
