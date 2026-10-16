@@ -63,20 +63,32 @@ if ! command -v ollama >/dev/null 2>&1; then
 fi
 
 if ! curl --silent --fail "${OLLAMA_BASE_URL}/api/tags" >/dev/null 2>&1; then
-  log "Ollama API is not responding; attempting to start 'ollama serve'..."
-  nohup ollama serve >/tmp/speakup-ollama.log 2>&1 </dev/null &
-  for _ in {1..20}; do
-    if curl --silent --fail "${OLLAMA_BASE_URL}/api/tags" >/dev/null 2>&1; then
-      break
-    fi
-    sleep 1
-  done
-  curl --silent --fail "${OLLAMA_BASE_URL}/api/tags" >/dev/null 2>&1 || fail "Ollama did not start. Check /tmp/speakup-ollama.log and confirm OLLAMA_BASE_URL points to your Ollama server."
+  # Only auto-start the standard local Ollama endpoint. Never start a local
+  # daemon when the configured endpoint is remote or uses a custom address.
+  case "$OLLAMA_BASE_URL" in
+    http://127.0.0.1:11434|http://localhost:11434)
+      log "Ollama API is not responding; attempting to start 'ollama serve'..."
+      nohup ollama serve >/tmp/speakup-ollama.log 2>&1 </dev/null &
+      for _ in {1..20}; do
+        if curl --silent --fail "${OLLAMA_BASE_URL}/api/tags" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 1
+      done
+      curl --silent --fail "${OLLAMA_BASE_URL}/api/tags" >/dev/null 2>&1 || fail "Ollama did not start. Check /tmp/speakup-ollama.log and confirm OLLAMA_BASE_URL points to your Ollama server."
+      ;;
+    *)
+      fail "Ollama is not responding at ${OLLAMA_BASE_URL}. Start that Ollama server and verify OLLAMA_BASE_URL before rerunning this script; remote/custom endpoints are not started automatically."
+      ;;
+  esac
 fi
 
-if ! ollama list | awk 'NR > 1 { print $1 }' | grep -Fxq "$OLLAMA_MODEL"; then
-  log "Model '$OLLAMA_MODEL' is not installed; downloading it now..."
-  ollama pull "$OLLAMA_MODEL" || fail "Could not download model '$OLLAMA_MODEL'. Check the model name and available disk space."
+# Respect OLLAMA_BASE_URL for CLI commands too; otherwise a remote endpoint
+# can respond to HTTP checks while model checks and pulls accidentally target
+# the machine running this script.
+if ! OLLAMA_HOST="$OLLAMA_BASE_URL" ollama list | awk 'NR > 1 { print $1 }' | grep -Fxq "$OLLAMA_MODEL"; then
+  log "Model '$OLLAMA_MODEL' is not installed at $OLLAMA_BASE_URL; downloading it now..."
+  OLLAMA_HOST="$OLLAMA_BASE_URL" ollama pull "$OLLAMA_MODEL" || fail "Could not download model '$OLLAMA_MODEL' from $OLLAMA_BASE_URL. Check the model name, server permissions, and available disk space."
 fi
 
 log "Using Ollama model: $OLLAMA_MODEL"
