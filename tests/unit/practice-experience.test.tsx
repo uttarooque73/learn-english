@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PracticeExperience } from "@/components/practice-experience";
+import { getSessions } from "@/lib/learning-storage";
 
 const prompts = [
   { number: "01", title: "Everyday life", description: "Talk about your day.", icon: "☕", tone: "peach" },
@@ -9,6 +10,7 @@ const prompts = [
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.localStorage.clear();
 });
 
 describe("PracticeExperience", () => {
@@ -63,4 +65,34 @@ describe("PracticeExperience", () => {
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cannot connect to Ollama."));
   });
+
+  it("persists a generated summary alongside its saved conversation", async () => {
+    const summary = {
+      topicSummary: "Practised introducing work experience.",
+      keyPoints: ["Introduced current role"],
+      corrections: [{ original: "I work here since 2020.", improved: "I have worked here since 2020.", reason: "Use present perfect for an action continuing to now." }],
+      vocabulary: [{ phrase: "hands-on experience", meaning: "Practical experience doing something." }],
+      strengths: ["Gave a relevant example"],
+      improvements: ["Add a specific result"],
+      followUpExercise: "Repeat the answer and include one measurable result.",
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("Tell me about your experience.", { status: 200, headers: { "Content-Type": "text/plain" } }))
+      .mockResolvedValueOnce(Response.json(summary));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<PracticeExperience prompts={prompts} />);
+    fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "I work here since 2020." } });
+    fireEvent.click(within(screen.getByLabelText("Your message").closest("form")!).getByRole("button", { name: /Send message/ }));
+    await waitFor(() => expect(screen.getByText("Tell me about your experience.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Summarize session/ })).toBeEnabled());
+
+    fireEvent.click(screen.getByRole("button", { name: /Summarize session/ }));
+    await waitFor(() => expect(getSessions().some((session) => session.summary?.topicSummary === summary.topicSummary)).toBe(true));
+    const savedSession = getSessions().find((session) => session.summary?.topicSummary === summary.topicSummary);
+    expect(savedSession?.messages).toContainEqual({ role: "user", content: "I work here since 2020." });
+    expect(savedSession?.messages).toContainEqual({ role: "assistant", content: "Tell me about your experience." });
+    expect(screen.getByRole("heading", { name: "Your learning summary" })).toBeInTheDocument();
+  });
+
 });

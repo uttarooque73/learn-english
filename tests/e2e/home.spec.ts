@@ -89,6 +89,15 @@ test("practice room generates a structured session summary", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Your learning summary" })).toBeVisible();
   await expect(page.getByText("hands-on experience")).toBeVisible();
   await expect(page.getByText("Repeat the answer and include one measurable result.")).toBeVisible();
+
+  await page.getByRole("button", { name: "New conversation" }).click();
+  const savedConversations = page.getByLabel("Saved conversations");
+  const savedOption = savedConversations.locator("option").nth(1);
+  await expect(savedOption).toContainText("summary saved");
+  await savedConversations.selectOption(await savedOption.getAttribute("value") ?? "");
+  await page.getByRole("button", { name: "Restore" }).click();
+  await expect(page.getByRole("heading", { name: "Your learning summary" })).toBeVisible();
+  await expect(page.getByText("Repeat the answer and include one measurable result.")).toBeVisible();
 });
 
 test("learning preferences save and persist personalization and accessibility choices", async ({ page }) => {
