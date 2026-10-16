@@ -106,6 +106,8 @@ export function ShadowingPractice() {
     const timer = window.setTimeout(() => {
       const w = window as SpeechWindow;
       setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+      const requestedTarget = new URLSearchParams(window.location.search).get("text")?.trim();
+      if (requestedTarget && requestedTarget.length <= 240) { setLines([requestedTarget, ...DEFAULT_LINES]); setIndex(0); setFeedback("Ready to practise the selected vocabulary item."); }
       try {
         const stored: unknown = JSON.parse(window.localStorage.getItem(SHADOWING_HISTORY_KEY) ?? "[]");
         if (Array.isArray(stored)) setHistory(stored.filter((item): item is ShadowingHistoryEntry => Boolean(item) && typeof item === "object" && typeof item.id === "string" && typeof item.target === "string" && typeof item.transcript === "string" && typeof item.createdAt === "string" && (typeof item.score === "number" || item.score === null) && typeof item.favorite === "boolean").slice(0, 100));
