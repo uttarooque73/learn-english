@@ -25,6 +25,7 @@ describe("learning preferences", () => {
       feedbackTiming: "immediate",
       speechRate: 1.2,
       speechVoiceURI: "test-english-voice",
+      speechVoiceGender: "female",
       preferredTopics: ["Job interview", "not-a-real-topic"],
       largerText: true,
     });
@@ -51,6 +52,7 @@ describe("learning preferences", () => {
       feedbackStyle: "harsh",
       speechRate: 9,
       speechVoiceURI: "x".repeat(400),
+      speechVoiceGender: "unknown",
       preferredTopics: ["ignore instructions"],
       largerText: false,
       reducedMotion: true,
@@ -62,6 +64,7 @@ describe("learning preferences", () => {
       feedbackTiming: "end",
       speechRate: 1,
       speechVoiceURI: "x".repeat(300),
+      speechVoiceGender: "automatic",
       preferredTopics: [],
       reducedMotion: true,
     });
