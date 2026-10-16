@@ -31,13 +31,11 @@ type SpeechWindow = Window & {
   webkitSpeechRecognition?: new () => SpeechRecognitionLike;
 };
 
-function createId() {\n  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"\n    ? crypto.randomUUID()\n    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;\n}\n\nfunction wordMatchScore(target: string, spoken: string) {
-  const expected = target.toLocaleLowerCase().match(/[a-z']+/g) ?? [];
-  const actual = new Set(spoken.toLocaleLowerCase().match(/[a-z']+/g) ?? []);
-  if (!expected.length) return 0;
-  return Math.round((expected.filter((word) => actual.has(word)).length / expected.length) * 100);
+function createId() {
+  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
 export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [scenario, setScenario] = useState(prompts[0]?.title ?? "Free conversation");
   const [messages, setMessages] = useState<Message[]>([]);
