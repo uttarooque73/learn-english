@@ -59,8 +59,7 @@ export function FluencyExercises() {
   const fillerMatches = useMemo(() => response.match(fillerPattern) ?? [], [response]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setIsHydrated(true), 0);
-    return () => window.clearTimeout(timer);
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
