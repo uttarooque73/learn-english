@@ -79,3 +79,28 @@ test("practice room generates a structured session summary", async ({ page }) =>
   await expect(page.getByText("hands-on experience")).toBeVisible();
   await expect(page.getByText("Repeat the answer and include one measurable result.")).toBeVisible();
 });
+
+
+test("learning preferences save and persist personalization and accessibility choices", async ({ page }) => {
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Learning preferences" })).toBeVisible();
+
+  await page.getByLabel("Current English level").selectOption("Intermediate");
+  await page.getByLabel("Feedback style").selectOption("detailed");
+  await page.getByLabel("Daily practice goal").selectOption("15");
+  await page.getByLabel("Explain a technical concept").check();
+  await page.getByLabel("Larger text").check();
+  await page.getByLabel("Reduce animation").check();
+  await page.getByRole("button", { name: /Save preferences/ }).click();
+  await expect(page.getByRole("status")).toContainText("saved on this device");
+
+  await page.reload();
+  await expect(page.getByLabel("Current English level")).toHaveValue("Intermediate");
+  await expect(page.getByLabel("Feedback style")).toHaveValue("detailed");
+  await expect(page.getByLabel("Daily practice goal")).toHaveValue("15");
+  await expect(page.getByLabel("Explain a technical concept")).toBeChecked();
+  await expect(page.getByLabel("Larger text")).toBeChecked();
+  await expect(page.getByLabel("Reduce animation")).toBeChecked();
+  await expect(page.locator("html")).toHaveClass(/speakup-larger-text/);
+  await expect(page.locator("html")).toHaveClass(/speakup-reduced-motion/);
+});
