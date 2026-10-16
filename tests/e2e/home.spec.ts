@@ -198,3 +198,36 @@ test("progress page shows streaks, weekly activity, vocabulary review stats, and
   await expect(page.getByRole("heading", { name: "Correction patterns" })).toBeVisible();
   await expect(page.getByText("I work here.")).toBeVisible();
 });
+
+
+test("mobile navigation and practice chat work without horizontal overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.route("**/api/chat", async (route) => {
+    await route.fulfill({ status: 200, contentType: "text/plain", body: "I can help you practise English." });
+  });
+
+  await page.goto("/");
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute("content", /width=device-width/);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+
+  await page.getByRole("button", { name: "Open menu" }).click();
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await expect(navigation).toBeVisible();
+  await page.getByRole("link", { name: "Practice room" }).click();
+  await expect(page).toHaveURL(/\/practice$/);
+  await expect(page.getByRole("button", { name: "Open menu" })).toHaveAttribute("aria-expanded", "false");
+
+  const interview = page.getByRole("button", { name: /Job interview/ });
+  await expect(interview).toBeVisible();
+  await interview.click();
+  await page.locator("#chat-message").fill("I want to practise speaking.");
+  await page.getByRole("button", { name: /Send message/ }).click();
+  await expect(page.getByText("I can help you practise English.")).toBeVisible({ timeout: 10_000 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+
+  for (const route of ["/", "/practice", "/vocabulary", "/progress", "/fluency", "/settings"]) {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.goto(route);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  }
+});
