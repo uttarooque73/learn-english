@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSessions, getVocabulary, saveVocabulary, type PracticeSession } from "@/lib/learning-storage";
 
@@ -36,7 +37,7 @@ export function ConversationFlashcardExport() {
       <div className="flashcard-candidate-list">{candidates.map((item) => <label className="flashcard-candidate" key={item.id}><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /><span><strong>{item.phrase}</strong><small>{item.source}</small><span>{item.meaning}</span>{item.example && <em>{item.example}</em>}</span></label>)}</div>
       {candidates.length === 0 && <p className="feature-note">This summary has no vocabulary or corrections to import.</p>}
       <div className="flashcard-export-actions"><button className="button button-primary" type="button" disabled={!selected.length} onClick={importSelected}>Convert selected to flashcards ({selected.length})</button><button className="text-link" type="button" onClick={() => setSelected(candidates.map((item) => item.id))}>Select all</button></div>
-      {message && <p className="feature-feedback" role="status">{message} <a href="/vocabulary?mode=review">Start spaced-repetition review →</a></p>}
+      {message && <p className="feature-feedback" role="status">{message} <Link href="/vocabulary?mode=review">Start spaced-repetition review →</Link></p>}
     </>}
   </section>;
 }
