@@ -7,6 +7,9 @@ import { applyAccessibilityPreferences, getLearningPreferences, type LearningPre
 
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
 type Message = { role: "user" | "assistant"; content: string };
+type PhonemeIssue = { word: string; expected: string; actual: string | null; confidence: number; phones: { expected: string; heard: string | null; confidence: number }[] };
+type PhonemeAssessment = { score: number; transcript: string; phonemeErrorRate: number | null; wordErrorRate: number | null; errors: PhonemeIssue[] };
+
 type Feedback = {
   originalSentence: string;
   correctedSentence: string;
@@ -62,12 +65,19 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   const [voiceError, setVoiceError] = useState("");
   const [pronunciationAssessment, setPronunciationAssessment] = useState<TranscriptAssessment | null>(null);
   const [pronunciationMode, setPronunciationMode] = useState(false);
+  const [phonemeRecording, setPhonemeRecording] = useState(false);
+  const [phonemeAssessmentLoading, setPhonemeAssessmentLoading] = useState(false);
+  const [phonemeAssessment, setPhonemeAssessment] = useState<PhonemeAssessment | null>(null);
+  const [phonemeAssessmentError, setPhonemeAssessmentError] = useState("");
   const [savedPhrases, setSavedPhrases] = useState<string[]>([]);
   const [savedSessions, setSavedSessions] = useState<PracticeSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const conversationEnd = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const voiceSessionStateRef = useRef<"idle" | "active" | "paused">("idle");
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartedAtRef = useRef<string | null>(null);
@@ -89,6 +99,12 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     return () => {
       window.clearTimeout(timer);
       recognitionRef.current?.stop();
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.onstop = null;
+        mediaRecorderRef.current.ondataavailable = null;
+        if (mediaRecorderRef.current.state !== "inactive") mediaRecorderRef.current.stop();
+      }
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     };
   }, []);
@@ -129,6 +145,70 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
     setVoiceError("");
   }
 
+  async function submitPhonemeAssessment(audio: Blob) {
+    if (!feedback?.correctedSentence) return;
+    setPhonemeAssessmentLoading(true);
+    setPhonemeAssessmentError("");
+    setPhonemeAssessment(null);
+    const form = new FormData();
+    const extension = audio.type.includes("mp4") ? "mp4" : audio.type.includes("ogg") ? "ogg" : "webm";
+    form.append("audio", audio, "pronunciation." + extension);
+    form.append("expectedText", feedback.correctedSentence);
+    try {
+      const response = await fetch("/api/pronunciation", { method: "POST", body: form });
+      const payload = await response.json() as PhonemeAssessment & { error?: string };
+      if (!response.ok) throw new Error(payload.error || "Phoneme-level assessment failed. Please try again.");
+      setPhonemeAssessment(payload);
+    } catch (caught) {
+      setPhonemeAssessmentError(caught instanceof Error ? caught.message : "Phoneme-level assessment failed. Please try again.");
+    } finally {
+      setPhonemeAssessmentLoading(false);
+    }
+  }
+
+  async function startPhonemeRecording() {
+    if (phonemeRecording || phonemeAssessmentLoading) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setPhonemeAssessmentError("Audio recording is not supported in this browser. Use a recent browser on HTTPS or localhost, or continue with transcript-based practice.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => { if (event.data.size > 0) audioChunksRef.current.push(event.data); };
+      recorder.onerror = () => {
+        setPhonemeAssessmentError("The audio recording failed. Check your microphone and try again.");
+        setPhonemeRecording(false);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+      recorder.onstop = () => {
+        setPhonemeRecording(false);
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        const audio = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        if (audio.size === 0) { setPhonemeAssessmentError("No audio was captured. Please record your sentence again."); return; }
+        void submitPhonemeAssessment(audio);
+      };
+      recorder.start();
+      setPhonemeAssessment(null);
+      setPhonemeAssessmentError("");
+      setPhonemeRecording(true);
+    } catch (caught) {
+      const name = caught instanceof Error ? caught.name : "";
+      setPhonemeAssessmentError(name === "NotAllowedError" || name === "PermissionDeniedError"
+        ? "Microphone access was denied. Allow microphone access in your browser settings to assess individual sounds."
+        : "Could not access the microphone. Check browser permissions and try again, or use transcript-based practice.");
+    }
+  }
+
+  function stopPhonemeRecording() {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") recorder.stop();
+  }
   function startListening(mode: "compose" | "pronunciation" = "compose") {
     const speech = window as SpeechWindow;
     const Recognition = speech.SpeechRecognition || speech.webkitSpeechRecognition;
@@ -660,6 +740,20 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
               </div>
             </div>}
           </div>
+          <section className="phoneme-assessment" aria-label="Phoneme-level pronunciation assessment">
+            <div><p className="feedback-label">Phoneme-level assessment</p><p>Record yourself saying the corrected sentence. A local speech model compares the sounds you produce with the target sentence.</p><small>Audio is sent to the pronunciation service configured for this app. Run the companion service locally to keep recordings on your own machine.</small></div>
+            <div className="phoneme-record-controls">{phonemeRecording
+              ? <button className="button button-danger-outline" type="button" onClick={stopPhonemeRecording}>Stop and assess</button>
+              : <button className="button button-voice" type="button" onClick={() => void startPhonemeRecording()} disabled={isStreaming || listening || phonemeAssessmentLoading}>{phonemeAssessmentLoading ? "Assessing sounds…" : "Record pronunciation"}</button>}</div>
+            {phonemeAssessmentError && <p className="phoneme-assessment-error" role="alert">{phonemeAssessmentError}</p>}
+            {phonemeAssessmentLoading && <p className="phoneme-assessment-loading" role="status">Analyzing your recording against the target sentence…</p>}
+            {phonemeAssessment && <div className="phoneme-assessment-result" aria-live="polite">
+              <div className="phoneme-score"><strong>{phonemeAssessment.score}</strong><span>/100 pronunciation estimate</span></div>
+              <p><strong>Model heard:</strong> {phonemeAssessment.transcript || "No word transcript returned."}</p>
+              {phonemeAssessment.errors.length > 0 ? <div className="phoneme-issue-list"><p className="feedback-label">Sounds to practice</p>{phonemeAssessment.errors.map((issue, index) => <article className="phoneme-issue" key={index}><strong>{issue.word}</strong><p>Target sounds: <code>{issue.expected || "—"}</code></p><p>Heard sounds: <code>{issue.actual || "Not detected"}</code></p>{issue.phones.length > 0 && <small>{issue.phones.map((phone) => phone.expected + " → " + (phone.heard ?? "missing")).join(" · ")}</small>}</article>)}</div> : <p>No major phoneme differences were reported for this recording. Repeat once more to check consistency.</p>}
+              {phonemeAssessment.phonemeErrorRate !== null && <small>Phoneme error rate: {Math.round(phonemeAssessment.phonemeErrorRate * 100)}% · Word error rate: {phonemeAssessment.wordErrorRate === null ? "unavailable" : Math.round(phonemeAssessment.wordErrorRate * 100) + "%"}</small>}
+            </div>}
+          </section>
           {feedback.vocabulary.length > 0 && <><p className="feedback-label">Useful phrases to keep</p><div className="feedback-word-list">{feedback.vocabulary.map((item) => <article className="feedback-word" key={item.phrase}><div><strong>{item.phrase}</strong><p>{item.meaning}</p><small>{item.example}</small></div><button type="button" className="save-word-button" onClick={() => savePhrase(item)} disabled={savedPhrases.includes(item.phrase)}>{savedPhrases.includes(item.phrase) ? "✓ Saved" : "+ Save"}</button></article>)}</div></>}
         </section>}
         <p className="chat-privacy-note">Chat and learning history stay in this browser/local Ollama setup. Speech recognition and speech playback use your browser; browser support varies. Learning data is stored locally on this device.</p>

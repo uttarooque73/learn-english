@@ -26,7 +26,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Keep recent session history bounded to avoid unbounded local storage growth.
 - [x] Compare recognized words in sequence and show likely missing or extra/substituted words.
 - [x] Add tests for transcript similarity scoring.
-- [ ] Add true phoneme-level pronunciation assessment with a dedicated speech model.
+- [x] Add true phoneme-level pronunciation assessment through the optional self-hosted OpenPronounce companion service; the built-in transcript comparison remains an approximate fallback.
 
 ### Phase 3 — Vocabulary notebook and active review
 - [x] Organize saved words and phrases in a searchable personal notebook.
@@ -146,7 +146,13 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Keep automatic voice selection as the default and gracefully handle unavailable saved voices or unsupported browsers.
 - [x] Add preference validation, persistence, and browser coverage.
 
-**Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
+### Phase 19 — Phoneme-level pronunciation assessment
+- [x] Capture a short microphone recording separately from browser speech-to-text.
+- [x] Proxy recordings to a configurable local pronunciation service and validate response size and shape.
+- [x] Show a phoneme-level score estimate, model-heard transcript, and per-word sound differences.
+- [x] Explain microphone permissions, service setup, audio handling, and the transcript-only fallback.
+- [x] Add API integration and Playwright coverage with a mocked local service.
+**Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Depending on the browser and its settings, speech recognition may process audio through a browser-vendor service; using a local Ollama model does not guarantee that microphone audio stays on-device. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice includes an optional local OpenPronounce phoneme model when the companion service is running; without it, the app falls back to browser transcript comparison, which is approximate and not an acoustic score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
 
