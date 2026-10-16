@@ -49,6 +49,7 @@ export function FluencyExercises() {
   const [response, setResponse] = useState("");
   const [secondsRemaining, setSecondsRemaining] = useState(60);
   const [timerRunning, setTimerRunning] = useState(false);
+  const [timerStarted, setTimerStarted] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
 
   const currentPrompts = prompts[exercise];
@@ -68,6 +69,7 @@ export function FluencyExercises() {
     setResponse("");
     setSecondsRemaining(60);
     setTimerRunning(false);
+    setTimerStarted(false);
     setShowReflection(false);
   }
 
@@ -76,12 +78,14 @@ export function FluencyExercises() {
     setResponse("");
     setSecondsRemaining(60);
     setTimerRunning(false);
+    setTimerStarted(false);
     setShowReflection(false);
   }
 
   function startTimer() {
     if (secondsRemaining === 0) setSecondsRemaining(60);
     setShowReflection(false);
+    setTimerStarted(true);
     setTimerRunning(true);
   }
 
@@ -112,7 +116,7 @@ export function FluencyExercises() {
         <textarea id="fluency-response" value={response} onChange={(event) => { setResponse(event.target.value); setShowReflection(false); }} placeholder={exercise === "minute" ? "Keep going—write what you would say out loud…" : "Write your answer here, or speak it aloud and then note the key points…"} rows={6} />
         <div className="fluency-response-meta"><span>{wordCount} words</span>{exercise === "fillers" && <span>{fillerMatches.length} possible filler words detected</span>}</div>
         {exercise === "fillers" && <div className="filler-note">We count common filler expressions in the text you enter. This is a writing aid, not automatic analysis of your spoken audio.</div>}
-        {exercise === "minute" && <div className="fluency-timer-actions"><button type="button" className="button button-primary" onClick={timerRunning && secondsRemaining > 0 ? () => setTimerRunning(false) : startTimer}>{timerRunning && secondsRemaining > 0 ? "Pause timer" : secondsRemaining === 60 ? "Start 1-minute timer" : secondsRemaining === 0 ? "Restart timer" : "Resume timer"}</button><button type="button" className="notebook-secondary" onClick={() => { setTimerRunning(false); setSecondsRemaining(60); }}>Reset timer</button></div>}
+        {exercise === "minute" && <div className="fluency-timer-actions"><button type="button" className="button button-primary" onClick={timerRunning && secondsRemaining > 0 ? () => setTimerRunning(false) : startTimer}>{timerRunning && secondsRemaining > 0 ? "Pause timer" : secondsRemaining === 0 ? "Restart timer" : timerStarted ? "Resume timer" : "Start 1-minute timer"}</button><button type="button" className="notebook-secondary" onClick={() => { setTimerRunning(false); setTimerStarted(false); setSecondsRemaining(60); }}>Reset timer</button></div>}
         <div className="fluency-actions"><button type="button" className="notebook-secondary" onClick={nextPrompt}>Try another prompt</button><button type="button" className="button button-primary" onClick={finishExercise} disabled={!response.trim()}>Finish exercise</button></div>
         {showReflection && <div className="fluency-reflection" role="status"><strong>Nice work showing up.</strong><p>You wrote {wordCount} words. Read your answer aloud once more, then try to make one sentence clearer or more specific. {exercise === "fillers" ? `Review the ${fillerMatches.length} possible filler word(s) and decide which ones are needed.` : "Focus on communicating your idea, not on being perfect."}</p></div>}
       </section>
