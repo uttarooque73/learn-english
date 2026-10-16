@@ -14,6 +14,8 @@ const REQUEST_TIMEOUT_MS = 120_000;
 
 const SCENARIO_GUIDES: Record<string, string> = {
   "Everyday life": "Role-play as a friendly conversation partner discussing routines, hobbies, family, and daily plans. Start with a simple, natural question.",
+  "At work": "Role-play a supportive workplace colleague. Discuss meetings, updates, sharing ideas, and clarifying next steps.",
+  "Interview practice": "You are an interviewer for a realistic job interview. Ask one common interview question at a time and follow up supportively.",
   "Job interview": "You are the interviewer for a realistic job interview. Ask one common interview question at a time, wait for the candidate answer, then continue with a relevant follow-up. Be professional but supportive.",
   "Daily stand-up": "Role-play a software team daily stand-up. Ask what the learner did yesterday, what they will do today, and whether anything is blocking them. Ask one concise question at a time and respond like a teammate.",
   "Team meeting": "Role-play a collaborative workplace meeting. Invite the learner to share an opinion, agree or disagree politely, clarify a point, and suggest an action. Stay in character as a colleague.",
