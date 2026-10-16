@@ -72,6 +72,7 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Add a dedicated due-review queue to the vocabulary notebook.
 - [x] Schedule the next review from learner recall: Again (1 day), Got it (3 days), or Easy (7 days).
 - [x] Calculate intervals as fixed 24-hour periods from the review timestamp, independent of local timezone.
+- [x] Show due-item counts before entering review, and remove reviewed items from the current queue until their next due date.
 - [x] Track review count, last reviewed time, next review date, and vocabulary status.
 - [x] Keep existing saved vocabulary compatible; items without review metadata are due immediately.
 - [x] Add unit tests for interval scheduling, due-date selection, and unknown vocabulary IDs.
