@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getDueVocabulary, getVocabulary, removeVocabulary, reviewVocabulary, saveVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
 
 const statusLabels: Record<VocabularyStatus, string> = { learning: "Learning", familiar: "Familiar", mastered: "Mastered" };
@@ -59,7 +59,7 @@ export function VocabularyNotebook() {
     return result;
   }
 
-  async function addWord(event: React.FormEvent<HTMLFormElement>) {
+  async function addWord(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const phrase = newPhrase.trim();
     if (!phrase || phrase.length > 120) {
@@ -72,7 +72,7 @@ export function VocabularyNotebook() {
     try {
       let meaning = newMeaning.trim();
       let example = newExample.trim();
-      let category: SavedVocabulary["category"] = /\\s/.test(phrase) ? "expression" : "word";
+      let category: SavedVocabulary["category"] = /\s/.test(phrase) ? "expression" : "word";
       if (!meaning || !example) {
         setDefining(true);
         const definition = await generateDefinition(phrase);
