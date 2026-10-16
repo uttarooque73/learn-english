@@ -59,7 +59,7 @@ describe("PracticeExperience", () => {
 
     render(<PracticeExperience prompts={prompts} />);
     fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Hi" } });
-    fireEvent.click(screen.getByText("Send message", { selector: "button" }));
+    fireEvent.click(within(screen.getByLabelText("Your message").closest("form")!).getByRole("button", { name: /Send message/ }));
 
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Cannot connect to Ollama."));
   });
