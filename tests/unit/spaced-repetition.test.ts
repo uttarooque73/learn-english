@@ -31,7 +31,7 @@ describe("spaced-repetition vocabulary review", () => {
   });
 
   it("keeps older saved vocabulary due immediately and ignores unknown ids", () => {
-    const saved = saveVocabulary({ phrase: "follow up", meaning: "Continue later", example: "I will follow up tomorrow." });
+    saveVocabulary({ phrase: "follow up", meaning: "Continue later", example: "I will follow up tomorrow." });
     expect(getDueVocabulary()).toEqual(getVocabulary());
     expect(reviewVocabulary("missing-id", "good")).toBeUndefined();
   });
