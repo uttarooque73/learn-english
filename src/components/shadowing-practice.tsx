@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 
 const DEFAULT_LINES = [
   "Could you give me a moment to think about that?",
@@ -10,15 +11,69 @@ const DEFAULT_LINES = [
   "The main challenge is finding a solution that works for everyone.",
 ];
 
-type Recognition = { lang: string; interimResults: boolean; maxAlternatives: number; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void; stop: () => void };
+type Recognition = {
+  lang: string; interimResults: boolean; maxAlternatives: number;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null; onend: (() => void) | null;
+  start: () => void; stop: () => void;
+};
 type SpeechWindow = Window & { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
+type AcousticMetrics = { durationSeconds: number; speechRateWpm: number; pauseCount: number; pitchRangeHz: number | null; intonation: string };
 
-function compareWords(expected: string, actual: string) {
-  const clean = (value: string) => value.toLocaleLowerCase().replace(/[^a-z0-9']/g, "").trim();
-  const target = expected.split(/\s+/).map(clean).filter(Boolean);
-  const heard = actual.split(/\s+/).map(clean).filter(Boolean);
-  const matched = target.filter((word, index) => heard[index] === word).length;
-  return { target, heard, matched, percent: target.length ? Math.round(matched / target.length * 100) : 0 };
+async function analyzeRecording(blob: Blob, wordCount: number): Promise<AcousticMetrics | null> {
+  const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextCtor) return null;
+  const context = new AudioContextCtor();
+  try {
+    const buffer = await context.decodeAudioData(await blob.arrayBuffer());
+    const samples = buffer.getChannelData(0);
+    const durationSeconds = buffer.duration;
+    const frameSize = Math.max(1, Math.floor(buffer.sampleRate * 0.02));
+    const energies: number[] = [];
+    for (let start = 0; start < samples.length; start += frameSize) {
+      let sum = 0;
+      const end = Math.min(samples.length, start + frameSize);
+      for (let i = start; i < end; i++) sum += samples[i] * samples[i];
+      energies.push(Math.sqrt(sum / Math.max(1, end - start)));
+    }
+    const peak = Math.max(0, ...energies);
+    const threshold = Math.max(0.008, peak * 0.13);
+    let pauses = 0, inPause = false, pauseFrames = 0;
+    for (const energy of energies) {
+      if (energy < threshold) { pauseFrames++; inPause = true; }
+      else {
+        if (inPause && pauseFrames >= 9) pauses++;
+        inPause = false; pauseFrames = 0;
+      }
+    }
+    if (inPause && pauseFrames >= 9) pauses++;
+    const pitches: number[] = [];
+    const pitchFrame = Math.floor(buffer.sampleRate * 0.04);
+    for (let start = 0; start + pitchFrame < samples.length; start += pitchFrame) {
+      let energy = 0;
+      for (let i = start; i < start + pitchFrame; i++) energy += samples[i] * samples[i];
+      if (energy / pitchFrame < 0.00004) continue;
+      const minLag = Math.floor(buffer.sampleRate / 350);
+      const maxLag = Math.min(Math.floor(buffer.sampleRate / 75), pitchFrame - 1);
+      let bestLag = 0, bestCorrelation = 0;
+      for (let lag = minLag; lag <= maxLag; lag++) {
+        let correlation = 0;
+        for (let i = start; i < start + pitchFrame - lag; i++) correlation += samples[i] * samples[i + lag];
+        if (correlation > bestCorrelation) { bestCorrelation = correlation; bestLag = lag; }
+      }
+      if (bestLag && bestCorrelation > 0) pitches.push(buffer.sampleRate / bestLag);
+    }
+    const pitchRangeHz = pitches.length >= 3 ? Math.round(Math.max(...pitches) - Math.min(...pitches)) : null;
+    return {
+      durationSeconds: Math.round(durationSeconds * 10) / 10,
+      speechRateWpm: durationSeconds > 0 ? Math.round(wordCount / durationSeconds * 60) : 0,
+      pauseCount: pauses,
+      pitchRangeHz,
+      intonation: pitchRangeHz === null ? "Not enough clear voiced audio to estimate pitch variation." : pitchRangeHz < 35 ? "Your pitch stayed fairly level. Try emphasizing key words and letting your voice rise or fall naturally." : "Your voice showed pitch variation. Try matching the model sentence's emphasis and sentence-ending intonation.",
+    };
+  } finally {
+    await context.close();
+  }
 }
 
 export function ShadowingPractice() {
@@ -30,62 +85,124 @@ export function ShadowingPractice() {
   const [listening, setListening] = useState(false);
   const [rate, setRate] = useState(0.85);
   const [supported, setSupported] = useState(false);
+  const [recordingSupported, setRecordingSupported] = useState(false);
+  const [acoustic, setAcoustic] = useState<AcousticMetrics | null>(null);
+  const [phonemeResult, setPhonemeResult] = useState<{ score: number; errors: { word: string; expected: string; actual: string | null; phones: { expected: string; heard: string | null }[] }[] } | null>(null);
+  const [phonemeMessage, setPhonemeMessage] = useState("");
+  const recognitionRef = useRef<Recognition | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const transcriptRef = useRef("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const w = window as SpeechWindow;
       setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+      setRecordingSupported(typeof navigator.mediaDevices?.getUserMedia === "function" && typeof window.MediaRecorder === "function");
     }, 0);
     return () => {
       window.clearTimeout(timer);
+      recognitionRef.current?.stop();
+      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
       window.speechSynthesis?.cancel();
     };
   }, []);
 
   const sentence = lines[index] ?? lines[0];
+  const comparison: TranscriptAssessment | null = transcript ? assessTranscript(sentence, transcript) : null;
+
   function speakSentence() {
-    if (!("speechSynthesis" in window) || !sentence) {
-      setFeedback("Text-to-speech is not supported in this browser.");
-      return;
-    }
+    if (!("speechSynthesis" in window) || !sentence) { setFeedback("Text-to-speech is not supported in this browser."); return; }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(sentence);
-    utterance.lang = "en-US";
-    utterance.rate = rate;
+    utterance.lang = "en-US"; utterance.rate = rate;
     window.speechSynthesis.speak(utterance);
   }
-  function startRepeat() {
+
+  async function startRepeat() {
+    setTranscript(""); transcriptRef.current = ""; setFeedback(""); setAcoustic(null); setPhonemeResult(null); setPhonemeMessage("");
     const w = window as SpeechWindow;
     const Constructor = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!Constructor) {
-      setFeedback("Speech recognition is not available here. You can still practise by repeating aloud.");
-      return;
+    let recognition: Recognition | null = null;
+    if (Constructor) {
+      recognition = new Constructor();
+      recognition.lang = "en-US"; recognition.interimResults = true; recognition.maxAlternatives = 1;
+      recognition.onresult = (event) => {
+        const parts: string[] = [];
+        for (let i = 0; i < event.results.length; i++) parts.push(event.results[i]?.[0]?.transcript ?? "");
+        const nextTranscript = parts.join(" ").trim();
+        transcriptRef.current = nextTranscript;
+        setTranscript(nextTranscript);
+      };
+      recognition.onerror = (event) => setFeedback(event.error === "not-allowed" ? "Microphone permission was denied." : "Speech recognition stopped; your recording can still be assessed.");
+      recognition.onend = () => {};
+      recognitionRef.current = recognition;
     }
-    const recognition = new Constructor();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onresult = (event) => {
-      const spoken = event.results[0]?.[0]?.transcript ?? "";
-      setTranscript(spoken);
-      const result = compareWords(sentence, spoken);
-      setFeedback(`Word match: ${result.percent}%. ${result.percent >= 85 ? "Great clarity — try matching the rhythm next." : "Listen once more, then focus on the highlighted words."}`);
+    try {
+      if (navigator.mediaDevices?.getUserMedia && window.MediaRecorder) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream; chunksRef.current = [];
+        const recorder = new MediaRecorder(stream);
+        recorderRef.current = recorder;
+        recorder.ondataavailable = (event) => { if (event.data.size) chunksRef.current.push(event.data); };
+        recorder.onstop = async () => {
+          const blob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          stream.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+          if (!blob.size) { setPhonemeMessage("No audio was captured. Try recording again."); return; }
+          try {
+            const metrics = await analyzeRecording(blob, Math.max(1, transcript.trim().split(/\s+/).filter(Boolean).length));
+            setAcoustic(metrics);
+          } catch { setPhonemeMessage("Could not analyze audio timing in this browser. Transcript feedback is still available."); }
+          const form = new FormData();
+          form.append("audio", blob, "shadowing.webm");
+          form.append("expectedText", sentence);
+          setPhonemeMessage("Checking sound-level pronunciation…");
+          try {
+            const response = await fetch("/api/pronunciation", { method: "POST", body: form });
+            const payload = await response.json() as { score?: number; transcript?: string; errors?: { word: string; expected: string; actual: string | null; phones: { expected: string; heard: string | null }[] }[]; error?: string };
+            if (response.ok && typeof payload.score === "number") {
+              setPhonemeResult({ score: payload.score, errors: payload.errors ?? [] });
+              setPhonemeMessage("Sound-level assessment complete.");
+            } else setPhonemeMessage(payload.error || "Phoneme-level scoring is unavailable; use the transcript and rhythm feedback below.");
+          } catch { setPhonemeMessage("Phoneme-level scoring is unavailable. Start the optional local pronunciation service to enable it."); }
+        };
+        recorder.start();
+      }
+      if (recognition) {
+        try { recognition.start(); } catch { /* The audio recording can still be assessed. */ }
+      }
+      setListening(true);
+      setFeedback("Recording… repeat the sentence, then select Stop and assess.");
+    } catch {
       setListening(false);
-    };
-    recognition.onerror = () => { setFeedback("I could not capture that attempt. Check microphone permission and try again."); setListening(false); };
-    recognition.onend = () => setListening(false);
-    try { recognition.start(); setListening(true); setFeedback("Listening… repeat the sentence naturally."); } catch { setListening(false); setFeedback("Could not start the microphone. Try again."); }
+      setFeedback("Microphone access failed. Check browser permission and try again.");
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
   }
-  const comparison = transcript ? compareWords(sentence, transcript) : null;
+
+  function stopRepeat() {
+    recognitionRef.current?.stop(); recognitionRef.current = null;
+    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    setListening(false);
+    setFeedback("Recording stopped. Reviewing your attempt…");
+  }
 
   return <section className="learning-feature-panel shadowing-panel" aria-labelledby="shadowing-heading">
-    <div className="learning-feature-heading"><div><p className="eyebrow">PRONUNCIATION DRILL</p><h2 id="shadowing-heading">Shadowing practice</h2><p>Listen to one line, repeat it aloud, and compare the words captured by speech recognition.</p></div><span className="feature-symbol" aria-hidden="true">◖♪</span></div>
-    <label className="feature-field">Practice sentence<select value={index} onChange={(event) => { setIndex(Number(event.target.value)); setTranscript(""); setFeedback(""); }}><option value={0} disabled={false}>Choose a sentence…</option>{lines.map((line, i) => <option key={line} value={i}>{line}</option>)}</select></label>
+    <div className="learning-feature-heading"><div><p className="eyebrow">PRONUNCIATION DRILL</p><h2 id="shadowing-heading">Shadowing practice</h2><p>Listen, repeat, then review word accuracy, speaking pace, pauses, pitch variation, and optional phoneme-level feedback.</p></div><span className="feature-symbol" aria-hidden="true">◖♪</span></div>
+    <label className="feature-field">Practice sentence<select value={index} onChange={(event) => { setIndex(Number(event.target.value)); setTranscript(""); setFeedback(""); setAcoustic(null); setPhonemeResult(null); }}><option value={0}>Choose a sentence…</option>{lines.map((line, i) => <option key={line} value={i}>{line}</option>)}</select></label>
     <blockquote className="shadowing-sentence">{sentence}</blockquote>
-    <div className="shadowing-controls"><label>Speaking speed <select value={rate} onChange={(event) => setRate(Number(event.target.value))}><option value={0.7}>Slow</option><option value={0.85}>Steady</option><option value={1}>Natural</option></select></label><button type="button" className="button button-outline" onClick={speakSentence}>▶ Listen</button><button type="button" className="button button-primary" onClick={startRepeat} disabled={listening}>{listening ? "Listening…" : "🎙 Repeat aloud"}</button><button type="button" className="text-link" onClick={() => { setIndex((index + 1) % lines.length); setTranscript(""); setFeedback(""); }}>Next line →</button></div>
-    {transcript && comparison && <div className="shadowing-result"><strong>Your attempt</strong><p>{transcript}</p><div className="word-feedback" aria-label={`Word match ${comparison.percent} percent`}>{comparison.target.map((word, i) => <span className={comparison.heard[i] === word ? "word-match" : "word-miss"} key={i}>{word}</span>)}</div><p>{feedback}</p><small>Word matching is a rough practice aid, not a phonetic or accent score. Cadence and intonation are not measured by browser recognition.</small></div>}
-    {!transcript && feedback && <p className="feature-feedback" role="status">{feedback}</p>}
-    {!supported && <p className="feature-note">This browser does not expose speech recognition. Listen and repeat still works where browser text-to-speech is available.</p>}
+    <div className="shadowing-controls"><label>Speaking speed <select value={rate} onChange={(event) => setRate(Number(event.target.value))}><option value={0.7}>Slow</option><option value={0.85}>Steady</option><option value={1}>Natural</option></select></label><button type="button" className="button button-outline" onClick={speakSentence}>▶ Listen</button>{!listening ? <button type="button" className="button button-primary" onClick={startRepeat}>🎙 Start recording</button> : <button type="button" className="button button-primary" onClick={stopRepeat}>Stop and assess</button>}<button type="button" className="text-link" onClick={() => { setIndex((index + 1) % lines.length); setTranscript(""); setFeedback(""); setAcoustic(null); setPhonemeResult(null); }}>Next line →</button></div>
+    {transcript && comparison && <div className="shadowing-result"><strong>Your transcript</strong><p>{transcript}</p><div className="word-feedback" aria-label={`Word match ${comparison.score} percent`}>{comparison.expectedWords.map((word, i) => <span className={comparison.missingWords.includes(word) ? "word-miss" : "word-match"} key={i}>{word}</span>)}</div><p>Word-order similarity: {comparison.score}%.</p>{comparison.missingWords.length > 0 && <p>Review these words: {comparison.missingWords.join(", ")}.</p>}<small>Transcript similarity is not an accent score; browser speech recognition can mishear correct speech.</small></div>}
+    {acoustic && <div className="shadowing-result"><strong>Rhythm and delivery</strong><div className="shadowing-metrics"><p><b>{acoustic.speechRateWpm}</b><span>estimated words/minute</span></p><p><b>{acoustic.pauseCount}</b><span>long pauses (≥180 ms)</span></p><p><b>{acoustic.pitchRangeHz === null ? "—" : `${acoustic.pitchRangeHz} Hz`}</b><span>estimated pitch range</span></p></div><p>{acoustic.intonation}</p><small>These are approximate acoustic coaching signals, not a validated prosody score. Pitch range is estimated from the recording.</small></div>}
+    {phonemeResult && <div className="shadowing-result"><strong>Sound-level score: {phonemeResult.score}%</strong>{phonemeResult.errors.length ? <ul>{phonemeResult.errors.slice(0, 8).map((item, i) => <li key={item.word + i}><b>{item.word}</b>: expected {item.expected || "target sound"}{item.actual ? `, heard ${item.actual}` : ""}{item.phones.length ? ` (sounds: ${item.phones.map((phone) => `${phone.expected}→${phone.heard ?? "not detected"}`).join(", ")})` : ""}</li>)}</ul> : <p>No sound-level differences were returned by the assessment service.</p>}</div>}
+    {feedback && <p className="feature-feedback" role="status">{feedback}</p>}
+    {phonemeMessage && <p className="feature-note" role="status">{phonemeMessage}</p>}
+    {!supported && <p className="feature-note">Browser speech recognition is unavailable. Audio recording and optional phoneme assessment may still work; otherwise, listen and repeat without transcript feedback.</p>}
+    {!recordingSupported && <p className="feature-note">Audio recording is not supported here. Browser speech recognition can still provide word feedback where available.</p>}
     <form className="shadowing-custom-line" onSubmit={(event) => { event.preventDefault(); const line = customLine.trim(); if (!line || line.length > 240) return; setLines((current) => [...current, line]); setIndex(lines.length); setCustomLine(""); setTranscript(""); setFeedback(""); }}><label className="feature-field">Practise your own sentence<input value={customLine} maxLength={240} onChange={(event) => setCustomLine(event.target.value)} placeholder="Type a sentence to practise" /></label><button type="submit" className="button button-outline" disabled={!customLine.trim()}>Add sentence</button></form>
   </section>;
 }
