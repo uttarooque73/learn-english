@@ -16,7 +16,16 @@ export function speakText(text: string, onEnd?: () => void, rateOverride?: numbe
   const savedVoice = preferences.speechVoiceURI
     ? voices.find((voice) => voice.voiceURI === preferences.speechVoiceURI)
     : undefined;
-  const voice = savedVoice
+  const preferredVoicePattern = preferences.speechVoiceGender === "female"
+    ? /female|samantha|victoria|karen|zira|jenny|aria|ava|susan|hazel|moira|tessa|fiona|allison|siri.*female/i
+    : preferences.speechVoiceGender === "male"
+      ? /male|alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron|siri.*male/i
+      : null;
+  const genderMatchedVoice = preferredVoicePattern
+    ? englishVoices.find((candidate) => preferredVoicePattern.test(candidate.name))
+    : undefined;
+  const voice = genderMatchedVoice
+    ?? (preferences.speechVoiceGender === "automatic" ? savedVoice : undefined)
     ?? englishVoices.find((candidate) => candidate.lang.toLowerCase() === "en-us")
     ?? englishVoices[0]
     ?? null;
@@ -24,7 +33,8 @@ export function speakText(text: string, onEnd?: () => void, rateOverride?: numbe
   utterance.voice = voice;
   utterance.lang = voice?.lang ?? "en-US";
   utterance.rate = rateOverride ?? preferences.speechRate;
-  utterance.pitch = 1.05;
+  // Pitch is a fallback cue when this device has no clearly named voice for the requested style.
+  utterance.pitch = preferences.speechVoiceGender === "female" ? (genderMatchedVoice ? 1.05 : 1.2) : preferences.speechVoiceGender === "male" ? (genderMatchedVoice ? 0.95 : 0.82) : 1.05;
   if (onEnd) {
     utterance.onend = onEnd;
     utterance.onerror = onEnd;
