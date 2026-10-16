@@ -16,18 +16,11 @@ export type PracticeSession = {
   learnerMessages: string[];
 };
 
-function createId() {\n  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"\n    ? crypto.randomUUID()\n    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;\n}\n\nconst VOCABULARY_KEY = "speakup:vocabulary:v1";
-const SESSIONS_KEY = "speakup:sessions:v1";
-
-function readList<T>(key: string): T[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const value: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
-    return Array.isArray(value) ? value as T[] : [];
-  } catch {
-    return [];
-  }
-}
+function createId() {
+  return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}}
 
 function writeList<T>(key: string, value: T[]) {
   if (typeof window !== "undefined") window.localStorage.setItem(key, JSON.stringify(value));
