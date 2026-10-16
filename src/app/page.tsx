@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { LearningInsights } from "@/components/learning-insights";
+import { DailyGoalCard } from "@/components/daily-goal-card";
 
 const topics = [
   { icon: "☕", title: "Everyday conversation", detail: "Feel more natural in daily chats", tone: "peach" },
@@ -27,6 +28,8 @@ export default function HomePage() {
           <div className="art-caption">YOUR VOICE, YOUR PACE</div>
         </div>
       </section>
+
+      <DailyGoalCard />
 
       <section className="section-block">
         <div className="section-heading"><div><p className="eyebrow">YOUR ROUTINE</p><h2>Your learning snapshot</h2></div><span className="section-note">Updates as you practice</span></div>
