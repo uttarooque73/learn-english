@@ -62,7 +62,7 @@ export function VocabularySelectionTool() {
     } else {
       let finalMeaning = meaning.trim();
       let finalExample = example.trim();
-      let category: "word" | "expression" | "collocation" | "phrasal verb" = /\\s/.test(selection.phrase) ? "expression" : "word";
+      let category: "word" | "expression" | "collocation" | "phrasal verb" = /\s/.test(selection.phrase) ? "expression" : "word";
       if (!finalMeaning || !finalExample) {
         setStatus("Generating an AI meaning for “" + selection.phrase + "”…");
         try {
