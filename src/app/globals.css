@@ -153,6 +153,23 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #9
 @media(max-width:520px){.session-history-controls{margin-left:0}.session-history-controls select{width:100%;flex-basis:100%}.session-history-controls .chat-reset{flex:1}}
 
 /* Phase 3: vocabulary notebook, spaced review and quiz */
+
+.vocabulary-add-form{display:grid;gap:14px;margin:0 0 22px;padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--surface,#fff)}
+.vocabulary-add-heading h3{margin:2px 0 5px;font-size:19px;color:var(--ink)}
+.vocabulary-add-heading p:not(.eyebrow){margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.vocabulary-add-form>label,.vocabulary-add-fields label{display:grid;gap:6px;color:var(--ink);font-size:12px;font-weight:700}
+.vocabulary-add-form label span{color:var(--muted);font-weight:400}
+.vocabulary-add-form input,.vocabulary-add-form textarea{width:100%;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface,#fff);color:var(--ink);font:inherit;font-weight:400}
+.vocabulary-add-form textarea{resize:vertical;line-height:1.5}
+.vocabulary-add-form input:focus,.vocabulary-add-form textarea:focus{outline:2px solid #91a686;outline-offset:1px}
+.vocabulary-add-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.vocabulary-add-actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap}
+.vocabulary-add-actions button:disabled{opacity:.55;cursor:not-allowed}
+.vocabulary-add-message{margin:0;font-size:12px}
+.vocabulary-add-message.error{color:#a12f2f}
+.vocabulary-add-message.success{color:var(--green-dark)}
+@media(max-width:700px){.vocabulary-add-form{padding:15px}.vocabulary-add-fields{grid-template-columns:1fr}.vocabulary-add-actions{justify-content:stretch}.vocabulary-add-actions button{flex:1}}
+
 .notebook-toolbar{display:flex;gap:10px;margin-bottom:14px}
 .notebook-search{display:flex;align-items:center;gap:9px;flex:1;min-width:0;padding:0 13px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#85877d}
 .notebook-search>span{font-size:20px}.notebook-search input{width:100%;min-height:42px;border:0;outline:0;background:transparent;color:var(--ink);font-size:12px}
