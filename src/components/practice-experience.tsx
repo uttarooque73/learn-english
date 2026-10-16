@@ -70,9 +70,12 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   }, [messages, isStreaming]);
 
   useEffect(() => {
-    const speech = window as SpeechWindow;
-    setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
+    const timer = window.setTimeout(() => {
+      const speech = window as SpeechWindow;
+      setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
+    }, 0);
     return () => {
+      window.clearTimeout(timer);
       recognitionRef.current?.stop();
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     };
