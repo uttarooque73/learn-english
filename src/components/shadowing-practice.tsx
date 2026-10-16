@@ -96,10 +96,13 @@ export function ShadowingPractice() {
   const transcriptRef = useRef("");
 
   useEffect(() => {
-    const w = window as SpeechWindow;
-    setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-    setRecordingSupported(Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder));
+    const timer = window.setTimeout(() => {
+      const w = window as SpeechWindow;
+      setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
+      setRecordingSupported(Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder));
+    }, 0);
     return () => {
+      window.clearTimeout(timer);
       recognitionRef.current?.stop();
       if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       streamRef.current?.getTracks().forEach((track) => track.stop());
