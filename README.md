@@ -85,6 +85,13 @@ The project uses **Next.js App Router + React + TypeScript** for a single full-s
 - [x] Preserve compatibility with older sessions that do not contain summary data.
 - [x] Add storage/component integration tests and Playwright coverage for summary restoration.
 
+### Phase 10 — Learning analytics and practice streaks
+- [x] Calculate current and longest consecutive practice-day streaks from saved session dates.
+- [x] Show daily activity for the last seven days, plus weekly and monthly session/time totals.
+- [x] Summarize saved vocabulary review counts, reviewed items, and mastered items.
+- [x] Surface repeated sentence corrections from saved session summaries without presenting them as a proficiency score.
+- [x] Add deterministic unit tests and browser coverage for analytics and streak calculations.
+
 **Current limitations:** Preferences and progress are stored in browser local storage on this device; they do not sync across browsers or devices. Daily practice time is estimated from saved conversation durations, not continuous microphone or background activity. Role-play quality depends on the configured local Ollama model. Difficulty adjusts prompt instructions; it is not a validated CEFR assessment. Voice input depends on browser support (for example, recent Chrome or Edge) and microphone permission. Voice playback prefers a clearer English voice when one is installed and slightly raises pitch, but the actual available voices are controlled by the operating system and browser. Pronunciation practice uses the browser's speech transcript and an ordered word-edit comparison; this gives more actionable transcript feedback but is still not an acoustic or phoneme-level pronunciation score. Conversation transcripts, vocabulary (including review status and next-review dates), and practice summaries use browser local storage, remain on this browser profile, and are not synced across devices. Older saved sessions that only contain learner messages remain restorable, but assistant replies cannot be reconstructed for those sessions.
 
 ## Getting started
@@ -281,12 +288,12 @@ Next.js Route Handlers (/api/*)
 
 ### 8. Progress Tracking
 - [x] Save conversation history with date, topic, duration, and transcript.
-- [ ] Track practice frequency, session count, and speaking time.
-- [ ] Track recurring grammar mistakes and improvement over time.
-- [ ] Track vocabulary learned and reviewed.
-- [ ] Show weekly and monthly progress summaries.
+- [x] Track practice frequency, session count, and speaking time from saved conversations.
+- [x] Surface repeated sentence corrections from session summaries (not a validated measure of grammar improvement).
+- [x] Track vocabulary saved, reviewed, total review attempts, and items marked mastered.
+- [x] Show last-seven-day activity and weekly/monthly session and time summaries.
 - [x] Set an optional daily practice goal and track today's saved conversation time.
-- [ ] Use transparent indicators rather than claiming a precise English-proficiency score without a validated assessment.
+- [x] Use transparent activity indicators rather than claiming a precise English-proficiency score without a validated assessment.
 
 ### 9. Personalization and Accessibility
 - [x] Configure English level, daily goal, and preferred topics.
