@@ -397,7 +397,7 @@ Next.js Route Handlers (/api/*)
 The application persists its app-owned browser data through `/api/persistence` to a local SQLite file. This includes saved practice sessions and summaries, vocabulary/review metadata, learning preferences, and custom learning scenarios/options. Existing browser data is migrated on the first successful connection; the browser copy is retained as a cache so the UI can read data synchronously while writes are mirrored to SQLite.
 
 1. The app creates its SQLite database file automatically on first use.
-2. Optionally set `SQLITE_DATABASE_PATH` to a writable path on persistent storage. The default is `./data/speakup.sqlite`. Set `=true` only when your provider requires that TLS mode.
+2. Optionally set `SQLITE_DATABASE_PATH` to a writable path on persistent storage. The default is `./data/speakup.sqlite`.
 3. Deploy the app. The app creates `app_user_data` on first use; the equivalent SQL migration is in `db/migrations/001_app_user_data.sql`.
 4. Existing browser data is uploaded for keys not yet present in the database. Database values take precedence when the same key already exists.
 
