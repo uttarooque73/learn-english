@@ -65,10 +65,10 @@ export async function POST(request: Request) {
   }
 
   const payload = body as Record<string, unknown>;
-  if (payload.mode !== undefined && payload.mode !== "conversation" && payload.mode !== "follow-up") {
+  if (payload.mode !== undefined && payload.mode !== "conversation" && payload.mode !== "follow-up" && payload.mode !== "simplify") {
     return NextResponse.json({ error: "Mode must be conversation or follow-up." }, { status: 400 });
   }
-  const mode = payload.mode === "follow-up" ? "follow-up" : "conversation";
+  const mode = payload.mode === "follow-up" || payload.mode === "simplify" ? payload.mode : "conversation";
   if (
     !Array.isArray(payload.messages) ||
     payload.messages.length === 0 ||
@@ -83,14 +83,14 @@ export async function POST(request: Request) {
 
   const messages = payload.messages as ChatMessage[];
   const lastMessage = messages[messages.length - 1];
-  const validFinalMessage = mode === "follow-up"
-    ? lastMessage?.role === "assistant" && messages.some((message) => message.role === "user")
-    : lastMessage?.role === "user";
+  const validFinalMessage = mode === "conversation"
+    ? lastMessage?.role === "user"
+    : lastMessage?.role === "assistant" && messages.some((message) => message.role === "user");
   if (!validFinalMessage) {
     return NextResponse.json(
-      { error: mode === "follow-up"
-        ? "A follow-up request needs a learner message followed by an assistant reply."
-        : "The last conversation message must be from the user." },
+      { error: mode === "conversation"
+        ? "The last conversation message must be from the user."
+        : "This request needs a learner message followed by an assistant reply." },
       { status: 400 },
     );
   }
@@ -109,7 +109,9 @@ export async function POST(request: Request) {
     : "Follow the selected role-play naturally without forcing unrelated topics.";
   const turnGuidance = mode === "follow-up"
     ? "This is a dedicated adaptive follow-up request. Ask exactly one open-ended question grounded in the learner's most recent answer and the conversation context. Match the selected English level, ask for one concrete detail if the answer was vague, and do not repeat a question already asked. Output only the question; do not add a preamble, correction, list, or explanation."
-    : "";
+    : mode === "simplify"
+      ? "This is a dedicated simpler-explanation request. Explain the most recent assistant reply again in simpler English at the selected learner level. Keep the original meaning, use short sentences and familiar words, and include at most one brief example if it helps. Do not add new facts, correct the learner, or ask a follow-up question. Output only the simpler explanation."
+      : "";
   const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
   const model = process.env.OLLAMA_MODEL || "llama3.1:8b";
   const controller = new AbortController();
@@ -141,6 +143,9 @@ export async function POST(request: Request) {
           ...(mode === "follow-up" ? [{
             role: "user" as const,
             content: "Ask me one adaptive follow-up question based on my latest answer. Do not answer for me.",
+          }] : mode === "simplify" ? [{
+            role: "user" as const,
+            content: "Explain the most recent assistant response in simpler English, without changing its meaning.",
           }] : []),
         ],
       }),

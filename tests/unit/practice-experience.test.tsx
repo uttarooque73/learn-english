@@ -78,6 +78,30 @@ describe("PracticeExperience", () => {
     )).toBe(true));
   });
 
+  it("asks for a simpler explanation and saves it in the current conversation", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response("A server provides resources to other computers.", { status: 200, headers: { "Content-Type": "text/plain" } }))
+      .mockResolvedValueOnce(new Response("A server is a computer that helps other computers.", { status: 200, headers: { "Content-Type": "text/plain" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<PracticeExperience prompts={prompts} />);
+    fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "What is a server?" } });
+    fireEvent.click(within(screen.getByLabelText("Your message").closest("form")!).getByRole("button", { name: /Send message/ }));
+    await waitFor(() => expect(screen.getByText("A server provides resources to other computers.")).toBeInTheDocument());
+
+    const simplifyButton = screen.getByRole("button", { name: "Explain more simply" });
+    await waitFor(() => expect(simplifyButton).toBeEnabled());
+    fireEvent.click(simplifyButton);
+    await waitFor(() => expect(screen.getByText("A server is a computer that helps other computers.")).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/chat", expect.objectContaining({
+      method: "POST",
+      body: expect.stringContaining('"mode":"simplify"'),
+    }));
+    await waitFor(() => expect(getSessions().some((session) =>
+      session.messages?.some((message) => message.content === "A server is a computer that helps other computers.")
+    )).toBe(true));
+  });
+
   it("shows a helpful message when the API reports an error", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
       Response.json({ error: "Cannot connect to Ollama." }, { status: 503 }),

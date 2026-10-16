@@ -70,6 +70,37 @@ describe("POST /api/chat", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("accepts a simpler-explanation request and keeps the learner level in the prompt", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response([
+      JSON.stringify({ message: { content: "A server is a computer that provides services to other computers." }, done: false }),
+      JSON.stringify({ done: true }),
+      "",
+    ].join("\n"), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "simplify",
+        scenario: "Explain a technical concept",
+        difficulty: "Beginner",
+        messages: [
+          { role: "user", content: "What is a server?" },
+          { role: "assistant", content: "A server provides resources and functionality to clients over a network." },
+        ],
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toContain("A server is a computer");
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(options.body)) as { messages: { role: string; content: string }[] };
+    expect(sent.messages[0]?.content).toContain("dedicated simpler-explanation request");
+    expect(sent.messages[0]?.content).toContain("Beginner");
+    expect(sent.messages[sent.messages.length - 1]).toMatchObject({ role: "user", content: expect.stringContaining("simpler English") });
+  });
+
   it("streams text from Ollama and forwards conversation context", async () => {
     const ollamaBody = [
       JSON.stringify({ message: { content: "Hello" }, done: false }),
