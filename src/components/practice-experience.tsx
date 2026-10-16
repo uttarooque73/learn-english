@@ -144,7 +144,6 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       }
     };
     const timer = window.setInterval(tick, 1000);
-    tick();
     return () => window.clearInterval(timer);
   }, [sessionDeadline]);
 
