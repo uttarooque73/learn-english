@@ -291,3 +291,11 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .daily-goal-track span{display:block;height:100%;border-radius:inherit;background:var(--green);transition:width .2s ease}
 .daily-goal-progress>p{margin:9px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
 @media(max-width:650px){.daily-goal-card{align-items:stretch;flex-direction:column;padding:19px;gap:18px}.daily-goal-progress{width:100%}}
+
+
+/* Phase 8: spaced-repetition vocabulary review */
+.notebook-mode-tabs .review-due-count{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:5px;padding:0 5px;border-radius:999px;background:#e9eee3;color:var(--green-dark);font-size:10px;font-weight:800}
+.spaced-review-card{min-height:250px}
+.review-history{color:var(--muted);font-size:12px;line-height:1.7}
+.spaced-review-card .vocab-study-actions{flex-wrap:wrap}
+.spaced-review-card .vocab-study-actions .button{flex:1 1 130px}
