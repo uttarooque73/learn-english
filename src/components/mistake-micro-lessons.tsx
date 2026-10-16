@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getSessions, type PracticeSession } from "@/lib/learning-storage";
 
 type Weakness = { original: string; improved: string; reason: string; count: number; scenario: string };
-type QuizQuestion = { prompt: string; answer: string; explanation: string };
+type QuizQuestion = { prompt: string; options: string[]; answer: string; explanation: string };
 
 function collectWeaknesses(sessions: PracticeSession[]): Weakness[] {
   const map = new Map<string, Weakness>();
@@ -24,27 +24,41 @@ function collectWeaknesses(sessions: PracticeSession[]): Weakness[] {
   }
   return [...map.values()].filter((item) => item.count >= 2).sort((a, b) => b.count - a.count).slice(0, 5);
 }
-function makeQuestions(weakness: Weakness): QuizQuestion[] {
-  return [
-    { prompt: `Choose the improved version: “${weakness.original}”`, answer: weakness.improved, explanation: weakness.reason || "This version is more natural and grammatically appropriate." },
-    { prompt: `Complete this correction: “${weakness.original}” → “${weakness.improved}”. Which phrase should you remember?`, answer: weakness.improved, explanation: "Read the improved sentence aloud and notice the word order and phrasing." },
-    { prompt: `In your next conversation, how should you express the idea “${weakness.original}” naturally?`, answer: weakness.improved, explanation: "Try using this pattern in a new sentence, not only repeating the example." },
-  ];
-}
 
 export function MistakeMicroLessons() {
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [active, setActive] = useState<Weakness | null>(null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [choice, setChoice] = useState("");
   const [revealed, setRevealed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   useEffect(() => { const timer = window.setTimeout(() => setSessions(getSessions()), 0); return () => window.clearTimeout(timer); }, []);
   const weaknesses = useMemo(() => collectWeaknesses(sessions), [sessions]);
-  const questions = active ? makeQuestions(active) : [];
   const question = questions[questionIndex];
-  const options = question ? [question.answer, active?.original ?? "", "I am not sure yet."].filter((value, index, all) => value && all.indexOf(value) === index).sort((a, b) => a === question.answer ? -1 : b === question.answer ? 1 : a.localeCompare(b)) : [];
+
+  async function startLesson(weakness: Weakness) {
+    setActive(weakness); setQuestions([]); setQuestionIndex(0); setChoice(""); setRevealed(false); setError(""); setLoading(true);
+    try {
+      const response = await fetch("/api/micro-lessons", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ original: weakness.original, improved: weakness.improved, reason: weakness.reason }),
+      });
+      const payload = await response.json() as { questions?: QuizQuestion[]; error?: string };
+      if (!response.ok || !Array.isArray(payload.questions) || payload.questions.length !== 3) throw new Error(payload.error || "Could not generate the three-question lesson.");
+      setQuestions(payload.questions);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not generate the lesson. Check that Ollama is running.");
+    } finally { setLoading(false); }
+  }
+
+  function leaveLesson() {
+    setActive(null); setQuestions([]); setQuestionIndex(0); setChoice(""); setRevealed(false); setError(""); setLoading(false);
+  }
+
   return <section className="learning-feature-panel micro-lessons-panel">
-    <div className="learning-feature-heading"><div><p className="eyebrow">LEARN FROM YOUR HISTORY</p><h2>Micro-lessons from recurring mistakes</h2><p>Repeated corrections in saved session summaries become short, targeted three-question reviews.</p></div><span className="feature-symbol" aria-hidden="true">✎</span></div>
-    {!weaknesses.length ? <div className="feature-empty"><strong>No recurring pattern yet</strong><p>Complete and save session summaries with corrections. A lesson appears when the same correction is recorded in at least two summaries.</p></div> : !active ? <div className="micro-lesson-list">{weaknesses.map((weakness) => <article key={weakness.original + weakness.improved} className="micro-lesson-item"><div><strong>{weakness.original} <span aria-hidden="true">→</span> {weakness.improved}</strong><p>{weakness.reason}</p><small>Seen in {weakness.count} session summaries · e.g. {weakness.scenario}</small></div><button type="button" className="button button-outline" onClick={() => { setActive(weakness); setQuestionIndex(0); setChoice(""); setRevealed(false); }}>Start 3-question lesson</button></article>)}</div> : <div className="micro-quiz"><div className="micro-quiz-top"><strong>Question {questionIndex + 1} of 3</strong><button className="text-link" type="button" onClick={() => { setActive(null); setRevealed(false); }}>All lessons</button></div><h3>{question.prompt}</h3><div className="micro-quiz-options">{options.map((option) => <button type="button" key={option} className={choice === option ? "micro-quiz-option selected" : "micro-quiz-option"} onClick={() => { if (!revealed) setChoice(option); }}>{option}</button>)}</div>{revealed && <p className={choice === question.answer ? "quiz-correct" : "quiz-review"} role="status"><strong>{choice === question.answer ? "Correct." : "Review this pattern."}</strong> {question.explanation}<br />Suggested answer: {question.answer}</p>}<div className="micro-quiz-actions">{!revealed ? <button className="button button-primary" type="button" disabled={!choice} onClick={() => setRevealed(true)}>Check answer</button> : <button className="button button-primary" type="button" onClick={() => { if (questionIndex === 2) { setActive(null); setRevealed(false); setSessions(getSessions()); } else { setQuestionIndex((index) => index + 1); setChoice(""); setRevealed(false); } }}>{questionIndex === 2 ? "Finish lesson" : "Next question"}</button>}</div></div>}
+    <div className="learning-feature-heading"><div><p className="eyebrow">LEARN FROM YOUR HISTORY</p><h2>Micro-lessons from recurring mistakes</h2><p>Repeated corrections from separate saved sessions are sent to your AI tutor to generate three different practice questions targeting that exact weakness.</p></div><span className="feature-symbol" aria-hidden="true">✎</span></div>
+    {!weaknesses.length ? <div className="feature-empty"><strong>No recurring pattern yet</strong><p>Complete and save session summaries with corrections. A lesson appears when the same original-to-improved correction is recorded in at least two separate session summaries.</p></div> : !active ? <div className="micro-lesson-list">{weaknesses.map((weakness) => <article key={weakness.original + weakness.improved} className="micro-lesson-item"><div><strong>{weakness.original} <span aria-hidden="true">→</span> {weakness.improved}</strong><p>{weakness.reason}</p><small>Seen in {weakness.count} session summaries · e.g. {weakness.scenario}</small></div><button type="button" className="button button-outline" disabled={loading} onClick={() => void startLesson(weakness)}>Generate AI lesson</button></article>)}</div> : <div className="micro-quiz"><div className="micro-quiz-top"><strong>{loading ? "Generating your lesson…" : question ? `Question ${questionIndex + 1} of 3` : "Targeted practice"}</strong><button className="text-link" type="button" onClick={leaveLesson}>All lessons</button></div>{loading && <p role="status">Your tutor is building varied examples around this recurring mistake…</p>}{error && <div><p className="feature-feedback" role="alert">{error}</p><button type="button" className="button button-outline" onClick={() => void startLesson(active)}>Try again</button></div>}{question && !loading && <><h3>{question.prompt}</h3><div className="micro-quiz-options">{question.options.map((option) => <button type="button" key={option} className={choice === option ? "micro-quiz-option selected" : "micro-quiz-option"} onClick={() => { if (!revealed) setChoice(option); }}>{option}</button>)}</div>{revealed && <p className={choice === question.answer ? "quiz-correct" : "quiz-review"} role="status"><strong>{choice === question.answer ? "Correct." : "Review this pattern."}</strong> {question.explanation}<br />Suggested answer: {question.answer}</p>}<div className="micro-quiz-actions">{!revealed ? <button className="button button-primary" type="button" disabled={!choice} onClick={() => setRevealed(true)}>Check answer</button> : <button className="button button-primary" type="button" onClick={() => { if (questionIndex === 2) { leaveLesson(); setSessions(getSessions()); } else { setQuestionIndex((index) => index + 1); setChoice(""); setRevealed(false); } }}>{questionIndex === 2 ? "Finish lesson" : "Next question"}</button>}</div></>}</div>}
   </section>;
 }
