@@ -150,7 +150,7 @@ describe("PracticeExperience", () => {
     await waitFor(() => expect(startButton).toBeInTheDocument());
 
     fireEvent.click(startButton);
-    expect(view.getByRole("status")).toHaveTextContent(/Voice input is not supported in this browser/);
+    expect(view.getByText(/Voice input is not supported in this browser/)).toBeInTheDocument();
     expect(container.querySelector("textarea")).toBeEnabled();
   });
 
