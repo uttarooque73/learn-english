@@ -15,9 +15,12 @@ export function LearningSettings() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const current = getLearningPreferences();
-    setPreferences(current);
-    applyAccessibilityPreferences(current);
+    const timer = window.setTimeout(() => {
+      const current = getLearningPreferences();
+      setPreferences(current);
+      applyAccessibilityPreferences(current);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   function update<K extends keyof LearningPreferences>(key: K, value: LearningPreferences[K]) {
