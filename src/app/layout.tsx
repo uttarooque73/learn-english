@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ClientReadyMarker } from "@/components/client-ready-marker";
+import { PreferenceInitializer } from "@/components/preference-initializer";
 
 export const metadata: Metadata = {
   title: {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body><ClientReadyMarker />{children}</body>
+      <body><PreferenceInitializer />{children}</body>
     </html>
   );
 }
