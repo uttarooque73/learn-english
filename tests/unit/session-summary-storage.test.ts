@@ -68,3 +68,17 @@ describe("practice data deletion", () => {
     expect(localStorage.getItem("speakup:preferences:v1")).not.toBeNull();
   });
 });
+
+
+describe("session goals and time limits", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("persists the chosen goal and optional time limit with the saved conversation", () => {
+    upsertSession({
+      id: "timed-session", scenario: "At work", goal: "Improve grammar", durationLimitMinutes: 5,
+      startedAt: "2026-10-17T10:00:00.000Z", updatedAt: "2026-10-17T10:01:00.000Z",
+      durationSeconds: 60, messageCount: 1, learnerMessages: ["I work yesterday."],
+    });
+    expect(getSessions()[0]).toMatchObject({ goal: "Improve grammar", durationLimitMinutes: 5 });
+  });
+});

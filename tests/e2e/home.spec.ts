@@ -365,3 +365,24 @@ test("phoneme assessment records audio and displays sound-level feedback from th
   await expect(feedback.getByText("Sounds to practice")).toBeVisible();
   await expect(feedback.getByText("went", { exact: true })).toBeVisible();
 });
+
+
+test("session goal guides the tutor and the optional timer ends a timed session", async ({ page }) => {
+  let chatBody: Record<string, unknown> | undefined;
+  await page.route("**/api/chat", async (route) => {
+    chatBody = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({ status: 200, contentType: "text/plain", body: "Let us practise a sentence together." });
+  });
+  await page.goto("/practice");
+  await page.getByLabel("Session goal").selectOption("Improve grammar");
+  await page.getByLabel("Session duration").selectOption("5");
+  await page.getByLabel("Your message").fill("I work yesterday.");
+  await page.getByRole("button", { name: /Send message/ }).click();
+  await expect(page.getByText("Let us practise a sentence together.")).toBeVisible();
+  await expect.poll(() => chatBody).toMatchObject({ sessionGoal: "Improve grammar", sessionDurationMinutes: 5 });
+  await expect(page.getByRole("status").filter({ hasText: "Time left 05:00" })).toBeVisible();
+  await page.evaluate(() => { const start = Date.now(); Date.now = () => start + 6 * 60 * 1000; });
+  await expect(page.getByRole("status").filter({ hasText: "Session time is up" })).toBeVisible({ timeout: 4000 });
+  await expect(page.getByLabel("Your message")).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Time is up/ })).toBeDisabled();
+});

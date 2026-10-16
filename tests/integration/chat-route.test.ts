@@ -70,6 +70,23 @@ describe("POST /api/chat", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("guides the tutor using a validated session goal and time limit", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response([
+      JSON.stringify({ message: { content: "Let us practise one sentence." }, done: false }),
+      JSON.stringify({ done: true }),
+      "",
+    ].join("\n"), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scenario: "At work", sessionGoal: "Improve grammar", sessionDurationMinutes: 5, messages: [{ role: "user", content: "I work yesterday." }] }),
+    }));
+    expect(response.status).toBe(200);
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(options.body)) as { messages: { role: string; content: string }[] };
+    expect(sent.messages[0]?.content).toContain("Session goal: Improve grammar");
+    expect(sent.messages[0]?.content).toContain("5-minute practice session");
+  });
   it("accepts a simpler-explanation request and keeps the learner level in the prompt", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response([
       JSON.stringify({ message: { content: "A server is a computer that provides services to other computers." }, done: false }),
