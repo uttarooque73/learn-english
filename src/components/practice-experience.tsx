@@ -5,6 +5,7 @@ import { getSessions, removeSession, saveVocabulary, upsertSession, type Practic
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
 import { getLearningScenarios } from "@/lib/learning-scenarios";
+import { speakText } from "@/lib/speech-playback";
 
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
 const SESSION_GOALS = ["Speak more confidently", "Improve grammar", "Expand vocabulary", "Practice workplace English", "Prepare for an interview", "Improve fluency"] as const;
@@ -164,27 +165,12 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   }
 
   function speak(text: string, onEnd?: () => void) {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    const started = speakText(text, onEnd);
+    if (!started) {
       setVoiceError("Text-to-speech is not supported in this browser.");
       onEnd?.();
       return;
     }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = learningPreferences?.speechRate ?? 1;
-    utterance.pitch = 1.15;
-    const voices = window.speechSynthesis.getVoices();
-    const englishVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith("en"));
-    const preferredVoice = englishVoices.find((voice) => voice.voiceURI === learningPreferences?.speechVoiceURI)
-      ?? englishVoices.find((voice) => /samantha|ava|jenny|aria|female|google us english/i.test(voice.name))
-      ?? englishVoices.find((voice) => /natural|enhanced|premium/i.test(voice.name));
-    if (preferredVoice) utterance.voice = preferredVoice;
-    if (onEnd) {
-      utterance.onend = onEnd;
-      utterance.onerror = onEnd;
-    }
-    window.speechSynthesis.speak(utterance);
     setVoiceError("");
   }
 
