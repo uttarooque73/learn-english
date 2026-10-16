@@ -29,6 +29,8 @@ jobs:
         run: npm install
       - name: Lint
         run: npm run lint
+      - name: Shell script syntax
+        run: bash -n scripts/update-and-run.sh
       - name: Type-check
         run: npm run typecheck
       - name: Unit and integration tests with coverage
