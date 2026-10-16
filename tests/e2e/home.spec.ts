@@ -392,6 +392,7 @@ test("selected text can be saved to vocabulary from different app pages", async 
   await page.addInitScript(() => localStorage.setItem("speakup:vocabulary:v1", "[]"));
   for (const route of ["/vocabulary", "/settings"]) {
     await page.goto(route);
+    await page.waitForFunction(() => document.documentElement.dataset.vocabularySelectionReady === "true");
     await page.evaluate(() => {
       const heading = document.querySelector("h1");
       if (!heading) throw new Error("Expected page heading");
