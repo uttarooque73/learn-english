@@ -73,7 +73,14 @@ export function LearningPlan() {
     writePersistedValue(PLAN_KEY, JSON.stringify({ target, date: localDateKey(), completed }));
   }, [ready, target, completed, error]);
 
-  const dueWords = useMemo(() => words.filter(word => !word.nextReviewAt || Date.parse(word.nextReviewAt) <= reviewTimestamp).slice(0, 8), [words, reviewTimestamp]);
+  const dueWords = useMemo(() => words
+    .filter(word => !word.nextReviewAt || !Number.isFinite(Date.parse(word.nextReviewAt)) || Date.parse(word.nextReviewAt) <= reviewTimestamp)
+    .sort((a, b) => {
+      const aDue = a.nextReviewAt ? Date.parse(a.nextReviewAt) : Number.NEGATIVE_INFINITY;
+      const bDue = b.nextReviewAt ? Date.parse(b.nextReviewAt) : Number.NEGATIVE_INFINITY;
+      return (Number.isFinite(aDue) ? aDue : Number.NEGATIVE_INFINITY) - (Number.isFinite(bDue) ? bDue : Number.NEGATIVE_INFINITY);
+    })
+    .slice(0, 8), [words, reviewTimestamp]);
   const analytics = useMemo(() => getLearningAnalytics(sessions, words), [sessions, words]);
   const plannedActivities = useMemo(() => ACTIVITIES.reduce((plan, activity) => {
     const minutes = plan.minutes + activity.minutes;
