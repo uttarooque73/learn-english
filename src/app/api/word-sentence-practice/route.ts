@@ -19,7 +19,7 @@ export async function POST(request:NextRequest){
  try{body=await request.json()}catch{return respond({error:"Request body must be valid JSON."},request,owner,400)}
  if(!isRecord(body)||(body.kind!=="word"&&body.kind!=="sentence")||typeof body.exerciseId!=="string"||!body.exerciseId.trim()||body.exerciseId.length>160||typeof body.topic!=="string"||!body.topic.trim()||body.topic.length>100||typeof body.prompt!=="string"||!body.prompt.trim()||body.prompt.length>500||typeof body.targetAnswer!=="string"||!body.targetAnswer.trim()||body.targetAnswer.length>1000||typeof body.answer!=="string"||!body.answer.trim()||body.answer.length>1500||typeof body.difficulty!=="string"||!["beginner","intermediate","advanced"].includes(body.difficulty))return respond({error:"Provide a valid exercise, level, and answer under 1,500 characters."},request,owner,400);
  try{
-  ensurePersistenceSchema();const db=getDatabase(),answerHash=createHash("sha256").update(String(body.answer).trim()).digest("hex"),key="word-sentence-practice:"+String(body.exerciseId)+":"+answerHash;
+  const answerText=body.answer as string;ensurePersistenceSchema();const db=getDatabase(),answerHash=createHash("sha256").update(answerText.trim()).digest("hex"),key="word-sentence-practice:"+String(body.exerciseId)+":"+answerHash;
   const prior=db.prepare("SELECT result_json FROM practice_attempts WHERE owner_id=? AND idempotency_key=?").get(owner,key) as {result_json:string}|undefined;
   if(prior){try{const value=JSON.parse(prior.result_json) as Feedback;if(isFeedback(value))return respond({feedback:value,duplicate:true},request,owner)}catch{/* malformed record is re-evaluated */}}
   const prompt=[
@@ -29,12 +29,12 @@ export async function POST(request:NextRequest){
    "Each correction has original, improved, reason. Do not invent errors. Accept valid alternatives instead of requiring verbatim matching.",
    "For words, evaluate the meaning and use. For sentences, preserve meaning while improving grammar, naturalness, punctuation, and register. Include one actionable next step.",
    "Exercise type: "+body.kind,"Topic: "+body.topic,"Learner level: "+body.difficulty,
-   "Exercise prompt: "+body.prompt,"Reference answer (not the only valid answer): "+body.targetAnswer,"Learner answer: "+body.answer.trim()
+   "Exercise prompt: "+body.prompt,"Reference answer (not the only valid answer): "+body.targetAnswer,"Learner answer: "+answerText.trim()
   ].join("\n");
-  const f=await createOllamaProvider().generateJson(prompt,isFeedback),now=new Date().toISOString(),attemptId=randomUUID(),skill=body.kind==="word"?"vocabulary":"grammar",confidence=Math.min(f.confidence,.6);
+  const f=await createOllamaProvider().generateJson(prompt,isFeedback),now=new Date().toISOString(),attemptId:string=randomUUID(),skill=body.kind==="word"?"vocabulary":"grammar",confidence=Math.min(f.confidence,.6);
   const result={...f,confidence};
   const savedId=db.transaction(()=>{
-   const inserted=db.prepare("INSERT OR IGNORE INTO practice_attempts (id,owner_id,activity_type,activity_ref,response_json,result_json,duration_seconds,idempotency_key,submitted_at,completed_at) VALUES (?,?,?,?,?,?,0,?,?,?)").run(attemptId,owner,skill,String(body.exerciseId).slice(0,160),JSON.stringify({text:body.answer.trim(),prompt:body.prompt}),JSON.stringify(result),key,now,now);
+   const inserted=db.prepare("INSERT OR IGNORE INTO practice_attempts (id,owner_id,activity_type,activity_ref,response_json,result_json,duration_seconds,idempotency_key,submitted_at,completed_at) VALUES (?,?,?,?,?,?,0,?,?,?)").run(attemptId,owner,skill,String(body.exerciseId).slice(0,160),JSON.stringify({text:answerText.trim(),prompt:body.prompt}),JSON.stringify(result),key,now,now);
    let canonicalId=attemptId;
    if(!inserted.changes){const row=db.prepare("SELECT id FROM practice_attempts WHERE owner_id=? AND idempotency_key=?").get(owner,key) as {id:string}|undefined;canonicalId=row?.id??attemptId}
    if(inserted.changes){
@@ -45,7 +45,7 @@ export async function POST(request:NextRequest){
      else db.prepare("INSERT INTO learning_mistakes (id,owner_id,category,normalized_key,evidence_json,first_seen_at,last_seen_at) VALUES (?,?,?,?,?,?,?)").run(randomUUID(),owner,skill,normalized,JSON.stringify([attemptId]),now,now)
     }
    }
-   db.prepare("INSERT OR IGNORE INTO word_sentence_practice_attempts (id,owner_id,attempt_id,exercise_id,exercise_kind,topic,prompt,response_text,score,feedback_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").run(randomUUID(),owner,canonicalId,String(body.exerciseId).slice(0,160),body.kind,String(body.topic).slice(0,100),String(body.prompt).slice(0,500),String(body.answer).trim().slice(0,1500),f.score,JSON.stringify(result),now);
+   db.prepare("INSERT OR IGNORE INTO word_sentence_practice_attempts (id,owner_id,attempt_id,exercise_id,exercise_kind,topic,prompt,response_text,score,feedback_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").run(randomUUID(),owner,canonicalId,String(body.exerciseId).slice(0,160),body.kind,String(body.topic).slice(0,100),String(body.prompt).slice(0,500),answerText.trim().slice(0,1500),f.score,JSON.stringify(result),now);
    return canonicalId;
   })();
   return respond({feedback:result,attemptId:savedId},request,owner,201)
