@@ -15,7 +15,13 @@ type PracticeLine = {
   extraWords: string[];
   status: "pending" | "listening" | "complete";
 };
-type SavedParagraph = { id: string; title: string; text: string; level: Level; createdAt: string };
+type ParagraphFeedback = {
+  overallSummary: string;
+  corrections: { originalSentence: string; correctedSentence: string; naturalAlternative: string | null; category: string; explanation: string }[];
+  vocabularySuggestions: { original: string; suggested: string; reason: string }[];
+  practiceSuggestions: string[];
+};
+type SavedParagraph = { id: string; title: string; text: string; level: Level; createdAt: string; feedback?: ParagraphFeedback | null };
 type Attempt = { id: string; paragraphId: string; target: string; transcript: string; score: number | null; createdAt: string; missingWords: string[]; extraWords: string[] };
 type BrowserRecognition = {
   lang: string; interimResults: boolean; continuous: boolean;
@@ -55,6 +61,8 @@ export function AiAndUsPractice() {
   const [autoPlay, setAutoPlay] = useState(true);
   const [rate, setRate] = useState(0.85);
   const [paragraphSaving, setParagraphSaving] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [writingFeedback, setWritingFeedback] = useState<ParagraphFeedback | null>(null);
   const [generatingDiscussion, setGeneratingDiscussion] = useState(false);
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const listeningRef = useRef(false);
@@ -231,12 +239,13 @@ export function AiAndUsPractice() {
     try {
       const response = await fetch("/api/ai-and-us", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "paragraph", title: paragraphTitle, text: paragraph, level }),
+        body: JSON.stringify({ kind: "paragraph", id: activeParagraphId || undefined, title: paragraphTitle, text: paragraph, level }),
       });
       const data = await response.json() as { paragraph?: SavedParagraph; error?: string };
       if (!response.ok || !data.paragraph) throw new Error(data.error || "Could not save paragraph.");
       setParagraphs((previous) => [data.paragraph!, ...previous.filter((item) => item.id !== data.paragraph!.id)].slice(0, 100));
       setActiveParagraphId(data.paragraph.id);
+      setWritingFeedback(data.paragraph.feedback ?? null);
       setMessage("Paragraph saved to your learning history.");
       return data.paragraph;
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save paragraph."); return null; }
@@ -250,6 +259,28 @@ export function AiAndUsPractice() {
     setLineIndex(nextIndex);
     setStatus("Next sentence");
     if (autoPlay) window.setTimeout(() => speak(lines[nextIndex].text), 100);
+  };
+
+  const analyzeParagraphWriting = async () => {
+    setFeedbackLoading(true);
+    try {
+      const saved = await saveParagraph();
+      if (!saved) return;
+      const response = await fetch("/api/ai-and-us", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "feedback", paragraphId: saved.id }),
+      });
+      const data = await response.json() as { feedback?: ParagraphFeedback; error?: string };
+      if (!response.ok || !data.feedback) throw new Error(data.error || "Could not generate writing feedback.");
+      setWritingFeedback(data.feedback);
+      setParagraphs((previous) => previous.map((item) => item.id === saved.id ? { ...item, feedback: data.feedback } : item));
+      setMessage("AI writing feedback has been saved with this paragraph.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not generate writing feedback. Try again.");
+    } finally {
+      setFeedbackLoading(false);
+    }
   };
 
   const startParagraphPractice = async () => {
@@ -280,6 +311,7 @@ export function AiAndUsPractice() {
     setParagraph(saved.text);
     setLevel(saved.level);
     setActiveParagraphId(saved.id);
+    setWritingFeedback(saved.feedback ?? null);
     setLines([]); setLineIndex(0);
     setMessage(`Loaded "${saved.title}". You can practice it again or edit the text.`);
   };
@@ -326,10 +358,10 @@ export function AiAndUsPractice() {
       </section> : <section className="aius-panel">
         <div className="aius-section-heading"><div><span className="eyebrow">YOUR OWN TEXT</span><h3>Paragraph Practice</h3><p>Paste any paragraph, save it, and practise reading it sentence by sentence.</p></div><span className="aius-status">{status}</span></div>
         <div className="aius-editor">
-          <label>Paragraph title<input value={paragraphTitle} onChange={(event) => { setParagraphTitle(event.target.value); setActiveParagraphId(""); }} maxLength={120} /></label>
-          <label>English level<select value={level} onChange={(event) => setLevel(event.target.value as Level)}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
-          <label>Paragraph<textarea value={paragraph} onChange={(event) => { setParagraph(event.target.value); setActiveParagraphId(""); }} rows={7} maxLength={12000} placeholder="Paste or write a paragraph here…" /></label>
-          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); }}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
+          <label>Paragraph title<input value={paragraphTitle} onChange={(event) => { setParagraphTitle(event.target.value); setWritingFeedback(null); }} maxLength={120} /></label>
+          <label>English level<select value={level} onChange={(event) => { setLevel(event.target.value as Level); setWritingFeedback(null); }}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
+          <label>Paragraph<textarea value={paragraph} onChange={(event) => { setParagraph(event.target.value); setWritingFeedback(null); }} rows={7} maxLength={12000} placeholder="Paste or write a paragraph here…" /></label>
+          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); setWritingFeedback(null); }}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
         </div>
         {paragraphs.length > 0 && <div className="aius-history"><h4>Saved paragraphs</h4>{paragraphs.map((saved) => <button key={saved.id} className={activeParagraphId === saved.id ? "aius-history-item selected" : "aius-history-item"} onClick={() => loadParagraph(saved)}><span><strong>{saved.title}</strong><small>{saved.level} · {splitSentences(saved.text).length} sentences</small></span><span>Open →</span></button>)}</div>}
         {activeAttempts.length > 0 && <div className="aius-history"><h4>Reading attempts ({activeAttempts.length})</h4>{activeAttempts.map((attempt) => <article className="aius-attempt" key={attempt.id}><div><strong>{attempt.target}</strong><small>{new Date(attempt.createdAt).toLocaleString()}</small></div><span>{attempt.score === null ? "—" : `${attempt.score}% match`}</span><button className="text-link" onClick={() => retrySavedFeedback(attempt)}>Review</button></article>)}</div>}
