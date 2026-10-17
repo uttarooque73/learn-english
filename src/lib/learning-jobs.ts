@@ -311,12 +311,21 @@ export function enqueueDailyPlansForEligibleLearners(): { eligible: number; enqu
       if (Array.isArray(parsed)) goals = parsed.filter((goal): goal is string => typeof goal === "string" && !!goal.trim()).slice(0, 10);
     } catch { /* A malformed saved goal falls back to a safe default. */ }
 
-    const job = enqueueLearningJob(profile.owner_id, "generate_daily_plan", {
+    const idempotencyKey = `daily-plan:${localDate}`;
+    const existingJob = database.prepare(`
+      SELECT id FROM learning_jobs
+      WHERE owner_id = ? AND job_type = 'generate_daily_plan' AND idempotency_key = ?
+    `).get(profile.owner_id, idempotencyKey);
+    if (existingJob) {
+      skipped += 1;
+      continue;
+    }
+    enqueueLearningJob(profile.owner_id, "generate_daily_plan", {
       localDate,
       dailyTargetMinutes: profile.daily_target_minutes,
       goal: goals[0] ?? "Improve everyday English communication",
-    }, { idempotencyKey: `daily-plan:${localDate}`, priority: 10, maxAttempts: 4 });
-    if (job.status === "queued" || job.status === "running" || job.status === "completed") enqueued += 1;
+    }, { idempotencyKey, priority: 10, maxAttempts: 4 });
+    enqueued += 1;
   }
   return { eligible: profiles.length, enqueued, skipped };
 }
