@@ -552,10 +552,10 @@ Feature branch: `feat/ai-and-us-paragraph-practice`
 
 ### Scope
 - Add a dedicated `/ai-and-us` page with **AI and Us Discussion** and **Paragraph Practice** tabs.
-- Discussion presents topic-based, level-appropriate sentences in sequence, supports browser text-to-speech playback and reading aloud, and compares the recognized transcript against target text.
+- Discussion generates topic- and level-appropriate reading scripts through the existing Ollama-backed `/api/chat` service, supports browser text-to-speech playback and reading aloud, compares transcripts against target text, and stores generated scripts and completed attempts in learner history.
 - Paragraph practice supports editing and saving learner-owned paragraphs, listening to the complete paragraph or sentence-level playback, repeated sentence reading, transcript matching, and saved attempt history.
 - Reuse the existing `speakText` utility and `assessTranscript` comparator. Transcript similarity is explicitly not described as definitive phoneme-level pronunciation scoring.
-- Persist paragraphs and reading attempts in SQLite, with owner-scoped reads/writes, length/level validation, and new additive migration `010_ai_and_us_paragraph_practice.sql`.
+- Persist paragraphs, AI writing feedback, and reading attempts in SQLite, with owner-scoped reads/writes, length/level validation, additive migration `010_ai_and_us_paragraph_practice.sql`, and feedback column migration `011_aius_paragraph_feedback.sql`.
 - Add the page to primary app navigation and follow the existing responsive application styling.
 
 ### Initial implementation status
@@ -564,11 +564,12 @@ Feature branch: `feat/ai-and-us-paragraph-practice`
 - [x] Owner-scoped paragraph and reading-attempt API added.
 - [x] Additive SQL migration added.
 - [x] Navigation and styles added.
-- [x] Added API/unit tests for owner-scoped paragraph/attempt persistence, migration registration, AI reading-discussion output contract, and Playwright coverage for the two tabs.
+- [x] Added API/unit tests for owner-scoped paragraph/attempt persistence, persisted AI writing feedback, migration registration, and the AI reading-discussion output contract.
+- [x] Added Playwright coverage for the two tabs, generated discussion flow, and writing-feedback display.
 - [ ] CI validation on the latest branch commit.
 - [ ] Final code review and PR readiness.
 
 ### Known initial limits to resolve before marking complete
 - Browser speech recognition availability varies by browser; offer a clear error/fallback and avoid overstating pronunciation precision.
-- Discussion text is generated through a dedicated `reading-discussion` mode on the existing Ollama-backed `/api/chat` endpoint; it is not a continuous voice-to-voice conversation. The learner reads the generated sentences aloud and reviews transcript similarity.
-- Validate state handling, transcript finalization, and all API/migration paths in tests before merge.
+- Discussion text is generated through a dedicated `reading-discussion` mode on the existing Ollama-backed `/api/chat` endpoint; it is a guided read-aloud experience, not a continuous voice-to-voice conversation. The learner reads the generated sentences aloud and reviews transcript similarity.
+- Validate state handling, transcript finalization, and all API/migration paths in CI before merge.
