@@ -178,7 +178,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       incorrectUtterances: feedback.length - correctCount,
       frequentErrors: [...categoryCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([category, count]) => ({ category, count })),
       recommendations: [...new Set(feedback.filter((item) => !item.isCorrect).map((item) => item.explanation))].slice(0, 5),
-      usefulExpressions: [],
+      strengths: [...new Set(feedback.filter((item) => item.isCorrect).map((item) => item.originalSentence))].slice(0, 5),
+      usefulExpressions: [...new Set(feedback.map((item) => item.naturalSentence || (item.isCorrect ? "" : item.correctedSentence)).filter((value) => value.trim().length > 0))].slice(0, 5),
     };
 
     // Only complete evaluations update learning evidence and skill estimates.
