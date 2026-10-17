@@ -74,14 +74,12 @@ export function LearningPlan() {
 
   const dueWords = useMemo(() => words.filter(word => !word.nextReviewAt || Date.parse(word.nextReviewAt) <= reviewTimestamp).slice(0, 8), [words, reviewTimestamp]);
   const analytics = useMemo(() => getLearningAnalytics(sessions, words), [sessions, words]);
-  const plannedActivities = useMemo(() => {
-    let minutes = 0;
-    return ACTIVITIES.filter(activity => {
-      if (minutes + activity.minutes > target) return false;
-      minutes += activity.minutes;
-      return true;
-    });
-  }, [target]);
+  const plannedActivities = useMemo(() => ACTIVITIES.reduce((plan, activity) => {
+    const minutes = plan.minutes + activity.minutes;
+    return minutes > target
+      ? plan
+      : { minutes, activities: [...plan.activities, activity] };
+  }, { minutes: 0, activities: [] as typeof ACTIVITIES[number][] }).activities, [target]);
   const plannedMinutes = plannedActivities.reduce((sum, activity) => sum + activity.minutes, 0);
   const completedCount = plannedActivities.filter(activity => completed.includes(activity.title)).length;
   const toggleActivity = (title: string) => setCompleted(current => current.includes(title) ? current.filter(item => item !== title) : [...current, title]);
