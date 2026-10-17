@@ -68,7 +68,6 @@ export function CustomScenarioBuilder() {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
   const [voiceError, setVoiceError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,8 +77,6 @@ export function CustomScenarioBuilder() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    const speech = window as SpeechWindow;
-    setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
     return () => {
       recognitionRef.current?.stop();
       recognitionRef.current = null;
@@ -312,7 +309,7 @@ export function CustomScenarioBuilder() {
             <label htmlFor="scenario-reply">Your reply</label>
             <textarea id="scenario-reply" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={4000} rows={3} placeholder="Type your reply or use the microphone to speak…" disabled={loading} />
             {voiceError && <p className={styles.voiceError} role="status">{voiceError}</p>}
-            <div className={styles.replyActions}><span>{listening ? "Listening… speak naturally, then stop the microphone." : "Stay in character. Ask for help if you get stuck."}</span><div className={styles.replyButtons}><button type="button" className={listening ? styles.micButtonActive : styles.micButton} onClick={toggleSpeechInput} disabled={loading} aria-label={listening ? "Stop voice input" : "Speak your reply"} aria-pressed={listening} title={speechSupported ? (listening ? "Stop voice input" : "Speak your reply") : "Voice input support depends on your browser"}>{listening ? "■ Stop" : "🎙 Speak"}</button><button type="submit" disabled={loading || !draft.trim()}>{loading ? "Replying…" : "Send reply ↗"}</button></div></div>
+            <div className={styles.replyActions}><span>{listening ? "Listening… speak naturally, then stop the microphone." : "Stay in character. Ask for help if you get stuck."}</span><div className={styles.replyButtons}><button type="button" className={listening ? styles.micButtonActive : styles.micButton} onClick={toggleSpeechInput} disabled={loading} aria-label={listening ? "Stop voice input" : "Speak your reply"} aria-pressed={listening} title={listening ? "Stop voice input" : "Speak your reply"}>{listening ? "■ Stop" : "🎙 Speak"}</button><button type="submit" disabled={loading || !draft.trim()}>{loading ? "Replying…" : "Send reply ↗"}</button></div></div>
           </form>
         </section>
       )}
