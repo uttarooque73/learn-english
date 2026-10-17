@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getSessions, type PracticeSession } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 type Weakness = { original: string; improved: string; reason: string; count: number; scenario: string };
 type QuizQuestion = { prompt: string; options: string[]; answer: string; explanation: string };
@@ -34,7 +35,15 @@ export function MistakeMicroLessons() {
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => { const timer = window.setTimeout(() => setSessions(getSessions()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => {
+    let active = true;
+    void initializeDatabasePersistence().then(() => {
+      if (active) setSessions(getSessions());
+    }).catch(() => {
+      if (active) setError("Could not load saved practice history. Refresh the page to retry.");
+    });
+    return () => { active = false; };
+  }, []);
   const weaknesses = useMemo(() => collectWeaknesses(sessions), [sessions]);
   const question = questions[questionIndex];
 
