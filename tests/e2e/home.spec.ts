@@ -204,6 +204,29 @@ test("progress page shows streaks, weekly activity, vocabulary review stats, and
 });
 
 
+
+test("shadowing supports blind practice and persists custom sentences in the database", async ({ page }) => {
+  await page.goto("/shadowing");
+  await expect(page.getByRole("heading", { name: "Shadowing practice" })).toBeVisible();
+
+  const blindMode = page.getByRole("button", { name: "◉ Blind mode", exact: true });
+  await blindMode.click();
+  await expect(page.getByRole("button", { name: "◉ Blind mode on" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".shadowing-sentence")).toContainText("Listen first, repeat from memory");
+  await page.getByRole("button", { name: "Reveal target" }).click();
+  await expect(page.locator(".shadowing-sentence")).toContainText("Could you give me a moment to think about that?");
+  await expect(page.getByRole("button", { name: "Hide target" })).toBeVisible();
+
+  const customSentence = "I am practising English every single day.";
+  await page.getByLabel("Add a word or sentence to practise").fill(customSentence);
+  await page.getByRole("button", { name: "Add to practice list" }).click();
+  await expect(page.getByRole("status")).toContainText("Custom sentence saved to the database.");
+  await expect(page.getByLabel("Practice sentence or word")).toContainText(customSentence);
+
+  await page.reload();
+  await expect(page.getByLabel("Practice sentence or word")).toContainText(customSentence);
+});
+
 test("mobile navigation and practice chat work without horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.route("**/api/chat", async (route) => {
