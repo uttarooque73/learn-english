@@ -361,8 +361,24 @@ export function AiAndUsPractice() {
           <label>Paragraph title<input value={paragraphTitle} onChange={(event) => { setParagraphTitle(event.target.value); setWritingFeedback(null); }} maxLength={120} /></label>
           <label>English level<select value={level} onChange={(event) => { setLevel(event.target.value as Level); setWritingFeedback(null); }}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
           <label>Paragraph<textarea value={paragraph} onChange={(event) => { setParagraph(event.target.value); setWritingFeedback(null); }} rows={7} maxLength={12000} placeholder="Paste or write a paragraph here…" /></label>
-          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); setWritingFeedback(null); }}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
+          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); setWritingFeedback(null); }}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-light" disabled={feedbackLoading || paragraphSaving} onClick={() => void analyzeParagraphWriting()}>{feedbackLoading ? "Analyzing…" : "Get writing feedback"}</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
         </div>
+        {writingFeedback && <section className="aius-writing-feedback">
+          <div className="aius-section-heading"><div><span className="eyebrow">AI WRITING COACH</span><h3>Paragraph feedback</h3></div></div>
+          <p className="aius-feedback-summary">{writingFeedback.overallSummary}</p>
+          <h4>Sentence corrections</h4>
+          {writingFeedback.corrections.length === 0
+            ? <p className="aius-feedback-empty">No important grammar corrections were identified. Keep practising to build fluency.</p>
+            : <div className="aius-feedback-list">{writingFeedback.corrections.map((item, index) => <article className="aius-feedback-item" key={item.originalSentence + "-" + index}>
+              <span className="aius-feedback-category">{item.category}</span>
+              <p><strong>Original</strong>{item.originalSentence}</p>
+              <p><strong>Corrected</strong>{item.correctedSentence}</p>
+              {item.naturalAlternative && <p><strong>More natural</strong>{item.naturalAlternative}</p>}
+              <small>{item.explanation}</small>
+            </article>)}</div>}
+          {writingFeedback.vocabularySuggestions.length > 0 && <><h4>Vocabulary suggestions</h4><div className="aius-feedback-list">{writingFeedback.vocabularySuggestions.map((item, index) => <article className="aius-feedback-item" key={item.original + "-" + index}><p><strong>Try replacing</strong>{item.original}</p><p><strong>Suggestion</strong>{item.suggested}</p><small>{item.reason}</small></article>)}</div></>}
+          {writingFeedback.practiceSuggestions.length > 0 && <><h4>What to practise next</h4><ul className="aius-feedback-practice">{writingFeedback.practiceSuggestions.map((item, index) => <li key={item + "-" + index}>{item}</li>)}</ul></>}
+        </section>}
         {paragraphs.length > 0 && <div className="aius-history"><h4>Saved paragraphs</h4>{paragraphs.map((saved) => <button key={saved.id} className={activeParagraphId === saved.id ? "aius-history-item selected" : "aius-history-item"} onClick={() => loadParagraph(saved)}><span><strong>{saved.title}</strong><small>{saved.level} · {splitSentences(saved.text).length} sentences</small></span><span>Open →</span></button>)}</div>}
         {activeAttempts.length > 0 && <div className="aius-history"><h4>Reading attempts ({activeAttempts.length})</h4>{activeAttempts.map((attempt) => <article className="aius-attempt" key={attempt.id}><div><strong>{attempt.target}</strong><small>{new Date(attempt.createdAt).toLocaleString()}</small></div><span>{attempt.score === null ? "—" : `${attempt.score}% match`}</span><button className="text-link" onClick={() => retrySavedFeedback(attempt)}>Review</button></article>)}</div>}
       </section>}
