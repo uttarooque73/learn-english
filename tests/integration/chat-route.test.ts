@@ -280,4 +280,33 @@ describe("POST /api/chat", () => {
     expect(sent.messages[sent.messages.length - 1]).toMatchObject({ role: "user", content: "Create four reading sentences about technology." });
   });
 
+  it("supports AI-generated paragraph practice with an output-only writing contract", async () => {
+    const paragraph = "A healthy routine can make each day easier. Planning meals saves time and reduces stress. A short walk can improve energy. Which habit would you like to build first?";
+    const ollamaBody = [
+      JSON.stringify({ message: { content: paragraph }, done: false }),
+      JSON.stringify({ done: true }),
+      "",
+    ].join("\\n");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(ollamaBody, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "paragraph-generation",
+        scenario: "Free conversation",
+        difficulty: "Beginner",
+        messages: [{ role: "user", content: "Write a paragraph about everyday life." }],
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toContain("A healthy routine can make each day easier.");
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(options.body)) as { messages: { role: string; content: string }[] };
+    expect(sent.messages[0]?.content).toContain("PARAGRAPH-GENERATION OUTPUT CONTRACT");
+    expect(sent.messages[0]?.content).toContain("do not role-play a single live turn");
+  });
+
 });
