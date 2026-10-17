@@ -43,6 +43,7 @@ describe("ConversationCoach", () => {
       constructor(text: string) { this.text = text; }
     });
     const startRecognition = vi.fn();
+    const recognitions: MockRecognition[] = [];
     class MockRecognition {
       lang = "";
       continuous = false;
@@ -53,6 +54,7 @@ describe("ConversationCoach", () => {
       start = startRecognition;
       stop = vi.fn();
       abort = vi.fn();
+      constructor() { recognitions.push(this); }
     }
     Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: MockRecognition });
 
@@ -62,6 +64,7 @@ describe("ConversationCoach", () => {
       updatedAt: new Date().toISOString(), durationSeconds: 0, turns: [],
     };
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === "/api/chat") return new Response("That sounds good. What did you do today?", { status: 200 });
       if (init?.method === "POST") return new Response(JSON.stringify({ session }), { status: 200 });
       if (init?.method === "PATCH") return new Response(JSON.stringify({ session }), { status: 200 });
       return new Response(JSON.stringify({ sessions: [] }), { status: 200 });
@@ -73,6 +76,11 @@ describe("ConversationCoach", () => {
     spoken[0].onend?.(new Event("end") as SpeechSynthesisEvent);
     await waitFor(() => expect(startRecognition).toHaveBeenCalledTimes(1));
     expect(screen.getByRole("button", { name: /stop recording/i })).toBeTruthy();
+
+    recognitions[0].onresult?.({ resultIndex: 0, results: [{ 0: { transcript: "I am doing well" } }] } as never);
+    recognitions[0].onend?.();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/chat", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(spoken).toHaveLength(2));
   });
 
   it("shows saved-history and progress sections", async () => {
