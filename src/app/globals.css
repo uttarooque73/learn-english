@@ -844,3 +844,34 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .daily-vocab-history-word-title h3{flex:1;min-width:0}
 .daily-vocab-history-word-title .daily-vocab-listen-button{margin-top:8px}
 @media(max-width:560px){.daily-vocab-definition-row,.daily-vocab-example-line,.daily-vocab-context-row{gap:7px}.daily-vocab-listen-button{padding:7px;font-size:9px}.daily-vocab-pronunciation .daily-vocab-listen-button{margin-left:0}.daily-vocab-context-row{align-items:flex-start}}
+
+
+/* Voice-first fluency and practice-history tabs */
+.shadowing-tabs,.fluency-tabs{display:flex;gap:6px;padding:5px;border:1px solid var(--line);border-radius:13px;background:#f2f4ed}
+.shadowing-tabs{grid-column:1/-1}
+.shadowing-tabs button,.fluency-tabs button{display:flex;align-items:center;justify-content:center;gap:7px;flex:1;border:0;border-radius:9px;padding:12px 15px;background:transparent;color:var(--muted);font-size:12px;font-weight:800;cursor:pointer}
+.shadowing-tabs button.active,.fluency-tabs button.active{background:#fff;color:var(--ink);box-shadow:0 2px 8px #192a1010}
+.shadowing-tabs button span,.fluency-tabs button span{display:inline-grid;place-items:center;min-width:21px;height:21px;border-radius:20px;background:#e8eee0;color:var(--green-dark);font-size:10px}
+.shadowing-page-layout [hidden]{display:none!important}
+.shadowing-history-kind{margin:0 0 10px;color:var(--muted);font-size:11px;font-weight:750}
+.fluency-speaking-console{display:grid;gap:15px;margin:18px 0;padding:18px;border:1px solid #dce5d2;border-radius:14px;background:linear-gradient(120deg,#f5f8ef,#fff)}
+.fluency-speaking-console>div:first-child{display:grid;grid-template-columns:12px 1fr;align-items:center;gap:8px}
+.fluency-speaking-console>div:first-child p{grid-column:2;margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+.fluency-speaking-indicator{width:10px;height:10px;border-radius:50%;background:#a8b19d}
+.fluency-speaking-indicator.live{background:#d94841;box-shadow:0 0 0 5px #d9484120;animation:fluency-pulse 1.3s infinite}
+@keyframes fluency-pulse{50%{box-shadow:0 0 0 9px #d9484108}}
+.fluency-speaking-actions{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.fluency-speaking-actions>span{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;font-weight:800}
+.fluency-speech-warning{margin:0;color:#8b5c21;font-size:11px;line-height:1.6}
+.fluency-speaking-history{display:grid;gap:16px;padding:22px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.fluency-history-header{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}
+.fluency-history-header h2{margin:5px 0;font-size:22px}
+.fluency-history-header p:last-child{margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+.fluency-history-list{display:grid;gap:12px}
+.fluency-history-entry{padding:16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.fluency-history-entry-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:10px}
+.fluency-history-entry-top>span:first-child{color:var(--green-dark);font-weight:800}
+.fluency-history-prompt{font-size:12px;line-height:1.6}
+.fluency-history-transcript{white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0;padding:12px;border-radius:9px;background:#f7f8f4;font-size:13px;line-height:1.7}
+.fluency-history-actions{display:flex;gap:15px;flex-wrap:wrap}
+@media(max-width:650px){.shadowing-tabs button,.fluency-tabs button{padding:10px 8px;font-size:11px}.fluency-speaking-console{padding:14px}.fluency-speaking-actions{align-items:stretch;flex-direction:column}.fluency-speaking-actions button{width:100%}.fluency-history-header{flex-direction:column}.fluency-speaking-history{padding:15px}}
