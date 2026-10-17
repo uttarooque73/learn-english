@@ -56,7 +56,9 @@ The repository currently contains a Next.js 16, React 19, TypeScript application
 **Baseline reference:** [Inspected main commit](https://github.com/uttarooque73/learn-english/commit/f2fa05188be56afb5456e3a4b91bf3bd15cec16a)  
 **CI run inspected:** [Previous GitHub Actions run](https://github.com/uttarooque73/learn-english/actions/runs/38993144048)
 
-This is a repository inspection snapshot. Recheck current CI and complete the remaining route/data-flow audit before designing or applying schema migrations.
+The Phase 0 CI run for PR [#41](https://github.com/uttarooque73/learn-english/pull/41) subsequently passed both the quality job (lint, type-check, unit/integration coverage tests, and production build) and Playwright UI tests. The migration foundation is now being implemented separately in PR [#42](https://github.com/uttarooque73/learn-english/pull/42); it centralizes the existing numbered migrations, records migration checksums, and removes duplicate inline table creation from the Daily Vocabulary and Conversation Coach session routes. Its own CI must pass before it is considered complete.
+
+This is a repository inspection snapshot. Continue auditing all feature persistence paths before adding new learning-system tables.
 
 ## 3. Scope and feature inventory
 
