@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeLearningWorker } from "@/lib/learning-worker-auth";
 import { getLearningJobStats, processLearningJobs } from "@/lib/learning-jobs";
+import { isLearningAutomationEnabled } from "@/lib/learning-operations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const error = authError(request);
   if (error) return error;
+  if (!isLearningAutomationEnabled()) {
+    return NextResponse.json({ paused: true, processed: 0, message: "Learning automation is paused by configuration." }, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
   let body: unknown;
   try {
     body = await request.json();
