@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { getVocabulary, saveVocabulary } from "@/lib/learning-storage";
 import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 type SelectionAnchor = { phrase: string; top: number; left: number };
+type SelectionAction = "save" | "practice";
 
 function normalizeSelection(value: string) {
   return value.replace(/\s+/g, " ").trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
@@ -13,6 +15,7 @@ function normalizeSelection(value: string) {
 export function VocabularySelectionTool() {
   const [selection, setSelection] = useState<SelectionAnchor | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [action, setAction] = useState<SelectionAction>("save");
   const [meaning, setMeaning] = useState("");
   const [example, setExample] = useState("");
   const [status, setStatus] = useState("");
@@ -38,6 +41,7 @@ export function VocabularySelectionTool() {
         left: Math.max(12, Math.min(rect.left, window.innerWidth - panelWidth - 12)),
       });
       setFormOpen(false);
+      setAction("save");
       setMeaning("");
       setExample("");
       setStatus("");
@@ -100,8 +104,9 @@ export function VocabularySelectionTool() {
       {selection && !formOpen && (
         <div className="vocabulary-selection-action" data-vocabulary-selection-tool style={{ top: selection.top, left: selection.left }}>
           <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setFormOpen(true)} aria-label="Add selected text to vocabulary">
-            <span aria-hidden="true">＋</span> Add to vocabulary
+            <span aria-hidden="true">＋</span> Save vocabulary
           </button>
+          <button type="button" className="vocabulary-selection-practice" onMouseDown={(event) => event.preventDefault()} onClick={() => { const phrase = selection.phrase; setSelection(null); setFormOpen(false); window.getSelection()?.removeAllRanges(); window.location.assign(`/shadowing?text=${encodeURIComponent(phrase)}`); }} aria-label={`Practice ${selection.phrase}`}>🎙 Practice</button>
           <button type="button" className="vocabulary-selection-dismiss" onMouseDown={(event) => event.preventDefault()} onClick={() => setSelection(null)} aria-label="Dismiss vocabulary action">×</button>
         </div>
       )}
