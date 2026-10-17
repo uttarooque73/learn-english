@@ -626,6 +626,10 @@ export async function evaluatePracticeAttempt(
         updated_at = excluded.updated_at
     `).run(ownerId, evaluation.skillKey, evaluation.score, evaluation.confidence, now);
 
+    if (item.activityType === "vocabulary" && item.activityRef) {
+      insertVocabularyReviewEvent(ownerId, item.activityRef, evaluation.score, now);
+    }
+
     database.prepare(`
       UPDATE learning_plan_items SET status = 'completed'
       WHERE id = ? AND owner_id = ?
@@ -821,13 +825,7 @@ export function recordPracticeEvidence(ownerId: string, request: LearningEvidenc
     persistMistakeEvidence(ownerId, attemptId, skillKey, corrections, now);
 
     if (request.activityType === "vocabulary" && activityRef && score !== undefined) {
-      const recallRating = Math.round(score * 5);
-      const intervalDays = recallRating <= 1 ? 1 : recallRating === 2 ? 2 : recallRating === 3 ? 4 : recallRating === 4 ? 7 : 14;
-      const dueAt = new Date(Date.now() + intervalDays * 86_400_000).toISOString();
-      database.prepare(`
-        INSERT INTO vocabulary_review_events (id, owner_id, vocabulary_ref, recall_rating, interval_days, next_due_at, policy_version)
-        VALUES (?, ?, ?, ?, ?, ?, 'evidence-v1')
-      `).run(randomUUID(), ownerId, activityRef, recallRating, intervalDays, dueAt);
+      insertVocabularyReviewEvent(ownerId, activityRef, score, now);
     }
     return { attemptId, duplicate: false };
   });
