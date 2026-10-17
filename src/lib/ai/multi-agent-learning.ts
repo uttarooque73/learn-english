@@ -224,10 +224,14 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver) {
       };
     })
     .addNode("plannerAgent", async (state) => {
+      const diagnosis = parseJson<LearningDiagnosis>(state.diagnosisJson, {
+        focusSkills: ["speaking", "vocabulary"], reasons: [], confidence: "low", dueVocabularyReviews: 0,
+      });
       const plan = await generateDailyLearningPlan(state.ownerId, {
         dailyTargetMinutes: state.dailyTargetMinutes,
         goal: state.goal || undefined,
         generationSource: "ai",
+        diagnosticContext: diagnosis,
       });
       return {
         planJson: JSON.stringify(plan),
