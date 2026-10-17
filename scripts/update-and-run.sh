@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Discard local Git changes, update SpeakUp AI, and start the local development app.
+# Safely update SpeakUp AI and start the local development app without deleting local files.
 # Run from any directory: bash scripts/update-and-run.sh
 
 log() { printf '\n[%s] %s\n' "SpeakUp AI" "$*"; }
@@ -17,12 +17,10 @@ cd "$PROJECT_DIR"
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "This script must be inside the SpeakUp AI Git repository."
 
-# Discard tracked edits and remove untracked files/directories before updating.
-# Ignored files such as .env.local and node_modules are preserved.
-log "Discarding local tracked changes..."
-git reset --hard
-log "Removing untracked files and directories..."
-git clean -fd
+# Never destroy local work. Refuse to update when tracked edits or untracked files exist.
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  fail "Local changes or untracked files are present. Commit or stash them manually, then rerun this script. No local files have been deleted."
+fi
 
 BRANCH="$(git branch --show-current)"
 [[ -n "$BRANCH" ]] || fail "Could not determine the current Git branch."
