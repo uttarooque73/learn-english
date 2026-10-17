@@ -5,6 +5,8 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as getSessions, POST as saveMessage } from "@/app/api/voice-conversations/session/route";
 import { GET as getFeedback, POST as finalizeFeedback } from "@/app/api/voice-conversations/feedback/route";
+import { GET as getPreferences, POST as savePreferences } from "@/app/api/voice-conversations/preferences/route";
+import { POST as analyzeSentence } from "@/app/api/voice-conversations/sentence-feedback/route";
 import Database from "better-sqlite3";
 import { getDatabase } from "@/lib/database";
 
@@ -159,4 +161,61 @@ describe("floating voice conversation persistence", () => {
     expect(response.status).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("persists configurable sentence feedback and repetition preferences per owner", async () => {
+    const defaults = await getPreferences(request("http://localhost/api/voice-conversations/preferences", { method: "GET" }, "owner-a"));
+    await expect(defaults.json()).resolves.toEqual({ sentenceFeedbackEnabled: true, repeatAfterFeedbackEnabled: true });
+
+    const saved = await savePreferences(request("http://localhost/api/voice-conversations/preferences", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sentenceFeedbackEnabled: false, repeatAfterFeedbackEnabled: true }),
+    }, "owner-a"));
+    await expect(saved.json()).resolves.toEqual({ sentenceFeedbackEnabled: false, repeatAfterFeedbackEnabled: true });
+
+    const otherOwner = await getPreferences(request("http://localhost/api/voice-conversations/preferences", { method: "GET" }, "owner-b"));
+    await expect(otherOwner.json()).resolves.toEqual({ sentenceFeedbackEnabled: true, repeatAfterFeedbackEnabled: true });
+  });
+
+  it("analyzes and persists sentence feedback immediately with owner isolation", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({
+      response: JSON.stringify({
+        originalSentence: "I work as software engineer.",
+        correctedSentence: "I work as a software engineer.",
+        naturalSentence: null,
+        isCorrect: false,
+        errorCategories: ["grammar"],
+        severity: "minor",
+        explanation: "Use an article before a singular countable job title.",
+      }),
+    })));
+    const payload = {
+      sessionId: "sentence-feedback-session",
+      topic: "Software Development",
+      proficiency: "Intermediate",
+      startedAt: "2026-10-18T00:00:00.000Z",
+      sequenceNumber: 1,
+      message: { id: "sentence-feedback-message", role: "user", content: "I work as software engineer.", createdAt: "2026-10-18T00:00:01.000Z" },
+    };
+    const result = await analyzeSentence(request("http://localhost/api/voice-conversations/sentence-feedback", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload),
+    }, "owner-a"));
+    expect(result.status).toBe(200);
+    await expect(result.json()).resolves.toMatchObject({
+      feedback: { messageId: "sentence-feedback-message", correctedSentence: "I work as a software engineer.", isCorrect: false },
+    });
+    const stored = getDatabase().prepare("SELECT COUNT(*) AS count FROM voice_conversation_feedback WHERE owner_id=? AND session_id=?")
+      .get("owner-a", "sentence-feedback-session") as { count: number };
+    expect(stored.count).toBe(1);
+    const privateSession = await getFeedback(request("http://localhost/api/voice-conversations/feedback?sessionId=sentence-feedback-session", { method: "GET" }, "owner-b"));
+    expect(privateSession.status).toBe(404);
+  });
+
+  it("validates preference values without changing saved configuration", async () => {
+    const result = await savePreferences(request("http://localhost/api/voice-conversations/preferences", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sentenceFeedbackEnabled: "false", repeatAfterFeedbackEnabled: true }),
+    }));
+    expect(result.status).toBe(400);
+  });
+
 });
