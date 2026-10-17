@@ -222,6 +222,120 @@ function loadPlanningContext(ownerId: string, profile: ProfileRow) {
   };
 }
 
+
+const ADAPTIVE_SKILLS = ["speaking", "pronunciation", "grammar", "vocabulary", "listening", "fluency", "writing"] as const;
+type AdaptiveSkill = typeof ADAPTIVE_SKILLS[number];
+type AdaptationSettings = { enabled: boolean; policyVersion: string; reviewIntervalScale: number };
+type AdaptationPolicy = {
+  enabled: boolean;
+  policyVersion: string;
+  reviewIntervalScale: number;
+  weights: Record<AdaptiveSkill, number>;
+  focusSkills: AdaptiveSkill[];
+  contextSummary: Record<string, unknown>;
+};
+
+function readAdaptationSettings(ownerId: string): AdaptationSettings {
+  const database = getDatabase();
+  database.prepare("INSERT OR IGNORE INTO learner_profiles (owner_id) VALUES (?)").run(ownerId);
+  database.prepare("INSERT OR IGNORE INTO learner_adaptation_settings (owner_id) VALUES (?)").run(ownerId);
+  const row = database.prepare(`
+    SELECT enabled, policy_version AS policyVersion, review_interval_scale AS reviewIntervalScale
+    FROM learner_adaptation_settings WHERE owner_id = ?
+  `).get(ownerId) as { enabled: number; policyVersion: string; reviewIntervalScale: number };
+  const globalValue = (process.env.LEARNING_ADAPTATION_ENABLED ?? "true").toLowerCase();
+  const enabled = row.enabled === 1 && !["0", "false", "off", "disabled"].includes(globalValue);
+  return {
+    enabled,
+    policyVersion: enabled ? row.policyVersion : "baseline-v1",
+    reviewIntervalScale: enabled ? row.reviewIntervalScale : 1,
+  };
+}
+
+function skillForActivity(activityType: string): AdaptiveSkill {
+  if (activityType === "vocabulary") return "vocabulary";
+  if (activityType === "grammar") return "grammar";
+  if (activityType === "shadowing") return "pronunciation";
+  if (activityType === "listening") return "listening";
+  if (activityType === "fluency") return "fluency";
+  return "speaking";
+}
+
+function buildAdaptationPolicy(
+  context: ReturnType<typeof loadPlanningContext>,
+  settings: AdaptationSettings,
+): AdaptationPolicy {
+  const weights = Object.fromEntries(ADAPTIVE_SKILLS.map((skill) => [skill, 1])) as Record<AdaptiveSkill, number>;
+  const skillScores = context.skills as Array<{ skillKey: string; mastery: number; confidence: number; evidenceCount: number }>;
+  const mistakes = context.recurringMistakes as Array<{ category: string; occurrenceCount: number }>;
+  const recentAttempts = context.recentAttempts as Array<{ activityType: string; score: number | null }>;
+
+  if (settings.enabled) {
+    for (const score of skillScores) {
+      if (!(ADAPTIVE_SKILLS as readonly string[]).includes(score.skillKey)) continue;
+      const skill = score.skillKey as AdaptiveSkill;
+      if (score.mastery < 0.55) weights[skill] += 0.45;
+      if (score.confidence < 0.5) weights[skill] += 0.15;
+      if (score.evidenceCount < 3) weights[skill] += 0.1;
+      if (score.mastery > 0.85 && score.confidence > 0.7 && score.evidenceCount >= 5) weights[skill] -= 0.2;
+    }
+    for (const mistake of mistakes) {
+      if (!(ADAPTIVE_SKILLS as readonly string[]).includes(mistake.category)) continue;
+      const skill = mistake.category as AdaptiveSkill;
+      weights[skill] += Math.min(0.75, Math.max(0, mistake.occurrenceCount) * 0.12);
+    }
+    if (context.dueVocabularyReviews > 0) {
+      weights.vocabulary += Math.min(1, context.dueVocabularyReviews * 0.1);
+    }
+    for (const skill of ADAPTIVE_SKILLS) {
+      const attempts = recentAttempts.filter((attempt) => skillForActivity(attempt.activityType) === skill && attempt.score !== null);
+      const lowScores = attempts.filter((attempt) => (attempt.score ?? 1) < 0.5).length;
+      if (lowScores >= 2) weights[skill] += Math.min(0.4, lowScores * 0.1);
+      weights[skill] = Math.max(0.5, Math.min(3, Number(weights[skill].toFixed(2))));
+    }
+  }
+
+  const focusSkills = [...ADAPTIVE_SKILLS].sort((left, right) => weights[right] - weights[left]);
+  return {
+    enabled: settings.enabled,
+    policyVersion: settings.policyVersion,
+    reviewIntervalScale: settings.reviewIntervalScale,
+    weights,
+    focusSkills,
+    contextSummary: {
+      proficiencyLevel: context.proficiencyLevel,
+      goalCount: context.goals.length,
+      skillEvidenceCount: skillScores.reduce((sum, score) => sum + score.evidenceCount, 0),
+      activeMistakeCount: mistakes.length,
+      dueVocabularyReviews: settings.enabled ? context.dueVocabularyReviews : 0,
+      recentAttemptCount: settings.enabled ? recentAttempts.length : 0,
+    },
+  };
+}
+
+/** Deterministic and inspectable adaptation policy used by the planner and spaced-repetition schedule. */
+export function getAdaptiveLearningPolicy(ownerId: string): AdaptationPolicy {
+  assertOwner(ownerId);
+  ensurePersistenceSchema();
+  const profile = readProfile(ownerId);
+  const settings = readAdaptationSettings(ownerId);
+  const context = loadPlanningContext(ownerId, profile);
+  return buildAdaptationPolicy(context, settings);
+}
+
+function insertVocabularyReviewEvent(ownerId: string, vocabularyRef: string, score: number, now: string): void {
+  const settings = readAdaptationSettings(ownerId);
+  const recallRating = Math.max(0, Math.min(5, Math.round(score * 5)));
+  const baseIntervals = [1, 1, 2, 4, 7, 14];
+  const intervalDays = Math.max(1, Math.min(90, Math.round(baseIntervals[recallRating] * settings.reviewIntervalScale)));
+  const dueAt = new Date(Date.parse(now) + intervalDays * 86_400_000).toISOString();
+  getDatabase().prepare(`
+    INSERT INTO vocabulary_review_events (
+      id, owner_id, vocabulary_ref, recall_rating, interval_days, next_due_at, policy_version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(randomUUID(), ownerId, vocabularyRef, recallRating, intervalDays, dueAt, settings.policyVersion);
+}
+
 function mapPlanRow(row: PlanRow, items: PlanItemRow[]): DailyLearningPlan {
   return {
     id: row.id,
