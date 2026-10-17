@@ -564,10 +564,11 @@ Feature branch: `feat/ai-and-us-paragraph-practice`
 - [x] Owner-scoped paragraph and reading-attempt API added.
 - [x] Additive SQL migration added.
 - [x] Navigation and styles added.
-- [ ] Automated tests and CI validation.
+- [x] Added API/unit tests for owner-scoped paragraph/attempt persistence, migration registration, AI reading-discussion output contract, and Playwright coverage for the two tabs.
+- [ ] CI validation on the latest branch commit.
 - [ ] Final code review and PR readiness.
 
 ### Known initial limits to resolve before marking complete
 - Browser speech recognition availability varies by browser; offer a clear error/fallback and avoid overstating pronunciation precision.
-- Current guided discussion uses locally generated prompt sentences; provider-backed dynamic AI discussion should only be added where the existing API can be reused safely.
+- Discussion text is generated through a dedicated `reading-discussion` mode on the existing Ollama-backed `/api/chat` endpoint; it is not a continuous voice-to-voice conversation. The learner reads the generated sentences aloud and reviews transcript similarity.
 - Validate state handling, transcript finalization, and all API/migration paths in tests before merge.
