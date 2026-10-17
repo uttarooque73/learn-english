@@ -207,7 +207,7 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver) {
       const goal = state.goal.trim().replace(/\s+/g, " ");
       return {
         diagnosisJson: JSON.stringify(diagnosis),
-        plannerGoal: `${goal}\nEvidence-based focus suggestions: ${diagnosis.focusSkills.join(", ")}. Reasons: ${diagnosis.reasons.join(" ")}. Treat these as priorities, not as claims beyond the saved evidence.`.slice(0, 900),
+        plannerGoal: `${goal}\nEvidence-based focus suggestions: ${diagnosis.focusSkills.join(", ")}. Reasons: ${diagnosis.reasons.join(" ")}. Treat these as priorities, not as claims beyond the saved evidence.`.slice(0, 500),
         agentSequence: [...state.agentSequence, "diagnostic-agent"],
       };
     })
