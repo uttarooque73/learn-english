@@ -337,6 +337,7 @@ export function FloatingEnglishPartner() {
             if (!text || busyRef.current) return;
             setDraft("");
             shouldListenRef.current = false;
+            recognitionRef.current?.abort(); recognitionRef.current = null;
             void requestReply(text);
           }}>
             <label htmlFor="floating-english-message-input">Type a message</label>
