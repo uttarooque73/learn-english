@@ -80,7 +80,10 @@ const sampleEvaluation = {
   ],
 };
 
-afterEach(cleanupDatabase);
+afterEach(() => {
+  cleanupDatabase();
+  vi.unstubAllEnvs();
+});
 
 describe("adaptive daily planner", () => {
   it("creates an owner-scoped plan within the configured time budget", async () => {
