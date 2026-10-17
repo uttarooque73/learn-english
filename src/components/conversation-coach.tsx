@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListenButton } from "@/components/listen-button";
-import { speakText, stopSpeaking } from "@/lib/speech-playback";
+import { stopSpeaking } from "@/lib/speech-playback";
 
 type Correction = { original: string; improved: string; reason: string };
 type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[] };
@@ -76,7 +76,7 @@ export function ConversationCoach() {
       setSessions(data.sessions || []);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not load history."); }
   }, []);
-  useEffect(() => { void refreshHistory(); }, [refreshHistory]);
+  useEffect(() => { void Promise.resolve().then(() => refreshHistory()); }, [refreshHistory]);
 
   const availableVoice = useMemo(() => {
     const preferred = voices.filter(v => voiceGender === "female" ? /samantha|victoria|karen|zira|jenny|aria|ava|susan|hazel|moira|tessa|fiona|allison|female/i.test(v.name) : /alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron|male/i.test(v.name));
@@ -246,7 +246,7 @@ export function ConversationCoach() {
       </aside>
       <section className="coach-chat" aria-label="AI conversation">
         <header className="coach-chat-head"><div className="coach-avatar">✦</div><div><strong>SpeakUp conversation coach</strong><p><span className="status-dot"/> {sessionId ? "Session in progress" : "Ready when you are"}</p></div><span className="coach-duration">◷ {formatDuration(elapsed)}</span></header>
-        {!sessionId && turns.length === 0 ? <div className="coach-empty"><div className="coach-orb">✦</div><h2>Your English, your moment.</h2><p>Choose a topic and start speaking. I'll listen, respond naturally, and help you improve without interrupting every sentence.</p><button className="button button-primary" onClick={() => void startSession()}>Let's talk <span>→</span></button><div className="coach-prompt-chips"><span>Daily conversation</span><span>Work English</span><span>Build confidence</span></div></div> :
+        {!sessionId && turns.length === 0 ? <div className="coach-empty"><div className="coach-orb">✦</div><h2>Your English, your moment.</h2><p>Choose a topic and start speaking. I&apos;ll listen, respond naturally, and help you improve without interrupting every sentence.</p><button className="button button-primary" onClick={() => void startSession()}>Let&apos;s talk <span>→</span></button><div className="coach-prompt-chips"><span>Daily conversation</span><span>Work English</span><span>Build confidence</span></div></div> :
           <div className="coach-messages">{turns.map(turn => <article key={turn.id} className={`coach-message ${turn.role}`}><div className="coach-message-label">{turn.role === "assistant" ? "✦ Your tutor" : "You"}</div><p>{turn.content || (busy ? "Thinking…" : "")}</p>{turn.content && <div className="coach-message-actions"><ListenButton text={turn.content} label="Play sentence" className="coach-mini-button"/>{turn.role === "user" && <button className="coach-mini-button" onClick={() => play(turn.content)}>Repeat your answer</button>}</div>}{turn.corrections?.map((c, i) => <div key={i} className="coach-correction"><span>Try this instead</span><del>{c.original}</del><strong>{c.improved}</strong><small>{c.reason}</small></div>)}</article>)}<div ref={bottomRef}/></div>}
         {sessionId && <div className="coach-composer"><textarea aria-label="Your answer" placeholder={listening ? "Listening… speak naturally" : "Type your answer or use the microphone…"} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} rows={2} disabled={busy}/><div className="coach-composer-actions"><span>Enter to send · Shift + Enter for a new line</span><div><button className={listening ? "coach-mic-button listening" : "coach-mic-button"} onClick={() => listening ? stopListening() : startListening()} disabled={busy} aria-label={listening ? "Stop recording" : "Start voice input"}>{listening ? "■ Stop" : "🎙 Speak"}</button><button className="button button-primary" onClick={() => void send()} disabled={busy || !input.trim()}>{busy ? "Thinking…" : "Send ↑"}</button></div></div></div>}
         {sessionId && <p className="coach-disclaimer">Speech recognition and voice playback depend on your browser and device. You can always type instead.</p>}
