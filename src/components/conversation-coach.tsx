@@ -7,7 +7,8 @@ import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { getLearningPreferences, saveLearningPreferences, type SpeechRate, type SpeechVoiceGender } from "@/lib/learning-preferences";
 
 type Correction = { original: string; improved: string; reason: string };
-type VocabularyItem = { phrase: string; meaning: string; example: string };\ntype Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[]; vocabulary?: VocabularyItem[] };
+type VocabularyItem = { phrase: string; meaning: string; example: string };
+type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[]; vocabulary?: VocabularyItem[] };
 type Session = { id: string; title: string; scenario: string; difficulty: string; status: string; startedAt: string; updatedAt: string; durationSeconds: number; turnCount?: number; correctionCount?: number; summary?: Record<string, unknown>; turns?: Turn[] };
 type RecognitionResult = { results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }>; resultIndex: number };
 type Recognition = { lang: string; interimResults: boolean; continuous: boolean; onresult: ((event: RecognitionResult) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null; start(): void; stop(): void; abort(): void };
