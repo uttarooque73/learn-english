@@ -22,7 +22,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const input = body as Partial<Input>;
   if (typeof input.sessionId !== "string" || input.sessionId.length > 100
     || typeof input.topic !== "string" || input.topic.length > 120
-    || !["Beginner", "Intermediate", "Advanced"].includes(String(input.proficiency))
+    || typeof input.proficiency !== "string" || !["Beginner", "Intermediate", "Advanced"].includes(input.proficiency)
     || typeof input.startedAt !== "string" || typeof input.sequenceNumber !== "number" || !Number.isInteger(input.sequenceNumber) || input.sequenceNumber < 0
     || !input.message || typeof input.message.id !== "string" || input.message.id.length > 100
     || input.message.role !== "user" || typeof input.message.content !== "string" || !input.message.content.trim() || input.message.content.length > 4000
@@ -76,7 +76,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       && parsed.errorCategories.every((value) => typeof value === "string")
       && ["none", "minor", "major"].includes(String(parsed.severity)) && typeof parsed.explanation === "string";
     if (!valid) return respond({ error: "The feedback provider returned an invalid sentence analysis." }, request, ownerId, 502);
-    const item = { ...parsed, messageId: message.id, originalSentence: message.content.trim() } as Record<string, unknown>;
+    const item = {
+      messageId: message.id,
+      originalSentence: message.content.trim(),
+      correctedSentence: parsed.correctedSentence as string,
+      naturalSentence: parsed.naturalSentence as string | null,
+      isCorrect: parsed.isCorrect as boolean,
+      errorCategories: parsed.errorCategories as string[],
+      severity: parsed.severity as "none" | "minor" | "major",
+      explanation: parsed.explanation as string,
+    };
     db.prepare(`INSERT INTO voice_conversation_feedback
       (id, session_id, message_id, owner_id, sequence_number, original_sentence, corrected_sentence, natural_sentence, is_correct, error_categories_json, severity, explanation)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
