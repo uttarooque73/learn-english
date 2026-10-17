@@ -64,6 +64,7 @@ export function AiAndUsPractice() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [writingFeedback, setWritingFeedback] = useState<ParagraphFeedback | null>(null);
   const [generatingDiscussion, setGeneratingDiscussion] = useState(false);
+  const [discussionParagraphId, setDiscussionParagraphId] = useState("");
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const listeningRef = useRef(false);
   const currentLineRef = useRef<string | null>(null);
@@ -138,7 +139,7 @@ export function AiAndUsPractice() {
           setLines((previous) => previous.map((line) => line.id === currentLineRef.current ? { ...line, transcript, score: assessment.score, missingWords: assessment.missingWords, extraWords: assessment.extraWords, status: "complete" } : line));
           setStatus("Sentence reviewed");
         } else {
-          void saveAttempt(lineText, transcript, assessment.score, assessment.missingWords, assessment.extraWords);
+          void saveAttempt(lineText, transcript, assessment.score, assessment.missingWords, assessment.extraWords, mode === "discussion" ? discussionParagraphId || null : activeParagraphId || null);
         }
         listeningRef.current = false;
         setListening(false);
@@ -169,6 +170,7 @@ export function AiAndUsPractice() {
     const name = chosen === "Custom Topic" ? customTopic.trim() || "daily life" : chosen;
     setLines([]);
     setLineIndex(0);
+    setDiscussionParagraphId("");
     setGeneratingDiscussion(true);
     setStatus("Generating a discussion");
     setMessage(`Preparing a ${level.toLowerCase()}-level reading discussion about ${name}…`);
@@ -202,9 +204,25 @@ export function AiAndUsPractice() {
       const selected = parsedLines.slice(0, 6).map((text) => ({
         id: id(), text, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" as const,
       }));
+      let savedDiscussionId = "";
+      let historyWarning = "";
+      try {
+        const saveResponse = await fetch("/api/ai-and-us", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "paragraph", title: `AI Discussion — ${name}`.slice(0, 120), text: selected.map((line) => line.text).join(" "), level }),
+        });
+        const savedData = await saveResponse.json() as { paragraph?: SavedParagraph; error?: string };
+        if (!saveResponse.ok || !savedData.paragraph) throw new Error(savedData.error || "Could not save discussion history.");
+        savedDiscussionId = savedData.paragraph.id;
+        setParagraphs((previous) => [savedData.paragraph!, ...previous.filter((item) => item.id !== savedData.paragraph!.id)].slice(0, 100));
+      } catch {
+        historyWarning = " The discussion is available, but its history could not be saved.";
+      }
+      setDiscussionParagraphId(savedDiscussionId);
       setLines(selected);
       setLineIndex(0);
-      setMessage(`AI-generated reading discussion: ${name}. Read each sentence aloud, review the transcript comparison, then continue.`);
+      setMessage(`AI-generated reading discussion: ${name}. Read each sentence aloud, review the transcript comparison, then continue.${historyWarning}`);
       setStatus("Discussion ready");
       if (autoPlay) window.setTimeout(() => speak(selected[0].text), 100);
     } catch (error) {
@@ -215,12 +233,12 @@ export function AiAndUsPractice() {
     }
   };
 
-  const saveAttempt = async (target: string, transcript: string, score: number, missingWords: string[], extraWords: string[]) => {
+  const saveAttempt = async (target: string, transcript: string, score: number, missingWords: string[], extraWords: string[], paragraphId: string | null = activeParagraphId || null) => {
     setStatus("Saving reading attempt");
     try {
       const response = await fetch("/api/ai-and-us", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "attempt", paragraphId: activeParagraphId || null, target, transcript, score, missingWords, extraWords }),
+        body: JSON.stringify({ kind: "attempt", paragraphId, target, transcript, score, missingWords, extraWords }),
       });
       const data = await response.json() as { attempt?: Attempt; error?: string };
       if (!response.ok || !data.attempt) throw new Error(data.error || "Could not save this reading attempt.");
