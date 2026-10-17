@@ -331,13 +331,13 @@ export async function generateDailyLearningPlan(
 
   const planId = randomUUID();
   const localDate = localDateForZone(currentProfile.timezone);
-  const nextVersion = (database.prepare(`
-    SELECT COALESCE(MAX(version), 0) + 1 AS version
-    FROM learning_plans WHERE owner_id = ? AND local_date = ?
-  `).get(ownerId, localDate) as { version: number }).version;
   const createdAt = new Date().toISOString();
 
   const savePlan = database.transaction(() => {
+    const nextVersion = (database.prepare(`
+      SELECT COALESCE(MAX(version), 0) + 1 AS version
+      FROM learning_plans WHERE owner_id = ? AND local_date = ?
+    `).get(ownerId, localDate) as { version: number }).version;
     database.prepare(`
       INSERT INTO learning_plans (
         id, owner_id, local_date, status, version, generation_source, total_minutes, created_at, updated_at
