@@ -425,8 +425,6 @@ export async function evaluatePracticeAttempt(
   const now = new Date().toISOString();
   const responseJson = JSON.stringify({ text: request.responseText.trim() });
   const resultJson = JSON.stringify(evaluation);
-  let inserted = false;
-
   const persistEvidence = database.transaction(() => {
     const result = database.prepare(`
       INSERT OR IGNORE INTO practice_attempts (
