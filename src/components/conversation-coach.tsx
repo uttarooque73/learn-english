@@ -50,6 +50,7 @@ export function ConversationCoach() {
   const recognitionRef = useRef<Recognition | null>(null);
   const startListeningRef = useRef<(() => void) | null>(null);
   const sessionIdRef = useRef("");
+  const recognizedSpeechRef = useRef("");
   const turnsRef = useRef<Turn[]>([]);
   const startedAtRef = useRef<number>(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -183,16 +184,36 @@ export function ConversationCoach() {
     const ctor = (window as RecognitionWindow).SpeechRecognition || (window as RecognitionWindow).webkitSpeechRecognition;
     if (!ctor) { setError("Speech recognition is not available in this browser. You can type your answer instead."); return; }
     try {
+      recognizedSpeechRef.current = "";
       const recognition = new ctor(); recognition.lang = "en-US"; recognition.continuous = false; recognition.interimResults = true;
       recognition.onresult = event => {
         let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) transcript += event.results[i][0].transcript;
-        if (transcript) setInput(transcript);
+        for (let i = 0; i < event.results.length; i++) transcript += `${event.results[i][0].transcript} `;
+        transcript = transcript.trim();
+        if (transcript) {
+          recognizedSpeechRef.current = transcript;
+          setInput(transcript);
+        }
       };
-      recognition.onerror = event => { setListening(false); setError(event.error === "not-allowed" ? "Please allow microphone access to speak." : `Speech recognition error: ${event.error}. You can type instead.`); };
-      recognition.onend = () => setListening(false);
+      recognition.onerror = event => {
+        recognizedSpeechRef.current = "";
+        setListening(false);
+        setError(event.error === "not-allowed" ? "Please allow microphone access to speak." : `Speech recognition error: ${event.error}. You can type instead.`);
+      };
+      recognition.onend = () => {
+        setListening(false);
+        const transcript = recognizedSpeechRef.current.trim();
+        recognizedSpeechRef.current = "";
+        // Voice-first mode submits the captured answer automatically, then the tutor speaks
+        // and the microphone is reactivated for the next turn.
+        if (transcript && sessionIdRef.current) window.setTimeout(() => { void send(transcript); }, 0);
+      };
       recognitionRef.current = recognition; recognition.start(); setListening(true);
-    } catch { setListening(false); setError("Could not start the microphone. Please type your answer instead."); }
+    } catch {
+      recognizedSpeechRef.current = "";
+      setListening(false);
+      setError("Could not start the microphone. Please type your answer instead.");
+    }
   };
   useEffect(() => {
     startListeningRef.current = startListening;
