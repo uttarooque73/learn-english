@@ -286,7 +286,7 @@ describe("POST /api/chat", () => {
       JSON.stringify({ message: { content: paragraph }, done: false }),
       JSON.stringify({ done: true }),
       "",
-    ].join("\\n");
+    ].join("\n");
     const fetchMock = vi.fn().mockResolvedValue(new Response(ollamaBody, { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
