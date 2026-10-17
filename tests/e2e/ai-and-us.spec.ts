@@ -1,6 +1,25 @@
 import { expect, test } from "@playwright/test";
 
 test("AI and Us provides discussion and paragraph practice tabs", async ({ page }) => {
+  await page.route("**/api/ai-and-us", async (route) => {
+    if (route.request().method() === "POST") {
+      const payload = route.request().postDataJSON() as { kind?: string };
+      if (payload.kind === "feedback") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ paragraphId: "saved-paragraph", feedback: {
+            overallSummary: "Your paragraph is clear. Review verb tense and duration phrases.",
+            corrections: [{ originalSentence: "I work here since five years.", correctedSentence: "I have worked here for five years.", naturalAlternative: "I've been working here for five years.", category: "Grammar", explanation: "Use for with a duration and present perfect for an activity continuing now." }],
+            vocabularySuggestions: [{ original: "very good", suggested: "effective", reason: "More precise for a workplace outcome." }],
+            practiceSuggestions: ["Practise present perfect with for and since."],
+          } }),
+        });
+        return;
+      }
+    }
+    await route.continue();
+  });
   await page.goto("/ai-and-us");
   await expect(page.getByRole("heading", { name: "AI and Us" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "AI and Us Discussion" })).toBeVisible();
@@ -11,6 +30,10 @@ test("AI and Us provides discussion and paragraph practice tabs", async ({ page 
   await page.getByRole("button", { name: "Save paragraph" }).click();
   await expect(page.getByText("Paragraph saved to your learning history.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Saved paragraphs" })).toBeVisible();
+  await page.getByRole("button", { name: "Get writing feedback" }).click();
+  await expect(page.getByRole("heading", { name: "Paragraph feedback" })).toBeVisible();
+  await expect(page.getByText("Review verb tense and duration phrases.")).toBeVisible();
+  await expect(page.getByText("Practise present perfect with for and since.")).toBeVisible();
 });
 
 test("discussion lets learners configure and start an AI-generated reading topic", async ({ page }) => {
