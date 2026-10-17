@@ -45,6 +45,8 @@ export function FloatingEnglishPartner() {
   const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "processing" | "complete" | "partial" | "failed">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [sessionId, setSessionId] = useState("");
+  const sessionIdRef = useRef("");
+  const transcriptSequenceRef = useRef(0);
   const recognitionRef = useRef<Recognition | null>(null);
   const shouldListenRef = useRef(false);
   const busyRef = useRef(false);
@@ -68,6 +70,19 @@ export function FloatingEnglishPartner() {
     const message = { id: newId(), role, content: content.trim(), createdAt: new Date().toISOString() };
     if (!message.content) return null;
     setMessages((current) => [...current, message]);
+    const currentSessionId = sessionIdRef.current;
+    if (currentSessionId) {
+      const sequenceNumber = transcriptSequenceRef.current++;
+      void fetch("/api/voice-conversations/session", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: currentSessionId, topic, proficiency: level,
+          startedAt: new Date(startedAtRef.current).toISOString(), sequenceNumber,
+          message,
+        }),
+      }).then((result) => { if (!result.ok) setStatus("Transcript save failed. Check your connection."); })
+        .catch(() => setStatus("Transcript save failed. Check your connection."));
+    }
     return message;
   }, []);
 
@@ -197,7 +212,7 @@ export function FloatingEnglishPartner() {
 
   const startSession = useCallback(async () => {
     setMessages([]); setFeedback([]); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
-    setSessionId(newId()); startedAtRef.current = Date.now();
+    const nextSessionId = newId();\n    sessionIdRef.current = nextSessionId; setSessionId(nextSessionId); transcriptSequenceRef.current = 0;\n    startedAtRef.current = Date.now();
     setActive(true); setOpen(true); setMinimized(false); shouldListenRef.current = true;
     append("assistant", `Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
     await speak(`Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
