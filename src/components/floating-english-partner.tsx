@@ -35,6 +35,7 @@ function newId(): string {
 export function FloatingEnglishPartner() {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [active, setActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("Ready when you are");
@@ -428,10 +429,11 @@ export function FloatingEnglishPartner() {
       <button className="floating-english-trigger" type="button" aria-label="Open Jarvis assistant" aria-expanded={open} onClick={() => { setOpen(true); setMinimized(false); }}>
         <span aria-hidden="true">✦</span><span className="floating-english-trigger-label">Speak English</span>
       </button>
-      {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""}`} role="dialog" aria-label="Jarvis" aria-modal="false">
+      {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""} ${fullscreen ? "is-fullscreen" : ""}`} role="dialog" aria-label="Jarvis" aria-modal="false">
         <header className="floating-english-header">
           <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>Jarvis</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
           <div className="floating-english-header-actions">
+            <button type="button" aria-label={fullscreen ? "Exit full screen" : "Make conversation full screen"} title={fullscreen ? "Exit full screen" : "Full screen"} onClick={() => { setFullscreen((value) => !value); setMinimized(false); }}>{fullscreen ? "⤢" : "⛶"}</button>
             <button type="button" aria-label="Minimize conversation" onClick={() => setMinimized((v) => !v)}>{minimized ? "□" : "−"}</button>
             <button type="button" aria-label="Close conversation window" onClick={() => { if (active) void stopSession(); setOpen(false); }}>×</button>
           </div>
