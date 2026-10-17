@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { readPersistedValue, resetPersistenceCacheForTests, writePersistedValue } from "@/lib/client-persistence";
 import { clearSavedPracticeData, getSessions, getVocabulary, removeSession, saveVocabulary, upsertSession, type SessionSummary } from "@/lib/learning-storage";
 
 const summary: SessionSummary = {
@@ -12,7 +13,7 @@ const summary: SessionSummary = {
 };
 
 describe("session summary persistence", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => resetPersistenceCacheForTests());
 
   it("stores a summary with its conversation and returns it from history", () => {
     upsertSession({
@@ -61,11 +62,11 @@ describe("practice data deletion", () => {
   it("clears saved sessions and vocabulary while leaving other local preferences untouched", () => {
     upsertSession({ id: "session-1", scenario: "Everyday life", startedAt: "2026-10-16T10:00:00.000Z", updatedAt: "2026-10-16T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["Hello"] });
     saveVocabulary({ phrase: "make progress", meaning: "Improve over time.", example: "I make progress every day." });
-    localStorage.setItem("speakup:preferences:v1", JSON.stringify({ englishLevel: "Beginner" }));
+    writePersistedValue("speakup:preferences:v1", JSON.stringify({ englishLevel: "Beginner" }));
     clearSavedPracticeData();
     expect(getSessions()).toEqual([]);
     expect(getVocabulary()).toEqual([]);
-    expect(localStorage.getItem("speakup:preferences:v1")).not.toBeNull();
+    expect(readPersistedValue("speakup:preferences:v1")).not.toBeNull();
   });
 });
 
