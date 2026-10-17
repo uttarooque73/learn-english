@@ -875,3 +875,10 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .fluency-history-transcript{white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0;padding:12px;border-radius:9px;background:#f7f8f4;font-size:13px;line-height:1.7}
 .fluency-history-actions{display:flex;gap:15px;flex-wrap:wrap}
 @media(max-width:650px){.shadowing-tabs button,.fluency-tabs button{padding:10px 8px;font-size:11px}.fluency-speaking-console{padding:14px}.fluency-speaking-actions{align-items:stretch;flex-direction:column}.fluency-speaking-actions button{width:100%}.fluency-history-header{flex-direction:column}.fluency-speaking-history{padding:15px}}
+
+/* Blind shadowing and sentence discovery */
+.shadowing-target-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:14px 0 8px}
+.shadowing-target-tools .active{border-color:var(--green-dark);background:#edf4e5;color:var(--green-dark)}
+.shadowing-sentence-hidden{display:grid;min-height:110px;place-items:center;text-align:center;color:var(--muted);background:repeating-linear-gradient(135deg,#f7f8f4,#f7f8f4 12px,#f0f2eb 12px,#f0f2eb 24px);border:1px dashed #cbd5c0}
+.shadowing-target-tools button:focus-visible{outline:3px solid #a6bf8e;outline-offset:2px}
+@media(max-width:560px){.shadowing-target-tools{align-items:stretch}.shadowing-target-tools button{flex:1;min-width:130px}}
