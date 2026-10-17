@@ -170,7 +170,7 @@ export function FloatingEnglishPartner() {
         if (finalTranscript.trim()) {
           const text = finalTranscript.trim();
           finalTranscript = "";
-          if (/^(please\\s+)?(stop|end|finish)\\s+(the\\s+)?(conversation|session)(\\s+please)?[.! ]*$/i.test(text)) {
+          if (/^(please\\s+)?(stop|end|finish)(\\s+(the\\s+)?(conversation|session))?(\\s+now)?(\\s+please)?[.! ]*$/i.test(text)) {
             const stop = stopSessionRef.current;
             if (stop) stop();
             return;
