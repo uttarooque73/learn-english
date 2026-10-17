@@ -118,4 +118,29 @@ describe("LearningPlan", () => {
     });
   });
 
+  it("shows the learner's weekly practice summary", async () => {
+    vi.mocked(initializeDatabasePersistence).mockResolvedValue(undefined);
+    vi.mocked(readPersistedValue).mockReturnValue(null);
+    vi.mocked(getVocabulary).mockReturnValue([]);
+    vi.mocked(getSessions).mockReturnValue([]);
+    vi.mocked(getLearningAnalytics).mockReturnValue({
+      currentStreak: 3,
+      commonCorrections: [],
+      practiceDaysThisWeek: 4,
+      sessionsThisWeek: 6,
+      minutesThisWeek: 42,
+    } as unknown as ReturnType<typeof getLearningAnalytics>);
+
+    render(<LearningPlan />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Your progress this week" })).toBeTruthy();
+      expect(screen.getByText("Days practiced this week")).toBeTruthy();
+      expect(screen.getByText("Saved speaking sessions")).toBeTruthy();
+      expect(screen.getByText("42")).toBeTruthy();
+    });
+    expect(screen.getByText("4")).toBeTruthy();
+    expect(screen.getByText("6")).toBeTruthy();
+  });
+
 });
