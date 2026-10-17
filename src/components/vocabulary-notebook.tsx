@@ -139,11 +139,8 @@ export function VocabularyNotebook() {
   }
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const visibleWords = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
-
-  useEffect(() => {
-    if (page > pageCount) setPage(pageCount);
-  }, [page, pageCount]);
+  const effectivePage = Math.min(page, pageCount);
+  const visibleWords = useMemo(() => filtered.slice((effectivePage - 1) * pageSize, effectivePage * pageSize), [filtered, effectivePage, pageSize]);
 
   const dueWords = useMemo(() => getDueVocabulary().filter((word) => words.some((saved) => saved.id === word.id)), [words]);
   const currentDue = dueWords.length ? dueWords[reviewIndex % dueWords.length] : undefined;
@@ -228,7 +225,7 @@ export function VocabularyNotebook() {
       ) : filtered.length ? (
         <>
         <div className="word-bank-controls">
-          <p className="word-bank-count" aria-live="polite">Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} {filtered.length === 1 ? "word" : "words"}</p>
+          <p className="word-bank-count" aria-live="polite">Showing {((effectivePage - 1) * pageSize) + 1}–{Math.min(effectivePage * pageSize, filtered.length)} of {filtered.length} {filtered.length === 1 ? "word" : "words"}</p>
           <div className="word-bank-view-controls">
             <label>Per page <select aria-label="Words per page" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option></select></label>
             <div className="word-bank-view-toggle" role="group" aria-label="Word bank layout">
@@ -239,9 +236,9 @@ export function VocabularyNotebook() {
         </div>
         <div className={displayStyle === "list" ? "saved-word-grid saved-word-list" : "saved-word-grid"}>{visibleWords.map((word) => <article className="saved-word-card" key={word.id}><div className="saved-word-heading"><div><h3>{word.phrase}</h3><ListenButton text={`${word.phrase}. ${word.meaning}. ${word.example}`} label={`Listen to ${word.phrase}`} /><span className={`vocab-status status-${word.status ?? "learning"}`}>{statusLabels[word.status ?? "learning"]}</span></div><button type="button" className="notebook-delete" onClick={() => deleteWord(word)} aria-label={`Delete ${word.phrase}`}>×</button></div><p>{word.meaning}</p><blockquote>{word.example}</blockquote><div className="saved-word-footer"><label>Learning status <select aria-label={`Status for ${word.phrase}`} value={word.status ?? "learning"} onChange={(event) => changeStatus(word, event.target.value as VocabularyStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><small>{new Date(word.savedAt).toLocaleDateString()}</small></div><Link className="vocabulary-detail-link" href={`/vocabulary/${encodeURIComponent(word.id)}`}>Explore this word <span aria-hidden="true">→</span></Link></article>)}</div>
         {pageCount > 1 && <nav className="word-bank-pagination" aria-label="Vocabulary pages">
-          <button type="button" className="notebook-secondary" onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))} disabled={page === 1}>← Previous</button>
-          <div className="word-bank-page-numbers">{Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => <button type="button" key={pageNumber} className={pageNumber === page ? "active" : ""} aria-current={pageNumber === page ? "page" : undefined} aria-label={`Go to page ${pageNumber}`} onClick={() => setPage(pageNumber)}>{pageNumber}</button>)}</div>
-          <button type="button" className="notebook-secondary" onClick={() => setPage((currentPage) => Math.min(pageCount, currentPage + 1))} disabled={page === pageCount}>Next →</button>
+          <button type="button" className="notebook-secondary" onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))} disabled={effectivePage === 1}>← Previous</button>
+          <div className="word-bank-page-numbers">{Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => <button type="button" key={pageNumber} className={pageNumber === effectivePage ? "active" : ""} aria-current={pageNumber === effectivePage ? "page" : undefined} aria-label={`Go to page ${pageNumber}`} onClick={() => setPage(pageNumber)}>{pageNumber}</button>)}</div>
+          <button type="button" className="notebook-secondary" onClick={() => setPage((currentPage) => Math.min(pageCount, currentPage + 1))} disabled={effectivePage === pageCount}>Next →</button>
         </nav>}
         </>
       ) : <div className="notebook-empty"><h3>{words.length ? "No matching words" : "Your word bank is ready"}</h3><p>{words.length ? "Try another search or status filter." : "Practice a conversation, ask for feedback, and save phrases to build your personal vocabulary notebook."}</p></div>}
