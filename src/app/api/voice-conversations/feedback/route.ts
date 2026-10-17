@@ -115,6 +115,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     ensurePersistenceSchema();
     const db = getDatabase();
+    const existingSession = db.prepare("SELECT owner_id FROM voice_conversation_sessions WHERE id=?").get(input.sessionId) as { owner_id: string } | undefined;
+    if (existingSession && existingSession.owner_id !== ownerId) return response({ error: "Conversation not found." }, request, ownerId, 404);
     const startedAt = messages.length ? messages[0].createdAt : new Date().toISOString();
     const endedAt = new Date().toISOString();
     const upsertSession = db.prepare(`INSERT INTO voice_conversation_sessions
