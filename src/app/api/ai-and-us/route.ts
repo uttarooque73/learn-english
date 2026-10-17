@@ -168,7 +168,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         .run(attemptId, ownerId, paragraphId, target, transcript, score, JSON.stringify(missingWords), JSON.stringify(extraWords), createdAt);
       return respond({ attempt: { id: attemptId, paragraphId: paragraphId ?? "", target, transcript, score, createdAt, missingWords, extraWords } }, request, ownerId);
     }
-    return respond({ error: "kind must be paragraph or attempt." }, request, ownerId, 400);
+    return respond({ error: "kind must be paragraph, feedback, or attempt." }, request, ownerId, 400);
   } catch {
     return respond({ error: "Could not save AI and Us practice data." }, request, ownerId, 503);
   }
