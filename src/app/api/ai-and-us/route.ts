@@ -6,6 +6,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Level = "Beginner" | "Intermediate" | "Advanced";
+type ParagraphFeedback = {
+  overallSummary: string;
+  corrections: { originalSentence: string; correctedSentence: string; naturalAlternative: string | null; category: string; explanation: string }[];
+  vocabularySuggestions: { original: string; suggested: string; reason: string }[];
+  practiceSuggestions: string[];
+};
 const MAX_PARAGRAPH_LENGTH = 12000;
 const MAX_TITLE_LENGTH = 120;
 
@@ -26,7 +32,12 @@ function getOwnerParagraph(db: ReturnType<typeof getDatabase>, paragraphId: stri
   return db.prepare("SELECT id FROM aius_paragraphs WHERE id=? AND owner_id=?").get(paragraphId, ownerId);
 }
 function readParagraph(row: Record<string, unknown>) {
-  return { id: String(row.id), title: String(row.title), text: String(row.text), level: String(row.proficiency_level) as Level, createdAt: String(row.created_at) };
+  let feedback: ParagraphFeedback | null = null;
+  try {
+    const parsed = JSON.parse(String(row.writing_feedback_json ?? "{}")) as ParagraphFeedback;
+    if (parsed && typeof parsed.overallSummary === "string") feedback = parsed;
+  } catch { /* Return no feedback for empty or invalid cached output. */ }
+  return { id: String(row.id), title: String(row.title), text: String(row.text), level: String(row.proficiency_level) as Level, createdAt: String(row.created_at), feedback };
 }
 function readAttempt(row: Record<string, unknown>) {
   let missingWords: string[] = [], extraWords: string[] = [];
@@ -40,7 +51,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     schema();
     const db = getDatabase();
-    const paragraphs = (db.prepare("SELECT id,title,text,proficiency_level,created_at,updated_at FROM aius_paragraphs WHERE owner_id=? ORDER BY updated_at DESC LIMIT 100").all(ownerId) as Array<Record<string, unknown>>).map(readParagraph);
+    const paragraphs = (db.prepare("SELECT id,title,text,proficiency_level,created_at,updated_at,writing_feedback_json FROM aius_paragraphs WHERE owner_id=? ORDER BY updated_at DESC LIMIT 100").all(ownerId) as Array<Record<string, unknown>>).map(readParagraph);
     const attempts = (db.prepare("SELECT id,paragraph_id,target,transcript,score,missing_words_json,extra_words_json,created_at FROM aius_reading_attempts WHERE owner_id=? ORDER BY created_at DESC LIMIT 100").all(ownerId) as Array<Record<string, unknown>>).map(readAttempt);
     return respond({ paragraphs, attempts }, request, ownerId);
   } catch {
@@ -68,9 +79,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const paragraphId = typeof input.id === "string" ? input.id : randomUUID();
       if (input.id && !getOwnerParagraph(db, paragraphId, ownerId)) return respond({ error: "Paragraph not found." }, request, ownerId, 404);
       db.prepare(`INSERT INTO aius_paragraphs(id,owner_id,title,text,proficiency_level,created_at,updated_at) VALUES(?,?,?,?,?,?,?)
-        ON CONFLICT(id) DO UPDATE SET title=excluded.title,text=excluded.text,proficiency_level=excluded.proficiency_level,updated_at=excluded.updated_at
+        ON CONFLICT(id) DO UPDATE SET title=excluded.title,text=excluded.text,proficiency_level=excluded.proficiency_level,updated_at=excluded.updated_at,writing_feedback_json='{}'
         WHERE aius_paragraphs.owner_id=excluded.owner_id`).run(paragraphId, ownerId, title, text, level, now, now);
-      const row = db.prepare("SELECT id,title,text,proficiency_level,created_at,updated_at FROM aius_paragraphs WHERE id=? AND owner_id=?").get(paragraphId, ownerId) as Record<string, unknown>;
+      const row = db.prepare("SELECT id,title,text,proficiency_level,created_at,updated_at,writing_feedback_json FROM aius_paragraphs WHERE id=? AND owner_id=?").get(paragraphId, ownerId) as Record<string, unknown>;
       return respond({ paragraph: readParagraph(row) }, request, ownerId);
     }
     if (input.kind === "attempt") {
