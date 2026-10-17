@@ -137,20 +137,19 @@ export function FloatingEnglishPartner() {
       append("assistant", reply.trim());
       setStatus("Speaking");
       await speak(reply.trim());
-      if (shouldListenRef.current) startListening();
     } catch (error) {
       if (!(error instanceof Error && error.name === "AbortError")) setStatus(error instanceof Error ? error.message : "Conversation failed. Please try again.");
-      if (shouldListenRef.current) window.setTimeout(() => startListening(), 1200);
     } finally {
       requestAbortRef.current = null;
       busyRef.current = false; setBusy(false);
+      if (shouldListenRef.current) window.setTimeout(() => startListening(), 180);
     }
   // startListening is intentionally declared below and referenced through a stable function.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [append, customTopic, level, speak, topic]);
 
   const startListening = useCallback(() => {
-    if (!shouldListenRef.current || busyRef.current) return;
+    if (!shouldListenRef.current || busyRef.current || recognitionRef.current) return;
     const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
     if (!recognitionConstructor) { setStatus("Voice input is not supported in this browser. You can still use text input."); return; }
     try {
@@ -186,12 +185,13 @@ export function FloatingEnglishPartner() {
         } else if (event.error !== "aborted" && shouldListenRef.current) setStatus("Reconnecting to microphone…");
       };
       recognition.onend = () => {
+        if (recognitionRef.current === recognition) recognitionRef.current = null;
         if (shouldListenRef.current && !busyRef.current) window.setTimeout(() => startListening(), 300);
       };
       recognitionRef.current = recognition;
       setStatus("Listening");
       recognition.start();
-    } catch { setStatus("Could not start the microphone. Check browser permissions."); }
+    } catch { recognitionRef.current = null; setStatus("Could not start the microphone. Check browser permissions."); }
   }, [requestReply]);
 
   const stopSession = useCallback(async () => {
@@ -277,7 +277,7 @@ export function FloatingEnglishPartner() {
     setStatus("Speech interrupted");
     if (active) {
       shouldListenRef.current = true;
-      window.setTimeout(() => { if (!busyRef.current && shouldListenRef.current) startListening(); }, 400);
+      if (!busyRef.current) window.setTimeout(() => { if (!busyRef.current && shouldListenRef.current) startListening(); }, 150);
     }
   }, [active, startListening]);
 
@@ -345,7 +345,7 @@ export function FloatingEnglishPartner() {
           </form>}
           <footer className="floating-english-controls">
             {!active ? <button className="floating-english-start" type="button" onClick={() => void startSession()} disabled={busy}>Start Conversation</button> : <><button type="button" onClick={interruptSpeech}>Interrupt speech</button><button className="floating-english-stop" type="button" onClick={() => void stopSession()}>Stop Conversation</button></>}
-            {!active && feedbackStatus !== "idle" && feedbackStatus !== "processing" && <button type="button" onClick={() => void stopSession()}>Retry feedback</button>}
+            {!active && (feedbackStatus === "failed" || feedbackStatus === "partial") && <button type="button" onClick={() => void stopSession()}>Retry feedback</button>}
             <button type="button" onClick={() => setTab("history")}>History</button>
             {tab !== "conversation" && <button type="button" onClick={() => setTab("conversation")}>Conversation</button>}
             {tab !== "feedback" && feedbackStatus !== "idle" && <button type="button" onClick={() => setTab("feedback")}>Review feedback</button>}
