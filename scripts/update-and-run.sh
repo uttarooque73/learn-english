@@ -35,12 +35,7 @@ else
   log "Keeping your existing .env.local unchanged."
 fi
 
-# Upgrade the old example default, but preserve custom model settings.
-if grep -qx 'OLLAMA_MODEL=qwen3:4b' .env.local; then
-  sed 's/^OLLAMA_MODEL=qwen3:4b$/OLLAMA_MODEL=llama3.1:8b/' .env.local > .env.local.tmp
-  mv .env.local.tmp .env.local
-  log "Changed the old default model to llama3.1:8b in .env.local."
-fi
+# Keep .env.local exactly as configured by the user.
 
 # Read only the two expected settings without sourcing the env file as shell code.
 OLLAMA_BASE_URL="$(sed -n 's/^OLLAMA_BASE_URL=//p' .env.local | tail -n 1)"
