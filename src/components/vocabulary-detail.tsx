@@ -118,7 +118,7 @@ export function VocabularyDetail({ id }: { id: string }) {
   }
 
   if (!ready) return <div className="notebook-empty" aria-live="polite">Opening your word…</div>;
-  if (!word) return <section className="vocabulary-detail-missing"><span className="eyebrow">WORD NOT FOUND</span><h2>This word isn’t in your saved vocabulary.</h2><p>Your saved vocabulary is loaded from your SpeakUp database. If this word is missing, it may have been removed or saved under a different browser profile.</p><Link className="button button-dark" href="/vocabulary">Back to vocabulary</Link></section>;
+  if (!word) return <section className="vocabulary-detail-missing"><span className="eyebrow">WORD NOT FOUND</span><h2>This word isn’t in your saved vocabulary.</h2><p>{error || "Your saved vocabulary is loaded from your SpeakUp database. If this word is missing, it may have been removed or saved under a different browser profile."}</p><Link className="button button-dark" href="/vocabulary">Back to vocabulary</Link></section>;
 
   return (
     <div className="vocabulary-detail-page">
