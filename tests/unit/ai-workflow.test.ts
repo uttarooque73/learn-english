@@ -47,6 +47,17 @@ describe("learning workflow foundation", () => {
       normalizedGoal: "Speak more confidently.",
     });
     expect(await resumeLearningWorkflow("owner-b", result.run.runId)).toBeNull();
+
+    const checkpointCount = getDatabase().prepare(
+      "SELECT COUNT(*) AS count FROM checkpoints",
+    ).get() as { count: number };
+    expect(checkpointCount.count).toBeGreaterThan(0);
+
+    // Simulate a process restart after the checkpoint was saved but before run status was finalized.
+    getDatabase().prepare(
+      "UPDATE agent_runs SET status = 'running', finished_at = NULL, duration_ms = NULL WHERE run_id = ?",
+    ).run(result.run.runId);
+    resetLearningWorkflowForTests();
     expect((await resumeLearningWorkflow("owner-a", result.run.runId))?.status).toBe("completed");
 
     const row = getDatabase().prepare(
