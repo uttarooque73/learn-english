@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getDatabase } from "@/lib/database";
+import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,16 +12,7 @@ type Topic = {id:string;owner_id:string;name:string;description:string;category:
 type Word = {word:string;partOfSpeech:string;definition:string;hindiMeaning:string;pronunciation:string;ipa:string;example:string;exampleHindi:string;context:string;synonyms:string[];relatedWords:string[];difficulty:Difficulty;visualAssociation?:string};
 function ownerFor(req:NextRequest){return req.cookies.get(COOKIE)?.value||randomUUID()}
 function respond(data:unknown,req:NextRequest,owner:string,status=200){const res=NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});if(!req.cookies.has(COOKIE))res.cookies.set(COOKIE,owner,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/",maxAge:31536000});return res}
-function schema(){getDatabase().exec(`
-CREATE TABLE IF NOT EXISTS daily_vocabulary_topics(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',category TEXT NOT NULL DEFAULT 'Custom',instructions TEXT NOT NULL DEFAULT '',difficulty TEXT NOT NULL DEFAULT 'intermediate',daily_allocation INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
-CREATE INDEX IF NOT EXISTS idx_daily_vocab_topics_owner ON daily_vocabulary_topics(owner_id,active);
-CREATE TABLE IF NOT EXISTS daily_vocabulary_preferences(owner_id TEXT PRIMARY KEY,daily_target INTEGER NOT NULL DEFAULT 10,allocation_mode TEXT NOT NULL DEFAULT 'automatic',difficulty TEXT NOT NULL DEFAULT 'intermediate',timezone TEXT NOT NULL DEFAULT 'UTC',updated_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS daily_vocabulary_sets(id TEXT PRIMARY KEY,owner_id TEXT NOT NULL,local_date TEXT NOT NULL,daily_target INTEGER NOT NULL,created_at TEXT NOT NULL,UNIQUE(owner_id,local_date));
-CREATE INDEX IF NOT EXISTS idx_daily_vocab_sets_owner_date ON daily_vocabulary_sets(owner_id,local_date DESC);
-CREATE TABLE IF NOT EXISTS daily_vocabulary_entries(id TEXT PRIMARY KEY,set_id TEXT NOT NULL,owner_id TEXT NOT NULL,topic_id TEXT NOT NULL,word_key TEXT NOT NULL,word_json TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'new',favorite INTEGER NOT NULL DEFAULT 0,review_later INTEGER NOT NULL DEFAULT 0,learned_at TEXT,created_at TEXT NOT NULL,UNIQUE(set_id,topic_id,word_key),FOREIGN KEY(set_id) REFERENCES daily_vocabulary_sets(id) ON DELETE CASCADE);
-CREATE INDEX IF NOT EXISTS idx_daily_vocab_entries_owner ON daily_vocabulary_entries(owner_id,created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_daily_vocab_entries_topic ON daily_vocabulary_entries(owner_id,topic_id,word_key);
-`)}
+function schema(){ensurePersistenceSchema()}
 function now(){return new Date().toISOString()}
 function dateForZone(zone:string){try{return new Intl.DateTimeFormat("en-CA",{timeZone:zone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}catch{return new Date().toISOString().slice(0,10)}}
 function safeWord(v:unknown,difficulty:Difficulty):Word|null{if(!v||typeof v!=="object")return null;const x=v as Record<string,unknown>;const str=(v:unknown,n:number)=>typeof v==="string"?v.trim().slice(0,n):"";const list=(v:unknown)=>Array.isArray(v)?v.filter((x):x is string=>typeof x==="string").map(x=>x.trim().slice(0,80)).filter(Boolean).slice(0,8):[];const word=str(x.word,100),definition=str(x.definition,500),example=str(x.example,500);if(!word||!definition||!example)return null;return{word,partOfSpeech:str(x.partOfSpeech,40)||"word",definition,hindiMeaning:str(x.hindiMeaning,400),pronunciation:str(x.pronunciation,100),ipa:str(x.ipa,100),example,exampleHindi:str(x.exampleHindi,500),context:str(x.context,400),synonyms:list(x.synonyms),relatedWords:list(x.relatedWords),difficulty:difficulties.includes(x.difficulty as Difficulty)?x.difficulty as Difficulty:difficulty,visualAssociation:str(x.visualAssociation,200)||undefined}}
