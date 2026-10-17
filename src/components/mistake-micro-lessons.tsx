@@ -36,17 +36,43 @@ export function MistakeMicroLessons() {
   const [choice, setChoice] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");\n  const [score, setScore] = useState(0);\n  const [results, setResults] = useState<LessonResult[]>([]);
+  const [error, setError] = useState("");
+  const [score, setScore] = useState(0);
+  const [results, setResults] = useState<LessonResult[]>([]);
   useEffect(() => {
     let active = true;
     void initializeDatabasePersistence().then(() => {
-      if (active) {\n        setSessions(getSessions());\n        const raw = readPersistedValue(RESULTS_KEY);\n        if (raw) {\n          try {\n            const parsed: unknown = JSON.parse(raw);\n            if (Array.isArray(parsed)) setResults(parsed.filter((item): item is LessonResult => item && typeof item.id === "string" && typeof item.score === "number" && typeof item.total === "number"));\n          } catch { /* Ignore malformed history and keep an empty list. */ }\n        }\n      }
+      if (active) {
+        setSessions(getSessions());
+        const raw = readPersistedValue(RESULTS_KEY);
+        if (raw) {
+          try {
+            const parsed: unknown = JSON.parse(raw);
+            if (Array.isArray(parsed)) setResults(parsed.filter((item): item is LessonResult => item && typeof item.id === "string" && typeof item.score === "number" && typeof item.total === "number"));
+          } catch { /* Ignore malformed history and keep an empty list. */ }
+        }
+      }
     }).catch(() => {
       if (active) setError("Could not load saved practice history. Refresh the page to retry.");
     });
     return () => { active = false; };
   }, []);
-  const weaknesses = useMemo(() => collectWeaknesses(sessions), [sessions]);
+  const weaknesses = useMemo(() => {
+    const base = collectWeaknesses(sessions);
+    const averageFor = (weakness: Weakness) => {
+      const matching = results.filter((result) => result.original.toLowerCase() === weakness.original.toLowerCase() && result.improved.toLowerCase() === weakness.improved.toLowerCase());
+      if (!matching.length) return null;
+      return matching.reduce((sum, result) => sum + result.score / Math.max(1, result.total), 0) / matching.length;
+    };
+    return base.sort((a, b) => {
+      const aScore = averageFor(a);
+      const bScore = averageFor(b);
+      if (aScore !== null && bScore !== null && aScore !== bScore) return aScore - bScore;
+      if (aScore !== null && bScore === null) return -1;
+      if (aScore === null && bScore !== null) return 1;
+      return b.count - a.count;
+    });
+  }, [sessions, results]);
   const question = questions[questionIndex];
 
   async function startLesson(weakness: Weakness) {
@@ -70,6 +96,7 @@ export function MistakeMicroLessons() {
 
   return <section className="learning-feature-panel micro-lessons-panel">
     <div className="learning-feature-heading"><div><p className="eyebrow">LEARN FROM YOUR HISTORY</p><h2>Micro-lessons from recurring mistakes</h2><p>Repeated corrections from separate saved sessions are sent to your AI tutor to generate three different practice questions targeting that exact weakness.</p>{results.length > 0 && <p className="analytics-support">Completed lessons: {results.length} · Average score: {Math.round(results.reduce((sum, item) => sum + (item.score / Math.max(1, item.total)) * 100, 0) / results.length)}%</p>}</div><span className="feature-symbol" aria-hidden="true">✎</span></div>
-    {error && !active ? <p className="feature-feedback" role="alert">{error}</p> : !weaknesses.length ? <div className="feature-empty"><strong>No recurring pattern yet</strong><p>Complete and save session summaries with corrections. A lesson appears when the same original-to-improved correction is recorded in at least two separate session summaries.</p></div> : !active ? <div className="micro-lesson-list">{weaknesses.map((weakness) => <article key={weakness.original + weakness.improved} className="micro-lesson-item"><div><strong>{weakness.original} <span aria-hidden="true">→</span> {weakness.improved}</strong><p>{weakness.reason}</p><small>Seen in {weakness.count} session summaries · e.g. {weakness.scenario}</small></div><button type="button" className="button button-outline" disabled={loading} onClick={() => void startLesson(weakness)}>Generate AI lesson</button></article>)}</div> : <div className="micro-quiz"><div className="micro-quiz-top"><strong>{loading ? "Generating your lesson…" : question ? `Question ${questionIndex + 1} of 3` : "Targeted practice"}</strong><button className="text-link" type="button" onClick={leaveLesson}>All lessons</button></div>{loading && <p role="status">Your tutor is building varied examples around this recurring mistake…</p>}{error && <div><p className="feature-feedback" role="alert">{error}</p><button type="button" className="button button-outline" onClick={() => void startLesson(active)}>Try again</button></div>}{question && !loading && <><h3>{question.prompt}</h3><div className="micro-quiz-options">{question.options.map((option) => <button type="button" key={option} className={choice === option ? "micro-quiz-option selected" : "micro-quiz-option"} onClick={() => { if (!revealed) setChoice(option); }}>{option}</button>)}</div>{revealed && <p className={choice === question.answer ? "quiz-correct" : "quiz-review"} role="status"><strong>{choice === question.answer ? "Correct." : "Review this pattern."}</strong> {question.explanation}<br />Suggested answer: {question.answer}</p>}<div className="micro-quiz-actions">{!revealed ? <button className="button button-primary" type="button" disabled={!choice} onClick={() => { if (choice === question.answer) setScore((current) => current + 1); setRevealed(true); }}>Check answer</button> : <button className="button button-primary" type="button" onClick={() => { if (questionIndex === 2) { const result: LessonResult = { id: `${Date.now()}-${active.original}`, original: active.original, improved: active.improved, score, total: questions.length, completedAt: new Date().toISOString() }; const updated = [result, ...results].slice(0, 50); setResults(updated); writePersistedValue(RESULTS_KEY, JSON.stringify(updated)); leaveLesson(); setSessions(getSessions()); } else { setQuestionIndex((index) => index + 1); setChoice(""); setRevealed(false); } }}>{questionIndex === 2 ? "Finish lesson" : "Next question"}</button>}</div></>}</div>}
+    {error && !active ? <p className="feature-feedback" role="alert">{error}</p> : !weaknesses.length ? <div className="feature-empty"><strong>No recurring pattern yet</strong><p>Complete and save session summaries with corrections. A lesson appears when the same original-to-improved correction is recorded in at least two separate session summaries.</p></div> : !active ? <div className="micro-lesson-list">{weaknesses.map((weakness) => { const matching = results.filter((result) => result.original.toLowerCase() === weakness.original.toLowerCase() && result.improved.toLowerCase() === weakness.improved.toLowerCase()); const average = matching.length ? Math.round(matching.reduce((sum, result) => sum + (result.score / Math.max(1, result.total)) * 100, 0) / matching.length) : null; return <article key={weakness.original + weakness.improved} className="micro-lesson-item"><div><strong>{weakness.original} <span aria-hidden="true">→</span> {weakness.improved}</strong><p>{weakness.reason}</p><small>Seen in {weakness.count} session summaries · e.g. {weakness.scenario}{average !== null ? ` · Your average: ${average}%` : ""}</small>{average !== null && average < 70 && <p className="quiz-review">Needs more practice — this lesson is prioritized based on your previous scores.</p>}</div><button type="button" className="button button-outline" disabled={loading} onClick={() => void startLesson(weakness)}>Practice again</button></article>; })}</div> : <div className="micro-quiz"><div className="micro-quiz-top"><strong>{loading ? "Generating your lesson…" : question ? `Question ${questionIndex + 1} of 3` : "Targeted practice"}</strong><button className="text-link" type="button" onClick={leaveLesson}>All lessons</button></div>{loading && <p role="status">Your tutor is building varied examples around this recurring mistake…</p>}{error && <div><p className="feature-feedback" role="alert">{error}</p><button type="button" className="button button-outline" onClick={() => void startLesson(active)}>Try again</button></div>}{question && !loading && <><h3>{question.prompt}</h3><div className="micro-quiz-options">{question.options.map((option) => <button type="button" key={option} className={choice === option ? "micro-quiz-option selected" : "micro-quiz-option"} onClick={() => { if (!revealed) setChoice(option); }}>{option}</button>)}</div>{revealed && <p className={choice === question.answer ? "quiz-correct" : "quiz-review"} role="status"><strong>{choice === question.answer ? "Correct." : "Review this pattern."}</strong> {question.explanation}<br />Suggested answer: {question.answer}</p>}<div className="micro-quiz-actions">{!revealed ? <button className="button button-primary" type="button" disabled={!choice} onClick={() => { if (choice === question.answer) setScore((current) => current + 1); setRevealed(true); }}>Check answer</button> : <button className="button button-primary" type="button" onClick={() => { if (questionIndex === 2) { const result: LessonResult = { id: `${Date.now()}-${active.original}`, original: active.original, improved: active.improved, score, total: questions.length, completedAt: new Date().toISOString() }; const updated = [result, ...results].slice(0, 50); setResults(updated); writePersistedValue(RESULTS_KEY, JSON.stringify(updated)); leaveLesson(); setSessions(getSessions()); } else { setQuestionIndex((index) => index + 1); setChoice(""); setRevealed(false); } }}>{questionIndex === 2 ? "Finish lesson" : "Next question"}</button>}</div></>}</div>}
+    <div className="micro-lesson-history"><h3>Recent lesson history</h3>{results.length === 0 ? <p>Finish a micro-lesson to start tracking your scores here.</p> : <ul>{results.slice(0, 5).map((result) => <li key={result.id}><div><strong>{result.original} <span aria-hidden="true">→</span> {result.improved}</strong><small>{new Date(result.completedAt).toLocaleDateString()}</small></div><span className={result.score / Math.max(1, result.total) >= 0.7 ? "quiz-correct" : "quiz-review"}>{result.score}/{result.total} ({Math.round(result.score / Math.max(1, result.total) * 100)}%)</span></li>)}</ul>}</div>
   </section>;
 }
