@@ -7,7 +7,7 @@ import { applyAccessibilityPreferences, getLearningPreferences } from "@/lib/lea
 export function PreferenceInitializer() {
   useEffect(() => {
     let active = true;
-    void initializeDatabasePersistence().finally(() => {
+    void initializeDatabasePersistence().catch(() => undefined).finally(() => {
       if (active) applyAccessibilityPreferences(getLearningPreferences());
     });
     return () => { active = false; };
