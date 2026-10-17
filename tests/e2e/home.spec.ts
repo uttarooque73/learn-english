@@ -595,7 +595,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   await expect(page.getByText("I work as a software engineer.", { exact: true })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Speech recognition is not supported" })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: "Repeat Correct Sentence" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Next" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Next", exact: true })).toBeHidden();
   await page.getByRole("button", { name: "Stop Conversation" }).click();
   await expect(page.getByText("Overall feedback")).toBeVisible();
   await expect(page.getByText("Use an article before a singular countable job title.")).toBeVisible();
