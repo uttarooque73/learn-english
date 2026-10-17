@@ -63,6 +63,9 @@ describe("SQLite schema migrations", () => {
     expect(tableNames).toContain("practice_attempts");
     expect(tableNames).toContain("learning_mistakes");
     expect(tableNames).toContain("vocabulary_review_events");
+    expect(tableNames).toContain("agent_runs");
+    expect(tableNames).toContain("learning_jobs");
+    expect(tableNames).toContain("learning_job_attempts");
   });
 
   it("is safe to run repeatedly and preserves existing learner data", () => {
