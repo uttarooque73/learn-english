@@ -22,7 +22,7 @@ describe("FluencyExercises", () => {
 
     expect(screen.getByText("3 possible filler words detected")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Finish exercise" }));
-    expect(screen.getByRole("status")).toHaveTextContent("You wrote 6 words.");
+    expect(screen.getByRole("status")).toHaveTextContent("Your transcript contains 6 words.");
     expect(screen.getByRole("status")).toHaveTextContent("Review the 3 possible filler word(s)");
   });
 
