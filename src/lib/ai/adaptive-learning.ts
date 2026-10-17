@@ -52,7 +52,7 @@ export class AdaptiveLearningError extends Error {
   }
 }
 
-type PlanRequest = { dailyTargetMinutes?: number; goal?: string };
+type PlanRequest = { dailyTargetMinutes?: number; goal?: string; localDate?: string; generationSource?: "ai" | "manual" | "scheduled" };
 type AttemptRequest = {
   planItemId: string;
   responseText: string;
@@ -222,6 +222,120 @@ function loadPlanningContext(ownerId: string, profile: ProfileRow) {
   };
 }
 
+
+const ADAPTIVE_SKILLS = ["speaking", "pronunciation", "grammar", "vocabulary", "listening", "fluency", "writing"] as const;
+type AdaptiveSkill = typeof ADAPTIVE_SKILLS[number];
+type AdaptationSettings = { enabled: boolean; policyVersion: string; reviewIntervalScale: number };
+type AdaptationPolicy = {
+  enabled: boolean;
+  policyVersion: string;
+  reviewIntervalScale: number;
+  weights: Record<AdaptiveSkill, number>;
+  focusSkills: AdaptiveSkill[];
+  contextSummary: Record<string, unknown>;
+};
+
+function readAdaptationSettings(ownerId: string): AdaptationSettings {
+  const database = getDatabase();
+  database.prepare("INSERT OR IGNORE INTO learner_profiles (owner_id) VALUES (?)").run(ownerId);
+  database.prepare("INSERT OR IGNORE INTO learner_adaptation_settings (owner_id) VALUES (?)").run(ownerId);
+  const row = database.prepare(`
+    SELECT enabled, policy_version AS policyVersion, review_interval_scale AS reviewIntervalScale
+    FROM learner_adaptation_settings WHERE owner_id = ?
+  `).get(ownerId) as { enabled: number; policyVersion: string; reviewIntervalScale: number };
+  const globalValue = (process.env.LEARNING_ADAPTATION_ENABLED ?? "true").toLowerCase();
+  const enabled = row.enabled === 1 && !["0", "false", "off", "disabled"].includes(globalValue);
+  return {
+    enabled,
+    policyVersion: enabled ? row.policyVersion : "baseline-v1",
+    reviewIntervalScale: enabled ? row.reviewIntervalScale : 1,
+  };
+}
+
+function skillForActivity(activityType: string): AdaptiveSkill {
+  if (activityType === "vocabulary") return "vocabulary";
+  if (activityType === "grammar") return "grammar";
+  if (activityType === "shadowing") return "pronunciation";
+  if (activityType === "listening") return "listening";
+  if (activityType === "fluency") return "fluency";
+  return "speaking";
+}
+
+function buildAdaptationPolicy(
+  context: ReturnType<typeof loadPlanningContext>,
+  settings: AdaptationSettings,
+): AdaptationPolicy {
+  const weights = Object.fromEntries(ADAPTIVE_SKILLS.map((skill) => [skill, 1])) as Record<AdaptiveSkill, number>;
+  const skillScores = context.skills as Array<{ skillKey: string; mastery: number; confidence: number; evidenceCount: number }>;
+  const mistakes = context.recurringMistakes as Array<{ category: string; occurrenceCount: number }>;
+  const recentAttempts = context.recentAttempts as Array<{ activityType: string; score: number | null }>;
+
+  if (settings.enabled) {
+    for (const score of skillScores) {
+      if (!(ADAPTIVE_SKILLS as readonly string[]).includes(score.skillKey)) continue;
+      const skill = score.skillKey as AdaptiveSkill;
+      if (score.mastery < 0.55) weights[skill] += 0.45;
+      if (score.confidence < 0.5) weights[skill] += 0.15;
+      if (score.evidenceCount < 3) weights[skill] += 0.1;
+      if (score.mastery > 0.85 && score.confidence > 0.7 && score.evidenceCount >= 5) weights[skill] -= 0.2;
+    }
+    for (const mistake of mistakes) {
+      if (!(ADAPTIVE_SKILLS as readonly string[]).includes(mistake.category)) continue;
+      const skill = mistake.category as AdaptiveSkill;
+      weights[skill] += Math.min(0.75, Math.max(0, mistake.occurrenceCount) * 0.12);
+    }
+    if (context.dueVocabularyReviews > 0) {
+      weights.vocabulary += Math.min(1, context.dueVocabularyReviews * 0.1);
+    }
+    for (const skill of ADAPTIVE_SKILLS) {
+      const attempts = recentAttempts.filter((attempt) => skillForActivity(attempt.activityType) === skill && attempt.score !== null);
+      const lowScores = attempts.filter((attempt) => (attempt.score ?? 1) < 0.5).length;
+      if (lowScores >= 2) weights[skill] += Math.min(0.4, lowScores * 0.1);
+      weights[skill] = Math.max(0.5, Math.min(3, Number(weights[skill].toFixed(2))));
+    }
+  }
+
+  const focusSkills = [...ADAPTIVE_SKILLS].sort((left, right) => weights[right] - weights[left]);
+  return {
+    enabled: settings.enabled,
+    policyVersion: settings.policyVersion,
+    reviewIntervalScale: settings.reviewIntervalScale,
+    weights,
+    focusSkills,
+    contextSummary: {
+      proficiencyLevel: context.proficiencyLevel,
+      goalCount: context.goals.length,
+      skillEvidenceCount: skillScores.reduce((sum, score) => sum + score.evidenceCount, 0),
+      activeMistakeCount: mistakes.length,
+      dueVocabularyReviews: settings.enabled ? context.dueVocabularyReviews : 0,
+      recentAttemptCount: settings.enabled ? recentAttempts.length : 0,
+    },
+  };
+}
+
+/** Deterministic and inspectable adaptation policy used by the planner and spaced-repetition schedule. */
+export function getAdaptiveLearningPolicy(ownerId: string): AdaptationPolicy {
+  assertOwner(ownerId);
+  ensurePersistenceSchema();
+  const profile = readProfile(ownerId);
+  const settings = readAdaptationSettings(ownerId);
+  const context = loadPlanningContext(ownerId, profile);
+  return buildAdaptationPolicy(context, settings);
+}
+
+function insertVocabularyReviewEvent(ownerId: string, vocabularyRef: string, score: number, now: string): void {
+  const settings = readAdaptationSettings(ownerId);
+  const recallRating = Math.max(0, Math.min(5, Math.round(score * 5)));
+  const baseIntervals = [1, 1, 2, 4, 7, 14];
+  const intervalDays = Math.max(1, Math.min(90, Math.round(baseIntervals[recallRating] * settings.reviewIntervalScale)));
+  const dueAt = new Date(Date.parse(now) + intervalDays * 86_400_000).toISOString();
+  getDatabase().prepare(`
+    INSERT INTO vocabulary_review_events (
+      id, owner_id, vocabulary_ref, recall_rating, interval_days, next_due_at, policy_version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(randomUUID(), ownerId, vocabularyRef, recallRating, intervalDays, dueAt, settings.policyVersion);
+}
+
 function mapPlanRow(row: PlanRow, items: PlanItemRow[]): DailyLearningPlan {
   return {
     id: row.id,
@@ -283,6 +397,22 @@ export async function generateDailyLearningPlan(
   const database = getDatabase();
   const currentProfile = readProfile(ownerId);
   const targetMinutes = request.dailyTargetMinutes ?? currentProfile.daily_target_minutes;
+  if (request.localDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(request.localDate)) {
+    throw new AdaptiveLearningError("invalid_input", "localDate must use YYYY-MM-DD format.");
+  }
+  const localDate = request.localDate ?? localDateForZone(currentProfile.timezone);
+  const generationSource = request.generationSource ?? "ai";
+  if (generationSource === "scheduled") {
+    const existing = database.prepare(`
+      SELECT id FROM learning_plans WHERE owner_id = ? AND local_date = ?
+        AND generation_source = 'scheduled' AND status IN ('published', 'completed')
+      ORDER BY version DESC LIMIT 1
+    `).get(ownerId, localDate) as { id: string } | undefined;
+    if (existing) {
+      const existingPlan = getPlanById(ownerId, existing.id);
+      if (existingPlan) return existingPlan;
+    }
+  }
   if (!Number.isInteger(targetMinutes) || targetMinutes < 5 || targetMinutes > 240) {
     throw new AdaptiveLearningError("invalid_input", "Daily target must be an integer between 5 and 240 minutes.");
   }
@@ -304,6 +434,22 @@ export async function generateDailyLearningPlan(
   `).run(targetMinutes, updatedProfile.goals_json, ownerId);
 
   const context = loadPlanningContext(ownerId, updatedProfile);
+  const policy = buildAdaptationPolicy(context, readAdaptationSettings(ownerId));
+  const plannerContext = policy.enabled ? {
+    ...context,
+    adaptationPolicy: {
+      policyVersion: policy.policyVersion,
+      skillWeights: policy.weights,
+      focusSkills: policy.focusSkills.slice(0, 3),
+      reviewIntervalScale: policy.reviewIntervalScale,
+    },
+  } : {
+    timezone: context.timezone,
+    proficiencyLevel: context.proficiencyLevel,
+    goals: context.goals,
+    preferences: context.preferences,
+    adaptationPolicy: { enabled: false, policyVersion: policy.policyVersion },
+  };
   const prompt = [
     "You are an evidence-based English learning planner.",
     "Return JSON matching {activities:[{activityType,title,skillKey,durationMinutes,priority,reason}]}.",
@@ -311,10 +457,10 @@ export async function generateDailyLearningPlan(
     "Allowed activityType values: conversation, vocabulary, grammar, shadowing, listening, fluency.",
     "Allowed skillKey values: speaking, pronunciation, grammar, vocabulary, listening, fluency, writing.",
     "Each durationMinutes must be an integer from 1 to 240. priority must be 0 to 1. Each reason must briefly cite the goal or supplied evidence.",
-    "Do not claim mastery or improvement without saved evidence. Prefer due reviews and recurring mistakes when relevant.",
+    "Do not claim mastery or improvement without saved evidence. When adaptation is enabled, prioritize higher skillWeights and due reviews.",
     `Learner goals: ${JSON.stringify(normalizedGoals)}`,
     `Daily target minutes: ${targetMinutes}`,
-    `Learner evidence context: ${JSON.stringify(context)}`,
+    `Learner evidence context: ${JSON.stringify(plannerContext)}`,
   ].join("\n");
 
   let generated: { activities: PlannedActivity[] };
@@ -324,14 +470,31 @@ export async function generateDailyLearningPlan(
     if (error instanceof ModelProviderError) throw error;
     throw new AdaptiveLearningError("invalid_plan", "The planner could not produce a valid learning plan.", { cause: error });
   }
-  const totalMinutes = generated.activities.reduce((sum, activity) => sum + activity.durationMinutes, 0);
+  const activities = [...generated.activities];
+  if (policy.enabled && context.dueVocabularyReviews > 0
+    && !activities.some((activity) => activity.activityType === "vocabulary")
+    && (context.dueVocabularyReviews >= 3 || policy.focusSkills[0] === "vocabulary")) {
+    const replaceIndex = activities.reduce((lowest, activity, index, all) =>
+      activity.priority < all[lowest].priority ? index : lowest, 0);
+    const replaced = activities[replaceIndex];
+    activities[replaceIndex] = {
+      activityType: "vocabulary",
+      title: "Review due vocabulary",
+      skillKey: "vocabulary",
+      durationMinutes: replaced.durationMinutes,
+      priority: Math.max(replaced.priority, Math.min(1, policy.weights.vocabulary / 3)),
+      reason: `Prioritized ${context.dueVocabularyReviews} due spaced-repetition review(s).`,
+    };
+  }
+  const totalMinutes = activities.reduce((sum, activity) => sum + activity.durationMinutes, 0);
   if (totalMinutes > targetMinutes) {
     throw new AdaptiveLearningError("invalid_plan", "The generated plan exceeds the learner's daily time target.");
   }
 
   const planId = randomUUID();
-  const localDate = localDateForZone(currentProfile.timezone);
   const createdAt = new Date().toISOString();
+  const decisionContext = JSON.stringify(policy.contextSummary);
+  const decisionWeights = JSON.stringify(policy.weights);
 
   const savePlan = database.transaction(() => {
     const nextVersion = (database.prepare(`
@@ -341,8 +504,8 @@ export async function generateDailyLearningPlan(
     database.prepare(`
       INSERT INTO learning_plans (
         id, owner_id, local_date, status, version, generation_source, total_minutes, created_at, updated_at
-      ) VALUES (?, ?, ?, 'published', ?, 'ai', ?, ?, ?)
-    `).run(planId, ownerId, localDate, nextVersion, totalMinutes, createdAt, createdAt);
+      ) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?)
+    `).run(planId, ownerId, localDate, nextVersion, generationSource, totalMinutes, createdAt, createdAt);
 
     const insertItem = database.prepare(`
       INSERT INTO learning_plan_items (
@@ -350,12 +513,16 @@ export async function generateDailyLearningPlan(
         estimated_minutes, priority, reason_codes_json, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `);
-    generated.activities.forEach((activity, position) => {
+    activities.forEach((activity, position) => {
       insertItem.run(
         randomUUID(), planId, ownerId, position, activity.activityType, activity.title,
         activity.skillKey, activity.durationMinutes, activity.priority, JSON.stringify([activity.reason]),
       );
     });
+    database.prepare(`
+      INSERT INTO learning_plan_decisions (id, owner_id, plan_id, policy_version, context_json, weights_json)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(randomUUID(), ownerId, planId, policy.policyVersion, decisionContext, decisionWeights);
   });
   savePlan();
 
@@ -458,6 +625,10 @@ export async function evaluatePracticeAttempt(
         evidence_count = learner_skill_scores.evidence_count + 1,
         updated_at = excluded.updated_at
     `).run(ownerId, evaluation.skillKey, evaluation.score, evaluation.confidence, now);
+
+    if (item.activityType === "vocabulary" && item.activityRef) {
+      insertVocabularyReviewEvent(ownerId, item.activityRef, evaluation.score, now);
+    }
 
     database.prepare(`
       UPDATE learning_plan_items SET status = 'completed'
@@ -654,13 +825,7 @@ export function recordPracticeEvidence(ownerId: string, request: LearningEvidenc
     persistMistakeEvidence(ownerId, attemptId, skillKey, corrections, now);
 
     if (request.activityType === "vocabulary" && activityRef && score !== undefined) {
-      const recallRating = Math.round(score * 5);
-      const intervalDays = recallRating <= 1 ? 1 : recallRating === 2 ? 2 : recallRating === 3 ? 4 : recallRating === 4 ? 7 : 14;
-      const dueAt = new Date(Date.now() + intervalDays * 86_400_000).toISOString();
-      database.prepare(`
-        INSERT INTO vocabulary_review_events (id, owner_id, vocabulary_ref, recall_rating, interval_days, next_due_at, policy_version)
-        VALUES (?, ?, ?, ?, ?, ?, 'evidence-v1')
-      `).run(randomUUID(), ownerId, activityRef, recallRating, intervalDays, dueAt);
+      insertVocabularyReviewEvent(ownerId, activityRef, score, now);
     }
     return { attemptId, duplicate: false };
   });

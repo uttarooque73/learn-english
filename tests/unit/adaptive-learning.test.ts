@@ -2,11 +2,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDatabase } from "@/lib/database";
+import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import {
   AdaptiveLearningError,
   evaluatePracticeAttempt,
   generateDailyLearningPlan,
+  getAdaptiveLearningPolicy,
   recordPracticeEvidence,
 } from "@/lib/ai/adaptive-learning";
 import {
@@ -79,7 +80,10 @@ const sampleEvaluation = {
   ],
 };
 
-afterEach(cleanupDatabase);
+afterEach(() => {
+  cleanupDatabase();
+  vi.unstubAllEnvs();
+});
 
 describe("adaptive daily planner", () => {
   it("creates an owner-scoped plan within the configured time budget", async () => {
@@ -248,5 +252,132 @@ describe("shared learning evidence recorder", () => {
     })).toThrowError(AdaptiveLearningError);
 
     expect(getDatabase().prepare("SELECT COUNT(*) AS count FROM practice_attempts").get()).toEqual({ count: 0 });
+  });
+});
+
+
+describe("scheduled plan idempotency", () => {
+  it("returns the existing scheduled plan after a worker retry instead of creating another version", async () => {
+    setupDatabase();
+    const firstProvider = providerReturning(samplePlan);
+    const retryProvider = providerReturning(samplePlan);
+    const request = {
+      dailyTargetMinutes: 20,
+      goal: "Speak more confidently",
+      localDate: "2026-10-17",
+      generationSource: "scheduled" as const,
+    };
+
+    const first = await generateDailyLearningPlan("owner-a", request, firstProvider);
+    const retried = await generateDailyLearningPlan("owner-a", request, retryProvider);
+
+    expect(retried.id).toBe(first.id);
+    expect(retried.version).toBe(1);
+    expect(retryProvider.generateJson).not.toHaveBeenCalled();
+    expect(getDatabase().prepare("SELECT COUNT(*) AS count FROM learning_plans WHERE owner_id = 'owner-a' AND local_date = '2026-10-17'").get())
+      .toEqual({ count: 1 });
+  });
+});
+
+
+describe("evidence-based adaptation policy", () => {
+  it("raises priorities for weak skills, recurring mistakes, and due reviews", () => {
+    setupDatabase();
+    ensurePersistenceSchema();
+    const database = getDatabase();
+    database.prepare(`
+      INSERT INTO learner_skill_scores (owner_id, skill_key, mastery, confidence, evidence_count)
+      VALUES ('owner-a', 'speaking', 0.2, 0.3, 2)
+    `).run();
+    database.prepare(`
+      INSERT INTO learning_mistakes (id, owner_id, category, normalized_key, occurrence_count)
+      VALUES ('mistake-a', 'owner-a', 'grammar', 'i am agree', 3)
+    `).run();
+    database.prepare(`
+      INSERT INTO vocabulary_review_events (id, owner_id, vocabulary_ref, recall_rating, next_due_at)
+      VALUES ('review-a', 'owner-a', 'responsibility', 2, ?)
+    `).run(new Date(Date.now() - 86_400_000).toISOString());
+
+    const policy = getAdaptiveLearningPolicy("owner-a");
+
+    expect(policy.enabled).toBe(true);
+    expect(policy.weights.speaking).toBeGreaterThan(1);
+    expect(policy.weights.grammar).toBeGreaterThan(1);
+    expect(policy.weights.vocabulary).toBeGreaterThan(1);
+    expect(policy.contextSummary.dueVocabularyReviews).toBe(1);
+  });
+
+  it("supports a global rollback switch that restores neutral weights", () => {
+    setupDatabase();
+    ensurePersistenceSchema();
+    vi.stubEnv("LEARNING_ADAPTATION_ENABLED", "false");
+    getDatabase().prepare(`
+      INSERT INTO learner_skill_scores (owner_id, skill_key, mastery, confidence, evidence_count)
+      VALUES ('owner-a', 'speaking', 0.1, 0.1, 10)
+    `).run();
+
+    const policy = getAdaptiveLearningPolicy("owner-a");
+
+    expect(policy.enabled).toBe(false);
+    expect(policy.policyVersion).toBe("baseline-v1");
+    expect(Object.values(policy.weights).every((weight) => weight === 1)).toBe(true);
+  });
+
+  it("uses the configured review interval scale and records the policy version", () => {
+    setupDatabase();
+    ensurePersistenceSchema();
+    const database = getDatabase();
+    database.prepare("INSERT INTO learner_profiles (owner_id) VALUES ('owner-a')").run();
+    database.prepare("INSERT INTO learner_adaptation_settings (owner_id, review_interval_scale) VALUES ('owner-a', 2)").run();
+
+    recordPracticeEvidence("owner-a", {
+      source: "vocabulary",
+      activityType: "vocabulary",
+      activityRef: "take responsibility",
+      skillKey: "vocabulary",
+      durationSeconds: 0,
+      idempotencyKey: "scaled-review",
+      score: 0.8,
+    });
+
+    expect(database.prepare("SELECT interval_days, policy_version FROM vocabulary_review_events WHERE owner_id = 'owner-a'").get())
+      .toEqual({ interval_days: 14, policy_version: "evidence-v1" });
+  });
+
+  it("prioritizes several due reviews deterministically and audits the decision", async () => {
+    setupDatabase();
+    ensurePersistenceSchema();
+    const database = getDatabase();
+    const dueAt = new Date(Date.now() - 86_400_000).toISOString();
+    for (const word of ["word-a", "word-b", "word-c"]) {
+      database.prepare(`
+        INSERT INTO vocabulary_review_events (id, owner_id, vocabulary_ref, recall_rating, next_due_at)
+        VALUES (?, 'owner-a', ?, 1, ?)
+      `).run(`review-${word}`, word, dueAt);
+    }
+    const singleConversation = {
+      activities: [{
+        activityType: "conversation",
+        title: "Describe your day",
+        skillKey: "speaking",
+        durationMinutes: 10,
+        priority: 0.2,
+        reason: "Practice speaking.",
+      }],
+    };
+
+    const plan = await generateDailyLearningPlan("owner-a", { dailyTargetMinutes: 20 }, providerReturning(singleConversation));
+
+    expect(plan.items).toHaveLength(1);
+    expect(plan.items[0]).toMatchObject({
+      activityType: "vocabulary",
+      title: "Review due vocabulary",
+      skillKey: "vocabulary",
+    });
+    const decision = database.prepare(
+      "SELECT policy_version, weights_json FROM learning_plan_decisions WHERE owner_id = ? AND plan_id = ?",
+    ).get("owner-a", plan.id) as { policy_version: string; weights_json: string };
+    expect(decision.policy_version).toBe("evidence-v1");
+    expect(JSON.parse(decision.weights_json).vocabulary).toBeGreaterThan(1);
   });
 });

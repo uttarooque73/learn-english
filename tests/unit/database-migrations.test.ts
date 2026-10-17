@@ -48,6 +48,8 @@ describe("SQLite schema migrations", () => {
       "003_conversation_coach.sql",
       "004_learning_domain.sql",
       "005_agent_runs.sql",
+      "006_learning_jobs.sql",
+      "007_adaptation_policy.sql",
     ]);
     expect(tableNames).toContain("app_user_data");
     expect(tableNames).toContain("daily_vocabulary_topics");
@@ -62,6 +64,11 @@ describe("SQLite schema migrations", () => {
     expect(tableNames).toContain("practice_attempts");
     expect(tableNames).toContain("learning_mistakes");
     expect(tableNames).toContain("vocabulary_review_events");
+    expect(tableNames).toContain("agent_runs");
+    expect(tableNames).toContain("learning_jobs");
+    expect(tableNames).toContain("learning_job_attempts");
+    expect(tableNames).toContain("learner_adaptation_settings");
+    expect(tableNames).toContain("learning_plan_decisions");
   });
 
   it("is safe to run repeatedly and preserves existing learner data", () => {
@@ -82,7 +89,7 @@ describe("SQLite schema migrations", () => {
       .get() as { count: number };
 
     expect(saved?.data_value).toBe('{"dailyTarget":15}');
-    expect(migrationCount.count).toBe(5);
+    expect(migrationCount.count).toBe(7);
   });
   it("enforces learner ownership across plan items and practice attempts", () => {
     useTemporaryDatabase();
