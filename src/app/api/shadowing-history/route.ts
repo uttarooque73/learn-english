@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getDatabase } from "@/lib/database";
+import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +20,7 @@ function respond(data: unknown, req: NextRequest, owner: string, status = 200) {
   return response;
 }
 function schema() {
+  ensurePersistenceSchema();
   getDatabase().exec(`
     CREATE TABLE IF NOT EXISTS shadowing_history (
       id TEXT PRIMARY KEY,
