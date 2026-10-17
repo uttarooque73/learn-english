@@ -48,10 +48,34 @@ function loadHistory(owner: string): HistoryEntry[] {
   return rows.map(readEntry);
 }
 
+function migrateLegacyHistory(owner: string): void {
+  const db = getDatabase();
+  const legacy = db.prepare("SELECT data_value FROM app_user_data WHERE owner_id=? AND data_key=?")
+    .get(owner, "speakup:shadowing-history:v1") as { data_value?: string } | undefined;
+  if (!legacy?.data_value) return;
+  let parsed: unknown;
+  try { parsed = JSON.parse(legacy.data_value); } catch { return; }
+  if (!Array.isArray(parsed)) return;
+  const insert = db.prepare("INSERT OR IGNORE INTO shadowing_history(id,owner_id,target,transcript,score,created_at,favorite) VALUES(?,?,?,?,?,?,?)");
+  const migrate = db.transaction(() => {
+    for (const item of parsed) {
+      if (!item || typeof item !== "object") continue;
+      const entry = item as Record<string, unknown>;
+      if (typeof entry.id !== "string" || !entry.id || typeof entry.target !== "string" || !entry.target.trim()) continue;
+      const score = typeof entry.score === "number" && Number.isInteger(entry.score) && entry.score >= 0 && entry.score <= 100 ? entry.score : null;
+      const createdAt = typeof entry.createdAt === "string" && Number.isFinite(Date.parse(entry.createdAt)) ? entry.createdAt : new Date().toISOString();
+      insert.run(entry.id, owner, entry.target.trim().slice(0, 240), typeof entry.transcript === "string" ? entry.transcript.slice(0, 2000) : "", score, createdAt, entry.favorite === true ? 1 : 0);
+    }
+    db.prepare("DELETE FROM app_user_data WHERE owner_id=? AND data_key=?").run(owner, "speakup:shadowing-history:v1");
+  });
+  migrate();
+}
+
 export async function GET(req: NextRequest) {
   const owner = ownerFor(req);
   try {
     schema();
+    migrateLegacyHistory(owner);
     return respond({ history: loadHistory(owner) }, req, owner);
   } catch (error) {
     console.error("Shadowing history read failed", error);
