@@ -464,9 +464,9 @@ test("floating English partner opens, configures a topic, and loads saved-histor
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Open AI English Partner" }).click();
-  await expect(page.getByRole("dialog", { name: "AI English Partner" })).toBeVisible();
-  await expect(page.getByText("Lexi · AI English Partner")).toBeVisible();
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
+  await expect(page.getByRole("dialog", { name: "Jarvis" })).toBeVisible();
+  await expect(page.getByText("Jarvis", { exact: true })).toBeVisible();
   await page.getByLabel("Topic").selectOption("Custom Topic");
   await expect(page.getByRole("textbox", { name: "Custom topic" })).toBeVisible();
   await page.getByRole("textbox", { name: "Custom topic" }).fill("Explaining a software release");
@@ -492,6 +492,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
       configurable: true,
       value: {
         cancel() {},
+        getVoices() { return []; },
         speak(utterance: SpeechSynthesisUtterance) {
           window.setTimeout(() => utterance.onend?.(new Event("end") as SpeechSynthesisEvent), 0);
         },
@@ -561,7 +562,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Open AI English Partner" }).click();
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
   await page.getByRole("button", { name: "Start Conversation" }).click();
   const composer = page.getByLabel("Type a message");
   await expect(composer).toBeVisible();
@@ -571,6 +572,11 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   await expect(page.getByText("Sentence feedback")).toBeVisible();
   await expect(page.getByText("I work as a software engineer.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Practice corrected sentence" })).toBeVisible();
+  await page.getByRole("button", { name: "Practice corrected sentence" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Speech recognition is not supported" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Repeat sentence" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Continue conversation" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue conversation" }).click();
   await page.getByRole("button", { name: "Stop Conversation" }).click();
   await expect(page.getByText("Overall feedback")).toBeVisible();
   await expect(page.getByText("Use an article before a singular countable job title.")).toBeVisible();
