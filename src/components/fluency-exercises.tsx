@@ -61,7 +61,7 @@ export function FluencyExercises() {
   const [timerStarted, setTimerStarted] = useState(false);
   const [showReflection, setShowReflection] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechSupported] = useState(() => typeof window !== "undefined" && Boolean((window as SpeechWindow).SpeechRecognition || (window as SpeechWindow).webkitSpeechRecognition));
   const [speakingSeconds, setSpeakingSeconds] = useState(0);
   const [activeTab, setActiveTab] = useState<"current" | "history">("current");
   const [history, setHistory] = useState<FluencyHistoryEntry[]>([]);
@@ -76,8 +76,6 @@ export function FluencyExercises() {
   const fillerMatches = useMemo(() => response.match(fillerPattern) ?? [], [response]);
 
   useEffect(() => {
-    const browser = window as SpeechWindow;
-    setSpeechSupported(Boolean(browser.SpeechRecognition || browser.webkitSpeechRecognition));
     void fetch("/api/fluency-history", { cache: "no-store" })
       .then(async (response) => {
         const payload = await response.json() as { history?: FluencyHistoryEntry[]; error?: string };
