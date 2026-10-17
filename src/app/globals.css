@@ -1010,3 +1010,10 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .floating-english-history-item span,.floating-english-history-item small{color:var(--muted);font-size:10px;overflow-wrap:anywhere}
 .floating-english-controls{flex-wrap:wrap}
 .floating-english-controls button{min-width:calc(50% - 8px)}
+
+.floating-english-composer{display:grid;gap:6px;padding:10px 14px;border-top:1px solid var(--line);background:#fcfcf9}
+.floating-english-composer label{font-size:10px;font-weight:700;color:var(--muted)}
+.floating-english-composer>div{display:flex;gap:7px}
+.floating-english-composer input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--ink);font-size:12px}
+.floating-english-composer button{min-width:65px;border:0;border-radius:9px;padding:0 14px;background:var(--green);color:#fff;font-weight:700;cursor:pointer}
+.floating-english-composer button:disabled{opacity:.5;cursor:not-allowed}
