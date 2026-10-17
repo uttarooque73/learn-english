@@ -32,10 +32,10 @@ npm run build
 npm run test:e2e
 ```
 
-Before production rollout:
+Before production rollout, run the checks below in a deployment-like staging environment and record the date, environment, database version, concurrency level, and results. Do not mark Phase 8 complete based only on CI regression tests.
 
 1. Exercise a fresh database and an upgrade from a representative existing database.
-2. Run multiple independent worker processes against the same SQLite database and verify lease ownership, bounded retries, and no duplicate plan side effects. The in-process claim test is a regression check, not a substitute for this deployment test.
+2. Run multiple independent worker processes against the same SQLite database and verify lease ownership, bounded retries, and no duplicate plan side effects. Send concurrent authenticated requests to the deployed `/api/learning/worker` endpoint with unique `X-Worker-Id` values, then inspect job-attempt records and plan versions for duplicate side effects. The in-process claim test is a regression check, not a substitute for this deployment test.
 3. Simulate provider timeout/unavailability and verify bounded retries and safe error codes.
 4. Record queue depth, expired leases, workflow failure rate, and p50/p95 workflow duration during a controlled load test.
 5. Verify that the operations endpoint rejects missing/incorrect secrets and never emits learner content.
