@@ -77,8 +77,8 @@ export function deletePersistedValue(key: string): void {
   values.delete(key);
   dirtyKeys.add(key);
   void requestPersistence("/api/persistence?key=" + encodeURIComponent(key), { method: "DELETE" })
-    .then((response) => { if (response.ok) dirtyKeys.delete(key); else if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; })
-    .catch(() => { if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; });
+    .then((response) => { if (response.ok) dirtyKeys.delete(key); else { initialization = undefined; if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; } })
+    .catch(() => { initialization = undefined; if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; });
 }
 
 /** Reset the in-memory cache in isolated unit tests. */
