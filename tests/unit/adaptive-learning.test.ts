@@ -250,3 +250,27 @@ describe("shared learning evidence recorder", () => {
     expect(getDatabase().prepare("SELECT COUNT(*) AS count FROM practice_attempts").get()).toEqual({ count: 0 });
   });
 });
+
+
+describe("scheduled plan idempotency", () => {
+  it("returns the existing scheduled plan after a worker retry instead of creating another version", async () => {
+    setupDatabase();
+    const firstProvider = providerReturning(samplePlan);
+    const retryProvider = providerReturning(samplePlan);
+    const request = {
+      dailyTargetMinutes: 20,
+      goal: "Speak more confidently",
+      localDate: "2026-10-17",
+      generationSource: "scheduled" as const,
+    };
+
+    const first = await generateDailyLearningPlan("owner-a", request, firstProvider);
+    const retried = await generateDailyLearningPlan("owner-a", request, retryProvider);
+
+    expect(retried.id).toBe(first.id);
+    expect(retried.version).toBe(1);
+    expect(retryProvider.generateJson).not.toHaveBeenCalled();
+    expect(getDatabase().prepare("SELECT COUNT(*) AS count FROM learning_plans WHERE owner_id = 'owner-a' AND local_date = '2026-10-17'").get())
+      .toEqual({ count: 1 });
+  });
+});
