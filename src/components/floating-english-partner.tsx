@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { speakText, stopSpeaking } from "@/lib/speech-playback";
 
 type Role = "user" | "assistant";
 type Message = { id: string; role: Role; content: string; createdAt: string };
@@ -129,16 +131,19 @@ export function FloatingEnglishPartner() {
     return message;
   }, [level, topic]);
 
-  const speak = useCallback((text: string) => new Promise<void>((resolve) => {
-    if (!("speechSynthesis" in window) || !text) { resolve(); return; }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = level === "Beginner" ? 0.88 : 0.98;
-    utterance.onstart = () => setStatus("Speaking");
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.speak(utterance);
-  }), [level]);
+  const speak = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    // Load the same database-backed preferences used by Listen buttons and Conversation Coach.
+    try {
+      await initializeDatabasePersistence();
+    } catch {
+      // Keep speech available with the preferences already in memory if persistence is temporarily unavailable.
+    }
+    setStatus("Speaking");
+    await new Promise<void>((resolve) => {
+      if (!speakText(text, resolve)) resolve();
+    });
+  }, []);
 
   const requestReply = useCallback(async (learnerText: string) => {
     if (busyRef.current || !learnerText.trim()) return;
