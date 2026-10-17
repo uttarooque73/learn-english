@@ -82,6 +82,9 @@ async function analyzeRecording(blob: Blob, wordCount: number): Promise<Acoustic
 export function ShadowingPractice() {
   const [lines, setLines] = useState(DEFAULT_LINES);
   const [customLine, setCustomLine] = useState("");
+  const [customLines, setCustomLines] = useState<string[]>([]);
+  const [blindMode, setBlindMode] = useState(false);
+  const [targetRevealed, setTargetRevealed] = useState(true);
   const [index, setIndex] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -109,6 +112,19 @@ export function ShadowingPractice() {
       setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
       const requestedTarget = new URLSearchParams(window.location.search).get("text")?.trim();
       if (requestedTarget && requestedTarget.length <= 240) { setLines([requestedTarget, ...DEFAULT_LINES]); setIndex(0); setFeedback("Ready to practise the selected vocabulary item."); }
+      void fetch("/api/persistence", { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Could not load saved shadowing sentences.");
+          const payload = await response.json() as { entries?: Array<{ key: string; value: string }> };
+          const stored = payload.entries?.find((entry) => entry.key === "speakup:shadowing-custom-lines:v1")?.value;
+          if (!stored) return;
+          const parsed: unknown = JSON.parse(stored);
+          if (!Array.isArray(parsed)) return;
+          const saved = [...new Set(parsed.filter((line): line is string => typeof line === "string" && line.trim().length > 0 && line.length <= 240).map((line) => line.trim()))];
+          setCustomLines(saved);
+          setLines((current) => [...new Set([...current, ...saved])]);
+        })
+        .catch(() => setHistoryNotice("Could not load your saved custom sentences from the database."));
       void fetch("/api/shadowing-history", { cache: "no-store" })
         .then(async (response) => {
           const payload = await response.json() as { history?: ShadowingHistoryEntry[]; error?: string };
@@ -288,7 +304,7 @@ export function ShadowingPractice() {
     <label className="feature-field">Practice sentence or word<select value={index} onChange={(event) => { setIndex(Number(event.target.value)); setTranscript(""); transcriptRef.current = ""; setFeedback(""); setAcoustic(null); setPhonemeResult(null); }}>
       {lines.map((line, i) => <option key={i + "-" + line} value={i}>{line}</option>)}
     </select></label>
-    <blockquote className="shadowing-sentence">{sentence}</blockquote>
+    <div className="shadowing-target-tools"><button type="button" className={"button button-outline" + (blindMode ? " active" : "")} aria-pressed={blindMode} onClick={() => { const next = !blindMode; setBlindMode(next); setTargetRevealed(!next); }}>{blindMode ? "◉ Blind mode on" : "◉ Blind mode"}</button><button type="button" className="button button-outline" onClick={() => { if (lines.length < 2) return; let next = index; while (next === index) next = Math.floor(Math.random() * lines.length); setIndex(next); setTranscript(""); transcriptRef.current = ""; setFeedback("Random sentence selected. Listen and shadow it."); setAcoustic(null); setPhonemeResult(null); setPhonemeMessage(""); setTargetRevealed(!blindMode); }}>🎲 Random sentence</button>{blindMode && <button type="button" className="text-link" onClick={() => setTargetRevealed((value) => !value)}>{targetRevealed ? "Hide target" : "Reveal target"}</button>}</div><blockquote className={"shadowing-sentence" + (blindMode && !targetRevealed ? " shadowing-sentence-hidden" : "")}>{blindMode && !targetRevealed ? "Listen first, repeat from memory, then reveal the target to compare." : sentence}</blockquote>
     <div className="shadowing-controls"><label>Speaking speed <select value={rate} onChange={(event) => setRate(Number(event.target.value))}><option value={0.7}>Slow</option><option value={0.85}>Steady</option><option value={1}>Natural</option></select></label><button type="button" className="button button-outline" onClick={speakSentence}>▶ Listen</button>{!listening ? <button type="button" className="button button-primary" onClick={startRepeat}>🎙 Start recording</button> : <button type="button" className="button button-primary" onClick={stopRepeat}>Stop and assess</button>}<button type="button" className="text-link" onClick={() => { setIndex((index + 1) % lines.length); setTranscript(""); setFeedback(""); setAcoustic(null); setPhonemeResult(null); }}>Next line →</button></div>
     {transcript && comparison && <div className="shadowing-result"><strong>Your transcript</strong><p>{transcript}</p><div className="word-feedback" aria-label={`Word match ${comparison.score} percent`}>{comparison.expectedWords.map((word, i) => <span className={comparison.missingWords.includes(word) ? "word-miss" : "word-match"} key={i}>{word}</span>)}</div><p>Word-order similarity: {comparison.score}%.</p>{comparison.missingWords.length > 0 && <p>Review these words: {comparison.missingWords.join(", ")}.</p>}<small>Transcript similarity is not an accent score; browser speech recognition can mishear correct speech.</small></div>}
     {acoustic && <div className="shadowing-result"><strong>Rhythm and delivery</strong><div className="shadowing-metrics"><p><b>{acoustic.speechRateWpm}</b><span>estimated words/minute</span></p><p><b>{acoustic.pauseCount}</b><span>long pauses (≥180 ms)</span></p><p><b>{acoustic.pitchRangeHz === null ? "—" : `${acoustic.pitchRangeHz} Hz`}</b><span>estimated pitch range</span></p></div><p>{acoustic.intonation}</p><small>These are approximate acoustic coaching signals, not a validated prosody score. Pitch range is estimated from the recording.</small></div>}
@@ -297,7 +313,7 @@ export function ShadowingPractice() {
     {phonemeMessage && <p className="feature-note" role="status">{phonemeMessage}</p>}
     {!supported && <p className="feature-note">Browser speech recognition is unavailable. Audio recording and optional phoneme assessment may still work; otherwise, listen and repeat without transcript feedback.</p>}
     {!recordingSupported && <p className="feature-note">Audio recording is not supported here. Browser speech recognition can still provide word feedback where available.</p>}
-    <form className="shadowing-custom-line" onSubmit={(event) => { event.preventDefault(); const line = customLine.trim(); if (!line || line.length > 240) return; setLines((current) => [...current, line]); setIndex(lines.length); setCustomLine(""); setTranscript(""); transcriptRef.current = ""; setFeedback(""); }}><label className="feature-field">Add a word or sentence to practise<input value={customLine} maxLength={240} onChange={(event) => setCustomLine(event.target.value)} placeholder="e.g. comfortable / I would appreciate your help." /></label><button type="submit" className="button button-outline" disabled={!customLine.trim()}>Add to practice list</button></form>
+    <form className="shadowing-custom-line" onSubmit={(event) => { event.preventDefault(); const line = customLine.trim(); if (!line || line.length > 240 || lines.includes(line)) return; const nextCustomLines = [...customLines, line]; setCustomLines(nextCustomLines); setLines((current) => [...current, line]); setIndex(lines.length); setCustomLine(""); setTranscript(""); transcriptRef.current = ""; setFeedback(""); setTargetRevealed(!blindMode); void fetch("/api/persistence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "speakup:shadowing-custom-lines:v1", value: JSON.stringify(nextCustomLines) }) }).then((response) => { if (!response.ok) throw new Error("Save failed"); setHistoryNotice("Custom sentence saved to the database."); }).catch(() => setHistoryNotice("Sentence added for this session, but could not be saved to the database.")); }}><label className="feature-field">Add a word or sentence to practise<input value={customLine} maxLength={240} onChange={(event) => setCustomLine(event.target.value)} placeholder="e.g. comfortable / I would appreciate your help." /></label><button type="submit" className="button button-outline" disabled={!customLine.trim() || lines.includes(customLine.trim())}>Add to practice list</button></form>
   </section>
   <section id="shadowing-history-panel" role="tabpanel" hidden={activeTab !== "history"} className="learning-feature-panel shadowing-history-panel" aria-labelledby="shadowing-history-heading">
     <div className="learning-feature-heading"><div><p className="eyebrow">YOUR PRACTICE LOG</p><h2 id="shadowing-history-heading">Sentence & word history</h2><p>Review previous attempts, replay a target, and practise tricky phrases again. History is saved in the application database.</p></div><span className="feature-symbol" aria-hidden="true">↺</span></div>
