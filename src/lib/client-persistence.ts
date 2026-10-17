@@ -48,6 +48,16 @@ export function initializeDatabasePersistence(): Promise<void> {
         try { window.localStorage.removeItem(key); } catch { /* Ignore restricted browser storage. */ }
       }
     }
+
+    // Retry writes/deletes that failed during an earlier session.
+    for (const key of [...dirtyKeys]) {
+      const value = values.get(key);
+      const retry = value === undefined
+        ? await requestPersistence("/api/persistence?key=" + encodeURIComponent(key), { method: "DELETE" })
+        : await requestPersistence("/api/persistence", { method: "POST", body: JSON.stringify({ key, value }) });
+      if (!retry.ok) throw new Error("Could not synchronize saved learning data with the database.");
+      dirtyKeys.delete(key);
+    }
     appWindow.__speakupDatabaseInitialized = true;
   })().catch((error) => { initialization = undefined; throw error; });
   return initialization;
@@ -59,16 +69,16 @@ export function writePersistedValue(key: string, value: string): void {
   values.set(key, value);
   dirtyKeys.add(key);
   void requestPersistence("/api/persistence", { method: "POST", body: JSON.stringify({ key, value }) })
-    .then((response) => { if (response.ok) dirtyKeys.delete(key); })
-    .catch(() => { /* Keep the dirty value in memory; retry after reconnection. */ });
+    .then((response) => { if (response.ok) dirtyKeys.delete(key); else if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; })
+    .catch(() => { if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; });
 }
 
 export function deletePersistedValue(key: string): void {
   values.delete(key);
   dirtyKeys.add(key);
   void requestPersistence("/api/persistence?key=" + encodeURIComponent(key), { method: "DELETE" })
-    .then((response) => { if (response.ok) dirtyKeys.delete(key); })
-    .catch(() => { /* Keep the dirty marker so a later initialization can retry. */ });
+    .then((response) => { if (response.ok) dirtyKeys.delete(key); else if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; })
+    .catch(() => { if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; });
 }
 
 /** Reset the in-memory cache in isolated unit tests. */
