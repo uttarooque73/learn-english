@@ -80,7 +80,7 @@ async function analyzeRecording(blob: Blob, wordCount: number): Promise<Acoustic
   }
 }
 
-export function ShadowingPractice() {
+export function ShadowingPractice({ initialTarget }: { initialTarget?: string }) {
   const [lines, setLines] = useState(DEFAULT_LINES);
   const [vocabularySaved, setVocabularySaved] = useState(false);
   const [customLine, setCustomLine] = useState("");
@@ -112,7 +112,7 @@ export function ShadowingPractice() {
     const timer = window.setTimeout(() => {
       const w = window as SpeechWindow;
       setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-      const requestedTarget = new URLSearchParams(window.location.search).get("text")?.trim();
+      const requestedTarget = initialTarget?.trim() || new URLSearchParams(window.location.search).get("text")?.trim();
       if (requestedTarget && requestedTarget.length <= 240) { setLines([requestedTarget, ...DEFAULT_LINES]); setIndex(0); setFeedback("Ready to practise the selected word or phrase."); }
       void fetch("/api/persistence", { cache: "no-store" })
         .then(async (response) => {
