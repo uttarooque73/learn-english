@@ -108,9 +108,10 @@ CREATE TABLE IF NOT EXISTS learning_mistakes (
   evidence_json TEXT NOT NULL DEFAULT '[]',
   first_seen_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   last_seen_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-  resolved_at TEXT,
-  UNIQUE (owner_id, normalized_key, status)
+  resolved_at TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_learning_mistakes_one_active
+  ON learning_mistakes(owner_id, normalized_key) WHERE status = 'active';
 CREATE INDEX IF NOT EXISTS idx_learning_mistakes_owner_status_seen
   ON learning_mistakes(owner_id, status, last_seen_at DESC);
 
