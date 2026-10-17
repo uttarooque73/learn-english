@@ -6,7 +6,7 @@ import { ensurePersistenceSchema, getDatabase, getDatabasePath } from "@/lib/dat
 
 const WORKFLOW_NAME = "adaptive-multi-agent-learning";
 const GRAPH_VERSION = "v2";
-const MAX_GOAL_LENGTH = 1_000;
+const MAX_GOAL_LENGTH = 350;
 
 type SkillEvidence = { skillKey: string; mastery: number; confidence: number; evidenceCount: number };
 type MistakeEvidence = { category: string; normalizedKey: string; occurrenceCount: number };
@@ -207,7 +207,7 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver) {
       const goal = state.goal.trim().replace(/\s+/g, " ");
       return {
         diagnosisJson: JSON.stringify(diagnosis),
-        plannerGoal: `${goal}\nEvidence-based focus suggestions: ${diagnosis.focusSkills.join(", ")}. Reasons: ${diagnosis.reasons.join(" ")}. Treat these as priorities, not as claims beyond the saved evidence.`,
+        plannerGoal: `${goal}\nEvidence-based focus suggestions: ${diagnosis.focusSkills.join(", ")}. Reasons: ${diagnosis.reasons.join(" ")}. Treat these as priorities, not as claims beyond the saved evidence.`.slice(0, 900),
         agentSequence: [...state.agentSequence, "diagnostic-agent"],
       };
     })

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { AdaptiveLearningError, generateDailyLearningPlan, getCurrentLearningPlan, recordPracticeEvidence, type ActivityType, type EvidenceSource } from "@/lib/ai/adaptive-learning";
+import { AdaptiveLearningError, getCurrentLearningPlan, recordPracticeEvidence, type ActivityType, type EvidenceSource } from "@/lib/ai/adaptive-learning";
+import { MultiAgentLearningError, runMultiAgentLearningWorkflow } from "@/lib/ai/multi-agent-learning";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import { ModelProviderError } from "@/lib/ai/model-provider";
 
@@ -27,6 +28,10 @@ function respond(data: unknown, request: NextRequest, ownerId: string, status = 
 }
 
 function errorResponse(error: unknown, request: NextRequest, ownerId: string): NextResponse {
+  if (error instanceof MultiAgentLearningError) {
+    const status = error.code === "invalid_owner" || error.code === "invalid_input" ? 400 : 500;
+    return respond({ error: error.message, code: error.code }, request, ownerId, status);
+  }
   if (error instanceof AdaptiveLearningError) {
     const status = error.code === "plan_not_found" ? 404
       : error.code === "invalid_owner" || error.code === "invalid_input" ? 400 : 422;
@@ -71,11 +76,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const plan = await generateDailyLearningPlan(ownerId, {
+    const workflow = await runMultiAgentLearningWorkflow(ownerId, {
       dailyTargetMinutes: input.dailyTargetMinutes as number | undefined,
       goal: input.goal as string | undefined,
     });
-    return respond({ plan }, request, ownerId, 201);
+    return respond({ plan: workflow.plan, workflow: { runId: workflow.runId, diagnosis: workflow.diagnosis, summary: workflow.summary, agents: workflow.agents } }, request, ownerId, 201);
   } catch (error) {
     return errorResponse(error, request, ownerId);
   }
