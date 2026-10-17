@@ -7,6 +7,7 @@ import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation
 import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
 import { getLearningScenarios } from "@/lib/learning-scenarios";
 import { speakText } from "@/lib/speech-playback";
+import { submitLearningEvidence } from "@/lib/learning-evidence-client";
 
 type Scenario = { number: string; title: string; description: string; icon: string; tone: string };
 const SESSION_GOALS = ["Speak more confidently", "Improve grammar", "Expand vocabulary", "Practice workplace English", "Prepare for an interview", "Improve fluency"] as const;
@@ -416,18 +417,35 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
         }
         const startedAt = sessionStartedAtRef.current ?? new Date().toISOString();
         const updatedAt = new Date().toISOString();
+        const sessionId = sessionIdRef.current ?? createId();
+        sessionIdRef.current = sessionId;
+        const learnerMessageCount = completeMessages.filter((message) => message.role === "user").length;
+        const durationSeconds = Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000));
         upsertSession({
-          id: sessionIdRef.current ?? createId(),
+          id: sessionId,
           scenario,
           goal: sessionGoal,
           durationLimitMinutes: sessionDurationMinutes,
           startedAt,
           updatedAt,
-          durationSeconds: Math.max(1, Math.round((new Date(updatedAt).getTime() - new Date(startedAt).getTime()) / 1000)),
-          messageCount: completeMessages.filter((message) => message.role === "user").length,
+          durationSeconds,
+          messageCount: learnerMessageCount,
           learnerMessages: completeMessages.filter((message) => message.role === "user").map((message) => message.content).slice(-40),
           messages: completeMessages.slice(-100),
         });
+        const goalText = sessionGoal.toLowerCase();
+        const skillKey = goalText.includes("grammar") ? "grammar"
+          : goalText.includes("vocabulary") ? "vocabulary"
+            : goalText.includes("fluency") ? "fluency" : "speaking";
+        void submitLearningEvidence({
+          source: "conversation",
+          activityType: "conversation",
+          activityRef: scenario,
+          skillKey,
+          responseText: content,
+          durationSeconds,
+          idempotencyKey: `conversation:${sessionId}:${learnerMessageCount}`,
+        }).catch(() => undefined);
         setSavedSessions(getSessions());
         if (learningPreferences?.feedbackTiming === "immediate") {
           void requestFeedback(content, assistantText);

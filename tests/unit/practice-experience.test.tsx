@@ -13,6 +13,9 @@ function mockPracticeFetch(chatResponses: Response[]) {
       if ((init?.method ?? "GET") === "GET") return Promise.resolve(Response.json({ entries: [] }));
       return Promise.resolve(Response.json({ saved: true, deleted: true }));
     }
+    if (url === "/api/learning/evidence") {
+      return Promise.resolve(Response.json({ evidence: { attemptId: "test-attempt", duplicate: false } }, { status: 201 }));
+    }
     if (url.startsWith("/api/")) return Promise.resolve(responses.shift() ?? new Response("Unexpected API request: " + url, { status: 500 }));
     return Promise.resolve(new Response("Unexpected request", { status: 500 }));
   });

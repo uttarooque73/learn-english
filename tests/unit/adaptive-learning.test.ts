@@ -7,6 +7,7 @@ import {
   AdaptiveLearningError,
   evaluatePracticeAttempt,
   generateDailyLearningPlan,
+  recordPracticeEvidence,
 } from "@/lib/ai/adaptive-learning";
 import {
   JsonValidator,
@@ -201,5 +202,51 @@ describe("practice evaluation and durable evidence", () => {
 
     const count = getDatabase().prepare("SELECT COUNT(*) AS count FROM practice_attempts").get() as { count: number };
     expect(count.count).toBe(0);
+  });
+});
+
+
+describe("shared learning evidence recorder", () => {
+  it("persists vocabulary review events and skill evidence idempotently", () => {
+    setupDatabase();
+    const payload = {
+      source: "vocabulary" as const,
+      activityType: "vocabulary" as const,
+      activityRef: "take responsibility",
+      skillKey: "vocabulary",
+      durationSeconds: 0,
+      idempotencyKey: "vocabulary-review-001",
+      score: 0.8,
+      confidence: 0.9,
+      feedback: "Marked learned after recall.",
+    };
+
+    const first = recordPracticeEvidence("owner-a", payload);
+    const retry = recordPracticeEvidence("owner-a", payload);
+
+    expect(first.duplicate).toBe(false);
+    expect(retry).toEqual({ attemptId: first.attemptId, duplicate: true });
+    expect(getDatabase().prepare("SELECT COUNT(*) AS count FROM practice_attempts WHERE owner_id = 'owner-a'").get())
+      .toEqual({ count: 1 });
+    expect(getDatabase().prepare("SELECT recall_rating, interval_days FROM vocabulary_review_events WHERE owner_id = 'owner-a'").get())
+      .toEqual({ recall_rating: 4, interval_days: 7 });
+    expect(getDatabase().prepare("SELECT confidence, evidence_count FROM learner_skill_scores WHERE owner_id = 'owner-a' AND skill_key = 'vocabulary'").get())
+      .toEqual({ confidence: 0.6, evidence_count: 1 });
+  });
+
+  it("validates owner scope before associating evidence with a plan item", async () => {
+    setupDatabase();
+    const plan = await generateDailyLearningPlan("owner-a", { dailyTargetMinutes: 20 }, providerReturning(samplePlan));
+
+    expect(() => recordPracticeEvidence("owner-b", {
+      source: "conversation",
+      activityType: "conversation",
+      planItemId: plan.items[0].id,
+      activityRef: plan.items[0].title,
+      durationSeconds: 0,
+      idempotencyKey: "wrong-owner-evidence",
+    })).toThrowError(AdaptiveLearningError);
+
+    expect(getDatabase().prepare("SELECT COUNT(*) AS count FROM practice_attempts").get()).toEqual({ count: 0 });
   });
 });

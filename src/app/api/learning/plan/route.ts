@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { AdaptiveLearningError, generateDailyLearningPlan, getCurrentLearningPlan } from "@/lib/ai/adaptive-learning";
+import { AdaptiveLearningError, generateDailyLearningPlan, getCurrentLearningPlan, recordPracticeEvidence, type ActivityType, type EvidenceSource } from "@/lib/ai/adaptive-learning";
+import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import { ModelProviderError } from "@/lib/ai/model-provider";
 
 export const runtime = "nodejs";
@@ -75,6 +76,83 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       goal: input.goal as string | undefined,
     });
     return respond({ plan }, request, ownerId, 201);
+  } catch (error) {
+    return errorResponse(error, request, ownerId);
+  }
+}
+
+
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const ownerId = ownerFor(request);
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return respond({ error: "Request body must be valid JSON.", code: "invalid_json" }, request, ownerId, 400);
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return respond({ error: "A JSON object is required.", code: "invalid_input" }, request, ownerId, 400);
+  }
+  const input = body as Record<string, unknown>;
+  if (typeof input.planItemId !== "string" || !input.planItemId.trim()
+    || !["pending", "in_progress", "completed", "skipped"].includes(String(input.status))) {
+    return respond({ error: "planItemId and a valid item status are required.", code: "invalid_input" }, request, ownerId, 400);
+  }
+
+  try {
+    ensurePersistenceSchema();
+    const database = getDatabase();
+    const item = database.prepare(`
+      SELECT id, plan_id AS planId, activity_type AS activityType, activity_ref AS activityRef, skill_key AS skillKey
+      FROM learning_plan_items WHERE id = ? AND owner_id = ?
+    `).get(input.planItemId, ownerId) as {
+      id: string; planId: string; activityType: ActivityType; activityRef: string | null; skillKey: string | null;
+    } | undefined;
+    if (!item) return respond({ error: "Learning plan item not found.", code: "plan_not_found" }, request, ownerId, 404);
+
+    const status = input.status as "pending" | "in_progress" | "completed" | "skipped";
+    const update = database.transaction(() => {
+      database.prepare(`
+        UPDATE learning_plan_items SET status = ? WHERE id = ? AND owner_id = ?
+      `).run(status, item.id, ownerId);
+
+      if (status === "completed") {
+        const source: EvidenceSource = item.activityType === "vocabulary" ? "vocabulary"
+          : item.activityType === "shadowing" ? "shadowing"
+            : item.activityType === "listening" ? "listening"
+              : item.activityType === "fluency" ? "fluency"
+                : item.activityType === "grammar" ? "micro_lesson" : "conversation";
+        recordPracticeEvidence(ownerId, {
+          planItemId: item.id,
+          source,
+          activityType: item.activityType,
+          activityRef: item.activityRef ?? item.activityType,
+          skillKey: item.skillKey ?? (item.activityType === "vocabulary" ? "vocabulary"
+            : item.activityType === "grammar" ? "grammar"
+              : item.activityType === "listening" ? "listening"
+                : item.activityType === "shadowing" ? "pronunciation"
+                  : item.activityType === "fluency" ? "fluency" : "speaking"),
+          durationSeconds: 0,
+          idempotencyKey: `plan-item-completion:${item.id}:v1`,
+          feedback: "Learner marked this planned activity complete.",
+        });
+      }
+
+      database.prepare(`
+        UPDATE learning_plans SET
+          status = CASE
+            WHEN NOT EXISTS (
+              SELECT 1 FROM learning_plan_items
+              WHERE plan_id = ? AND owner_id = ? AND status IN ('pending', 'in_progress')
+            ) THEN 'completed'
+            ELSE 'published'
+          END,
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+        WHERE id = ? AND owner_id = ?
+      `).run(item.planId, ownerId, item.planId, ownerId);
+    });
+    update();
+    return respond({ saved: true, plan: getCurrentLearningPlan(ownerId) }, request, ownerId);
   } catch (error) {
     return errorResponse(error, request, ownerId);
   }
