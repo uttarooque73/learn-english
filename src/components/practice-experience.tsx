@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { getSessions, removeSession, saveVocabulary, upsertSession, type PracticeSession, type SessionSummary } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 import { applyAccessibilityPreferences, getLearningPreferences, type LearningPreferences } from "@/lib/learning-preferences";
 import { getLearningScenarios } from "@/lib/learning-scenarios";
@@ -104,7 +105,9 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
   }, [messages, isStreaming]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    let active = true;
+    void initializeDatabasePersistence().then(() => {
+      if (!active) return;
       const speech = window as SpeechWindow;
       setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
       const customPrompts = getLearningScenarios().filter((item) => item.custom).map((item, index) => ({ number: String(prompts.length + index + 1).padStart(2, "0"), title: item.title, description: item.description, icon: item.icon, tone: item.tone }));
@@ -114,9 +117,9 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
       setLearningPreferences(preferences);
       setDifficulty(preferences.englishLevel);
       applyAccessibilityPreferences(preferences);
-    }, 0);
+    }).catch(() => { if (active) setError("Could not load saved learning data from the database. Refresh to retry."); });
     return () => {
-      window.clearTimeout(timer);
+      active = false;
       recognitionRef.current?.stop();
       if (voiceRestartTimerRef.current !== null) window.clearTimeout(voiceRestartTimerRef.current);
       if (mediaRecorderRef.current) {
