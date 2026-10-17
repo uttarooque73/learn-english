@@ -35,6 +35,9 @@ export function VocabularyNotebook() {
   const [words, setWords] = useState<SavedVocabulary[]>([]);
   const [ready, setReady] = useState(false);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [displayStyle, setDisplayStyle] = useState<"list" | "cards">("list");
   const [filter, setFilter] = useState<"all" | VocabularyStatus>("all");
   const [mode, setMode] = useState<"list" | "flashcards" | "quiz" | "review" | "expressions">("list");
   const [cardIndex, setCardIndex] = useState(0);
@@ -135,6 +138,13 @@ export function VocabularyNotebook() {
     setCardIndex((index) => Math.max(0, Math.min(index, filtered.length - 2)));
   }
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const visibleWords = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
+
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+
   const dueWords = useMemo(() => getDueVocabulary().filter((word) => words.some((saved) => saved.id === word.id)), [words]);
   const currentDue = dueWords.length ? dueWords[reviewIndex % dueWords.length] : undefined;
   const current = filtered.length ? filtered[cardIndex % filtered.length] : undefined;
@@ -177,11 +187,11 @@ export function VocabularyNotebook() {
         </div>
       </form>
       <div className="notebook-toolbar">
-        <label className="notebook-search"><span aria-hidden="true">⌕</span><input value={search} onChange={(event) => { setSearch(event.target.value); setCardIndex(0); }} placeholder="Search words, meanings, examples" aria-label="Search vocabulary" /></label>
-        <label className="notebook-filter"><span className="sr-only">Filter vocabulary status</span><select value={filter} onChange={(event) => { setFilter(event.target.value as typeof filter); setCardIndex(0); }}><option value="all">All statuses</option><option value="learning">Learning</option><option value="familiar">Familiar</option><option value="mastered">Mastered</option></select></label>
+        <label className="notebook-search"><span aria-hidden="true">⌕</span><input value={search} onChange={(event) => { setSearch(event.target.value); setCardIndex(0); setPage(1); }} placeholder="Search words, meanings, examples" aria-label="Search vocabulary" /></label>
+        <label className="notebook-filter"><span className="sr-only">Filter vocabulary status</span><select value={filter} onChange={(event) => { setFilter(event.target.value as typeof filter); setCardIndex(0); setPage(1); }}><option value="all">All statuses</option><option value="learning">Learning</option><option value="familiar">Familiar</option><option value="mastered">Mastered</option></select></label>
       </div>
       <div className="vocabulary-summary" aria-label="Vocabulary totals">
-        {(["learning", "familiar", "mastered"] as VocabularyStatus[]).map((status) => <button type="button" className={filter === status ? "vocab-summary-item active" : "vocab-summary-item"} key={status} onClick={() => { setFilter(filter === status ? "all" : status); setCardIndex(0); }}><strong>{words.filter((word) => (word.status ?? "learning") === status).length}</strong><span>{statusLabels[status]}</span></button>)}
+        {(["learning", "familiar", "mastered"] as VocabularyStatus[]).map((status) => <button type="button" className={filter === status ? "vocab-summary-item active" : "vocab-summary-item"} key={status} onClick={() => { setFilter(filter === status ? "all" : status); setCardIndex(0); setPage(1); }}><strong>{words.filter((word) => (word.status ?? "learning") === status).length}</strong><span>{statusLabels[status]}</span></button>)}
       </div>
       <div className="notebook-mode-tabs" role="group" aria-label="Vocabulary practice mode">
         <button type="button" className={mode === "list" ? "active" : ""} onClick={() => setMode("list")}>Word bank</button>
@@ -216,7 +226,24 @@ export function VocabularyNotebook() {
           {quizWord && quizOptions.length > 1 ? <><p className="eyebrow">QUICK QUIZ · {quizIndex + 1}</p><h3>What does “{quizWord.phrase}” mean?</h3><div className="vocab-quiz-options">{quizOptions.map((option) => <button type="button" key={option.id} className={quizChoice === option.id ? "selected" : ""} disabled={quizAnswered} onClick={() => setQuizChoice(option.id)}>{option.meaning}</button>)}</div>{quizAnswered && <p className={quizChoice === quizWord.id ? "quiz-result correct" : "quiz-result"} role="status">{quizChoice === quizWord.id ? "Correct — nice work!" : `Not quite. The meaning is: ${quizWord.meaning}`}</p>}<div className="vocab-study-actions">{!quizAnswered ? <button type="button" className="button button-dark" disabled={!quizChoice} onClick={() => setQuizAnswered(true)}>Check answer</button> : <button type="button" className="button button-dark" onClick={() => { setQuizIndex((index) => (index + 1) % filtered.length); setQuizChoice(""); setQuizAnswered(false); }}>Next question →</button>}</div></> : <div className="notebook-empty"><h3>Add at least two vocabulary items</h3><p>The quiz needs two or more saved words with meanings. Save phrases from Practice Room.</p></div>}
         </section>
       ) : filtered.length ? (
-        <div className="saved-word-grid">{filtered.map((word) => <article className="saved-word-card" key={word.id}><div className="saved-word-heading"><div><h3>{word.phrase}</h3><ListenButton text={`${word.phrase}. ${word.meaning}. ${word.example}`} label={`Listen to ${word.phrase}`} /><span className={`vocab-status status-${word.status ?? "learning"}`}>{statusLabels[word.status ?? "learning"]}</span></div><button type="button" className="notebook-delete" onClick={() => deleteWord(word)} aria-label={`Delete ${word.phrase}`}>×</button></div><p>{word.meaning}</p><blockquote>{word.example}</blockquote><div className="saved-word-footer"><label>Learning status <select aria-label={`Status for ${word.phrase}`} value={word.status ?? "learning"} onChange={(event) => changeStatus(word, event.target.value as VocabularyStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><small>{new Date(word.savedAt).toLocaleDateString()}</small></div><Link className="vocabulary-detail-link" href={`/vocabulary/${encodeURIComponent(word.id)}`}>Explore this word <span aria-hidden="true">→</span></Link></article>)}</div>
+        <>
+        <div className="word-bank-controls">
+          <p className="word-bank-count" aria-live="polite">Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, filtered.length)} of {filtered.length} {filtered.length === 1 ? "word" : "words"}</p>
+          <div className="word-bank-view-controls">
+            <label>Per page <select aria-label="Words per page" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={10}>10</option><option value={20}>20</option><option value={50}>50</option></select></label>
+            <div className="word-bank-view-toggle" role="group" aria-label="Word bank layout">
+              <button type="button" className={displayStyle === "list" ? "active" : ""} aria-pressed={displayStyle === "list"} onClick={() => setDisplayStyle("list")}>List view</button>
+              <button type="button" className={displayStyle === "cards" ? "active" : ""} aria-pressed={displayStyle === "cards"} onClick={() => setDisplayStyle("cards")}>Card view</button>
+            </div>
+          </div>
+        </div>
+        <div className={displayStyle === "list" ? "saved-word-grid saved-word-list" : "saved-word-grid"}>{visibleWords.map((word) => <article className="saved-word-card" key={word.id}><div className="saved-word-heading"><div><h3>{word.phrase}</h3><ListenButton text={`${word.phrase}. ${word.meaning}. ${word.example}`} label={`Listen to ${word.phrase}`} /><span className={`vocab-status status-${word.status ?? "learning"}`}>{statusLabels[word.status ?? "learning"]}</span></div><button type="button" className="notebook-delete" onClick={() => deleteWord(word)} aria-label={`Delete ${word.phrase}`}>×</button></div><p>{word.meaning}</p><blockquote>{word.example}</blockquote><div className="saved-word-footer"><label>Learning status <select aria-label={`Status for ${word.phrase}`} value={word.status ?? "learning"} onChange={(event) => changeStatus(word, event.target.value as VocabularyStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><small>{new Date(word.savedAt).toLocaleDateString()}</small></div><Link className="vocabulary-detail-link" href={`/vocabulary/${encodeURIComponent(word.id)}`}>Explore this word <span aria-hidden="true">→</span></Link></article>)}</div>
+        {pageCount > 1 && <nav className="word-bank-pagination" aria-label="Vocabulary pages">
+          <button type="button" className="notebook-secondary" onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))} disabled={page === 1}>← Previous</button>
+          <div className="word-bank-page-numbers">{Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => <button type="button" key={pageNumber} className={pageNumber === page ? "active" : ""} aria-current={pageNumber === page ? "page" : undefined} aria-label={`Go to page ${pageNumber}`} onClick={() => setPage(pageNumber)}>{pageNumber}</button>)}</div>
+          <button type="button" className="notebook-secondary" onClick={() => setPage((currentPage) => Math.min(pageCount, currentPage + 1))} disabled={page === pageCount}>Next →</button>
+        </nav>}
+        </>
       ) : <div className="notebook-empty"><h3>{words.length ? "No matching words" : "Your word bank is ready"}</h3><p>{words.length ? "Try another search or status filter." : "Practice a conversation, ask for feedback, and save phrases to build your personal vocabulary notebook."}</p></div>}
       <p className="storage-note">Your vocabulary is mirrored to the app database when persistence is configured. Status changes and deletions are saved automatically.</p>
     </div>
