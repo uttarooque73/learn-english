@@ -67,10 +67,10 @@ export async function POST(request: Request) {
   }
 
   const payload = body as Record<string, unknown>;
-  if (payload.mode !== undefined && payload.mode !== "conversation" && payload.mode !== "follow-up" && payload.mode !== "simplify" && payload.mode !== "reading-discussion") {
-    return NextResponse.json({ error: "Mode must be conversation, follow-up, simplify, or reading-discussion." }, { status: 400 });
+  if (payload.mode !== undefined && payload.mode !== "conversation" && payload.mode !== "follow-up" && payload.mode !== "simplify" && payload.mode !== "reading-discussion" && payload.mode !== "paragraph-generation") {
+    return NextResponse.json({ error: "Mode must be conversation, follow-up, simplify, reading-discussion, or paragraph-generation." }, { status: 400 });
   }
-  const mode = payload.mode === "follow-up" || payload.mode === "simplify" || payload.mode === "reading-discussion" ? payload.mode : "conversation";
+  const mode = payload.mode === "follow-up" || payload.mode === "simplify" || payload.mode === "reading-discussion" || payload.mode === "paragraph-generation" ? payload.mode : "conversation";
   if (
     !Array.isArray(payload.messages) ||
     payload.messages.length === 0 ||
@@ -85,12 +85,12 @@ export async function POST(request: Request) {
 
   const messages = payload.messages as ChatMessage[];
   const lastMessage = messages[messages.length - 1];
-  const validFinalMessage = mode === "conversation" || mode === "reading-discussion"
+  const validFinalMessage = mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation"
     ? lastMessage?.role === "user"
     : lastMessage?.role === "assistant" && messages.some((message) => message.role === "user");
   if (!validFinalMessage) {
     return NextResponse.json(
-      { error: mode === "conversation" || mode === "reading-discussion"
+      { error: mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation"
         ? "The last conversation message must be from the user."
         : "This request needs a learner message followed by an assistant reply." },
       { status: 400 },
@@ -136,6 +136,8 @@ export async function POST(request: Request) {
     : "Follow the selected role-play naturally without forcing unrelated topics.";
   const turnGuidance = mode === "reading-discussion"
     ? "READING-DISCUSSION OUTPUT CONTRACT: Generate exactly four concise, natural English sentences about the topic requested in the learner message, with a coherent progression and a question in the final sentence. Adjust grammar and vocabulary to the chosen level. Return only the four sentences, one per line, no preamble, numbering, bullets, feedback, or markdown. Follow this output contract instead of ordinary role-play behavior."
+    : mode === "paragraph-generation"
+      ? "PARAGRAPH-GENERATION OUTPUT CONTRACT: Write one coherent English practice paragraph of 4 to 7 sentences about the subject requested in the learner message. Match the selected English level and use natural, practical language. Return only the paragraph, with no preamble, title, numbering, bullets, Markdown, or follow-up question."
     : mode === "follow-up"
     ? "This is a dedicated adaptive follow-up request. Ask exactly one open-ended question grounded in the learner's most recent answer and the conversation context. Match the selected English level, ask for one concrete detail if the answer was vague, and do not repeat a question already asked. Output only the question; do not add a preamble, correction, list, or explanation."
     : mode === "simplify"
@@ -160,7 +162,7 @@ export async function POST(request: Request) {
             role: "system",
             content:
               "You are SpeakUp, a friendly English conversation coach. Keep the conversation natural and encouraging. " +
-              (mode === "reading-discussion" ? "For reading-discussion mode, generate the requested prepared reading text and do not role-play a single live turn. " : "Run an interactive role-play, not a lecture: begin in character, take one conversational turn at a time, ") +
+              (mode === "reading-discussion" ? "For reading-discussion mode, generate the requested prepared reading text and do not role-play a single live turn. " : mode === "paragraph-generation" ? "For paragraph-generation mode, write the complete paragraph requested and do not role-play a single live turn. " : "Run an interactive role-play, not a lecture: begin in character, take one conversational turn at a time, ") +
               "and respond to what the learner actually says. Stay in the role-play until the learner asks to stop or switch. " +
               "Use the selected scenario guidance: " + scenarioGuidance + " " +
               "Adapt to this learner level: " + difficulty + ". " + DIFFICULTY_GUIDES[difficulty] + " " +
