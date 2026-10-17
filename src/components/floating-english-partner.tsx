@@ -379,7 +379,7 @@ export function FloatingEnglishPartner() {
       shouldListenRef.current = activeRef.current;
       setPracticeResult((current) => ({ ...current, [messageId]: "Microphone could not start. Check browser permissions and try again." }));
     }
-  }, [active, speak]);
+  }, [speak]);
 
   const interruptSpeech = useCallback(() => {
     window.speechSynthesis?.cancel();
@@ -437,7 +437,7 @@ export function FloatingEnglishPartner() {
               {message.role === "user" && sentenceFeedbackByMessage[message.id] && <section className="floating-english-inline-feedback" aria-live="polite">
                 <strong>Sentence feedback</strong>
                 <p><b>Corrected:</b> {String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content)}</p>
-                {typeof sentenceFeedbackByMessage[message.id].naturalSentence === "string" && sentenceFeedbackByMessage[message.id].naturalSentence && <p><b>More natural:</b> {String(sentenceFeedbackByMessage[message.id].naturalSentence)}</p>}
+                {typeof sentenceFeedbackByMessage[message.id].naturalSentence === "string" && String(sentenceFeedbackByMessage[message.id].naturalSentence).length > 0 && <p><b>More natural:</b> {String(sentenceFeedbackByMessage[message.id].naturalSentence)}</p>}
                 <p><b>Why:</b> {String(sentenceFeedbackByMessage[message.id].explanation ?? "")}</p>
                 {repeatAfterFeedbackEnabled && <button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Practice corrected sentence</button>}
                 {practiceResult[message.id] && <p role="status">{practiceResult[message.id]}</p>}
