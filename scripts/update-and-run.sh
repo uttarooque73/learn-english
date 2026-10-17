@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Safely update SpeakUp AI and start the local development app without deleting local files.
+# Update SpeakUp AI and start the local development app without losing local work.
+# Local tracked edits and untracked, non-ignored files are stashed and restored.
+# Git-ignored files (including .env.local and node_modules) are preserved.
 # Run from any directory: bash scripts/update-and-run.sh
 
 log() { printf '\n[%s] %s\n' "SpeakUp AI" "$*"; }
@@ -17,15 +19,39 @@ cd "$PROJECT_DIR"
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "This script must be inside the SpeakUp AI Git repository."
 
-# Never destroy local work. Refuse to update when tracked edits or untracked files exist.
-if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
-  fail "Local changes or untracked files are present. Commit or stash them manually, then rerun this script. No local files have been deleted."
-fi
-
+# Preserve local tracked edits and untracked files while updating. Never reset or clean
+# the worktree automatically: those commands can irreversibly discard user work.
 BRANCH="$(git branch --show-current)"
 [[ -n "$BRANCH" ]] || fail "Could not determine the current Git branch."
-log "Updating branch '$BRANCH' from its configured remote..."
-git pull --ff-only || fail "Git update failed. Check your network, branch, and local Git state."
+
+STASH_REF=""
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  log "Stashing local tracked changes and untracked files before updating..."
+  git stash push --include-untracked -m "speakup-update-and-run-autostash" || fail "Could not safely stash local changes; no update was attempted."
+  STASH_REF="$(git rev-parse --verify refs/stash 2>/dev/null || true)"
+  [[ -n "$STASH_REF" ]] || fail "Local changes may have been stashed, but the stash reference could not be verified. Check 'git stash list' before continuing."
+fi
+
+restore_local_changes() {
+  [[ -n "$STASH_REF" ]] || return 0
+  log "Restoring local changes from stash $STASH_REF..."
+  if git stash apply "$STASH_REF"; then
+    # Drop only the exact stash we created, and only after a successful restore.
+    STASH_SELECTOR="$(git stash list --format='%H %gd' | awk -v sha="$STASH_REF" '$1 == sha { print $2; exit }')"
+    if [[ -n "$STASH_SELECTOR" ]]; then
+      git stash drop "$STASH_SELECTOR" >/dev/null 2>&1 || log "Local changes were restored; the backup stash remains in 'git stash list'."
+    fi
+    STASH_REF=""
+    return 0
+  fi
+  fail "Could not restore local changes cleanly. Your changes remain in stash $STASH_REF; resolve conflicts and recover them with 'git stash apply $STASH_REF'."
+}
+
+if ! git pull --ff-only; then
+  restore_local_changes
+  fail "Git update failed. Your local changes were restored; check your network, branch, and remote state."
+fi
+restore_local_changes
 
 [[ -f .env.example ]] || fail ".env.example is missing."
 if [[ ! -f .env.local ]]; then
