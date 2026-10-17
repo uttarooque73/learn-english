@@ -329,6 +329,9 @@ export function FloatingEnglishPartner() {
   }, []);
 
   const practiceCorrectedSentence = useCallback(async (messageId: string, target: string) => {
+    shouldListenRef.current = false;
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
     window.speechSynthesis?.cancel();
     setPracticeResult((current) => ({ ...current, [messageId]: "Listen to the corrected sentence, then repeat it aloud." }));
     await speak(target);
@@ -337,9 +340,6 @@ export function FloatingEnglishPartner() {
       setPracticeResult((current) => ({ ...current, [messageId]: "Repeat the sentence aloud. Speech recognition is not supported in this browser." }));
       return;
     }
-    shouldListenRef.current = false;
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
     setPracticeResult((current) => ({ ...current, [messageId]: "Listening for your repetition…" }));
     const recognition = new recognitionConstructor();
     recognition.continuous = false;
