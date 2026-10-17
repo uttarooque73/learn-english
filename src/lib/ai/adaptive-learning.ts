@@ -52,7 +52,8 @@ export class AdaptiveLearningError extends Error {
   }
 }
 
-type PlanRequest = { dailyTargetMinutes?: number; goal?: string; localDate?: string; generationSource?: "ai" | "manual" | "scheduled" };
+type PlanDiagnosticContext = { focusSkills: string[]; reasons: string[]; confidence: "low" | "medium" | "high"; dueVocabularyReviews: number };
+type PlanRequest = { dailyTargetMinutes?: number; goal?: string; localDate?: string; generationSource?: "ai" | "manual" | "scheduled"; diagnosticContext?: PlanDiagnosticContext };
 type AttemptRequest = {
   planItemId: string;
   responseText: string;
@@ -435,6 +436,13 @@ export async function generateDailyLearningPlan(
 
   const context = loadPlanningContext(ownerId, updatedProfile);
   const policy = buildAdaptationPolicy(context, readAdaptationSettings(ownerId));
+  const diagnosticContext = request.diagnosticContext ? {
+    focusSkills: request.diagnosticContext.focusSkills.filter((skill) => (SKILLS as readonly string[]).includes(skill)).slice(0, 5),
+    reasons: request.diagnosticContext.reasons.filter((reason) => typeof reason === "string" && reason.trim()).map((reason) => reason.slice(0, 200)).slice(0, 5),
+    confidence: request.diagnosticContext.confidence,
+    dueVocabularyReviews: Number.isInteger(request.diagnosticContext.dueVocabularyReviews)
+      ? Math.max(0, Math.min(10_000, request.diagnosticContext.dueVocabularyReviews)) : 0,
+  } : null;
   const plannerContext = policy.enabled ? {
     ...context,
     adaptationPolicy: {
@@ -458,6 +466,8 @@ export async function generateDailyLearningPlan(
     "Allowed skillKey values: speaking, pronunciation, grammar, vocabulary, listening, fluency, writing.",
     "Each durationMinutes must be an integer from 1 to 240. priority must be 0 to 1. Each reason must briefly cite the goal or supplied evidence.",
     "Do not claim mastery or improvement without saved evidence. When adaptation is enabled, prioritize higher skillWeights and due reviews.",
+    "Treat graph diagnosis as prioritization guidance only; saved evidence and deterministic policy remain authoritative.",
+    `Graph diagnosis: ${JSON.stringify(diagnosticContext)}`,
     `Learner goals: ${JSON.stringify(normalizedGoals)}`,
     `Daily target minutes: ${targetMinutes}`,
     `Learner evidence context: ${JSON.stringify(plannerContext)}`,

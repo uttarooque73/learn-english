@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { AdaptiveLearningError, evaluatePracticeAttempt } from "@/lib/ai/adaptive-learning";
+import { AdaptiveLearningError } from "@/lib/ai/adaptive-learning";
+import { runMultiAgentEvaluation } from "@/lib/ai/multi-agent-evaluation";
 import { ModelProviderError } from "@/lib/ai/model-provider";
 
 export const runtime = "nodejs";
@@ -64,13 +65,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await evaluatePracticeAttempt(ownerId, {
+    const workflow = await runMultiAgentEvaluation(ownerId, {
       planItemId: input.planItemId,
       responseText: input.responseText,
       durationSeconds: input.durationSeconds,
       idempotencyKey: input.idempotencyKey,
     });
-    return respond({ attempt: result }, request, ownerId, result.duplicate ? 200 : 201);
+    return respond({ attempt: workflow.attempt, workflow: { runId: workflow.runId, summary: workflow.summary, agents: workflow.agents } }, request, ownerId, workflow.attempt.duplicate ? 200 : 201);
   } catch (error) {
     return errorResponse(error, request, ownerId);
   }
