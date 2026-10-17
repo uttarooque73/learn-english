@@ -204,7 +204,7 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver) {
         dueVocabularyReviews: 0, recentScores: [],
       });
       const diagnosis = diagnoseLearningContext(context);
-      const goal = state.goal.trim().replace(/\s+/g, " ");
+      const goal = (state.goal.trim() || "Improve everyday English communication").replace(/\s+/g, " ");
       return {
         diagnosisJson: JSON.stringify(diagnosis),
         plannerGoal: `${goal}\nEvidence-based focus suggestions: ${diagnosis.focusSkills.join(", ")}. Reasons: ${diagnosis.reasons.join(" ")}. Treat these as priorities, not as claims beyond the saved evidence.`.slice(0, 500),
@@ -226,7 +226,7 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver) {
     .addNode("plannerAgent", async (state) => {
       const plan = await generateDailyLearningPlan(state.ownerId, {
         dailyTargetMinutes: state.dailyTargetMinutes,
-        goal: state.plannerGoal,
+        goal: state.goal || undefined,
         generationSource: "ai",
       });
       return {
@@ -276,8 +276,8 @@ export async function runMultiAgentLearningWorkflow(
   if (typeof ownerId !== "string" || !ownerId.trim() || ownerId.length > 200) {
     throw new MultiAgentLearningError("invalid_owner", "A valid learner owner is required.");
   }
-  const goal = typeof input.goal === "string" ? input.goal.trim() : "Improve everyday English communication";
-  if (!goal || goal.length > MAX_GOAL_LENGTH) {
+  const goal = typeof input.goal === "string" ? input.goal.trim() : "";
+  if ((input.goal !== undefined && !goal) || goal.length > MAX_GOAL_LENGTH) {
     throw new MultiAgentLearningError("invalid_input", "A learning goal must contain 1–1000 characters.");
   }
   if (input.dailyTargetMinutes !== undefined
