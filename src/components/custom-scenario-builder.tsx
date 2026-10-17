@@ -17,6 +17,21 @@ type CustomScenario = {
 };
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
+type SpeechResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechResultEvent) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechWindow = Window & {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+};
 const STORAGE_KEY = "speakup:custom-roleplay-scenarios:v1";
 
 async function readSavedScenarios(): Promise<CustomScenario[]> {
@@ -52,11 +67,82 @@ export function CustomScenarioBuilder() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    const speech = window as SpeechWindow;
+    setSpeechSupported(Boolean(speech.SpeechRecognition || speech.webkitSpeechRecognition));
+    return () => {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+    };
+  }, []);
+
+  function toggleSpeechInput() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const speech = window as SpeechWindow;
+    const Recognition = speech.SpeechRecognition || speech.webkitSpeechRecognition;
+    if (!Recognition) {
+      setVoiceError("Voice typing is not supported in this browser. Try Chrome or Edge, or type your reply.");
+      return;
+    }
+    const recognition = new Recognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    let finalTranscript = "";
+    recognition.onresult = (event) => {
+      let interimTranscript = "";
+      for (let index = 0; index < event.results.length; index++) {
+        const result = event.results[index];
+        const transcript = result?.[0]?.transcript ?? "";
+        if ((result as unknown as { isFinal?: boolean }).isFinal) finalTranscript += transcript;
+        else interimTranscript += transcript;
+      }
+      const spokenText = (finalTranscript + " " + interimTranscript).trim();
+      if (spokenText) {
+        setDraft((current) => {
+          const prefix = current.trim();
+          return prefix ? prefix + (/[.!?]$/.test(prefix) ? " " : " ") + spokenText : spokenText;
+        });
+      }
+    };
+    recognition.onerror = (event) => {
+      setVoiceError(event.error === "not-allowed"
+        ? "Microphone permission was denied. Allow microphone access in your browser settings."
+        : event.error === "no-speech"
+          ? "No speech detected. Try again, or type your reply."
+          : "Voice input failed. You can still type your reply.");
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+    recognitionRef.current = recognition;
+    setVoiceError("");
+    setListening(true);
+    try {
+      recognition.start();
+    } catch {
+      setListening(false);
+      recognitionRef.current = null;
+      setVoiceError("Could not start the microphone. Please try again.");
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -231,8 +317,9 @@ export function CustomScenarioBuilder() {
           </div>
           <form className={styles.replyForm} onSubmit={sendMessage}>
             <label htmlFor="scenario-reply">Your reply</label>
-            <textarea id="scenario-reply" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={4000} rows={3} placeholder="Type what you would say in the real conversation…" disabled={loading} />
-            <div><span>Stay in character. Ask for help if you get stuck.</span><button type="submit" disabled={loading || !draft.trim()}>{loading ? "Replying…" : "Send reply ↗"}</button></div>
+            <textarea id="scenario-reply" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={4000} rows={3} placeholder="Type your reply or use the microphone to speak…" disabled={loading} />
+            {voiceError && <p className={styles.voiceError} role="status">{voiceError}</p>}
+            <div className={styles.replyActions}><span>{listening ? "Listening… speak naturally, then stop the microphone." : "Stay in character. Ask for help if you get stuck."}</span><div className={styles.replyButtons}><button type="button" className={listening ? styles.micButtonActive : styles.micButton} onClick={toggleSpeechInput} disabled={loading} aria-label={listening ? "Stop voice input" : "Speak your reply"} aria-pressed={listening} title={speechSupported ? (listening ? "Stop voice input" : "Speak your reply") : "Voice input support depends on your browser"}>{listening ? "■ Stop" : "🎙 Speak"}</button><button type="submit" disabled={loading || !draft.trim()}>{loading ? "Replying…" : "Send reply ↗"}</button></div></div>
           </form>
         </section>
       )}
