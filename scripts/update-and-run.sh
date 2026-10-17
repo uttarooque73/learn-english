@@ -10,8 +10,15 @@ log() { printf '\n[%s] %s\n' "SpeakUp AI" "$*"; }
 fail() { printf '\n[SpeakUp AI] ERROR: %s\n' "$*" >&2; exit 1; }
 
 command -v git >/dev/null 2>&1 || fail "Git is required."
-command -v node >/dev/null 2>&1 || fail "Node.js is required (20.9+)."
-command -v npm >/dev/null 2>&1 || fail "npm is required (20.9+)."
+command -v node >/dev/null 2>&1 || fail "Node.js is missing. Manual action: install Node.js 20.9+ from https://nodejs.org/ and rerun this script."
+command -v npm >/dev/null 2>&1 || fail "npm is missing. Manual action: install npm (normally bundled with Node.js) and rerun this script."
+command -v curl >/dev/null 2>&1 || fail "curl is required to check the Ollama API. Manual action: install curl and rerun this script."
+NODE_VERSION="$(node -p 'process.versions.node')"
+NODE_MAJOR="$(printf '%s' "$NODE_VERSION" | cut -d. -f1)"
+NODE_MINOR="$(printf '%s' "$NODE_VERSION" | cut -d. -f2)"
+if (( NODE_MAJOR < 20 || (NODE_MAJOR == 20 && NODE_MINOR < 9) )); then
+  fail "Node.js $NODE_VERSION is too old. Manual action: upgrade to Node.js 20.9+ and rerun this script."
+fi
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
@@ -31,6 +38,17 @@ if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
   STASH_REF="$(git rev-parse --verify refs/stash 2>/dev/null || true)"
   [[ -n "$STASH_REF" ]] || fail "Local changes may have been stashed, but the stash reference could not be verified. Check 'git stash list' before continuing."
 fi
+
+MANUAL_ACTIONS=()
+manual_note() { MANUAL_ACTIONS+=("$*"); }
+print_manual_actions() {
+  if (( ${#MANUAL_ACTIONS[@]} > 0 )); then
+    printf '\n[SpeakUp AI] Manual steps to finish optional setup:\n'
+    local item
+    for item in "${MANUAL_ACTIONS[@]}"; do printf '  - %s\n' "$item"; done
+    printf '\n'
+  fi
+}
 
 restore_local_changes() {
   [[ -n "$STASH_REF" ]] || return 0
@@ -57,6 +75,7 @@ restore_local_changes
 if [[ ! -f .env.local ]]; then
   cp .env.example .env.local
   log "Created .env.local from .env.example."
+  manual_note "Review .env.local and adjust OLLAMA_BASE_URL / OLLAMA_MODEL if your Ollama setup differs from the defaults."
 else
   log "Keeping your existing .env.local unchanged."
 fi
@@ -69,6 +88,10 @@ OLLAMA_MODEL="$(sed -n 's/^OLLAMA_MODEL=//p' .env.local | tail -n 1)"
 OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
 OLLAMA_MODEL="${OLLAMA_MODEL:-llama3.1:8b}"
 OLLAMA_BASE_URL="${OLLAMA_BASE_URL%/}"
+if ! grep -Eq '^LEARNING_WORKER_SECRET=.{32,}$' .env.local; then
+  manual_note "Daily adaptive scheduling needs LEARNING_WORKER_SECRET set to a random secret of at least 32 characters in .env.local and the trusted worker environment. Never expose it as NEXT_PUBLIC_*."
+fi
+manual_note "The optional OpenPronounce companion service is not installed by this launcher; configure PRONUNCIATION_SERVICE_URL only if you have deployed it."
 
 if [[ ! -d node_modules ]]; then
   log "Installing npm dependencies..."
@@ -111,6 +134,10 @@ if ! OLLAMA_HOST="$OLLAMA_BASE_URL" ollama list | awk 'NR > 1 { print $1 }' | gr
 fi
 
 log "Using Ollama model: $OLLAMA_MODEL"
+if grep -Eq '^LEARNING_WORKER_SECRET=.{32,}$' .env.local; then
+  manual_note "To enable durable daily plans, start the worker with LEARNING_WORKER_URL / LEARNING_WORKER_SECRET and schedule scripts/trigger-learning-scheduler.sh daily; see README.md → Durable adaptive-learning worker."
+fi
+print_manual_actions
 log "Starting SpeakUp AI. Open http://localhost:3000 in your browser."
 log "Press Ctrl+C to stop the development server."
 exec npm run dev
