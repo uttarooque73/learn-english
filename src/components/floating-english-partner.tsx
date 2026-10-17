@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { speakText, stopSpeaking } from "@/lib/speech-playback";
 
 type Role = "user" | "assistant";
 type Message = { id: string; role: Role; content: string; createdAt: string };
@@ -33,6 +35,7 @@ function newId(): string {
 export function FloatingEnglishPartner() {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [active, setActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("Ready when you are");
@@ -51,6 +54,7 @@ export function FloatingEnglishPartner() {
   const [repeatAfterFeedbackEnabled, setRepeatAfterFeedbackEnabled] = useState(true);
   const [sentenceFeedbackByMessage, setSentenceFeedbackByMessage] = useState<Record<string, Record<string, unknown>>>({});
   const [practiceResult, setPracticeResult] = useState<Record<string, string>>({});
+  const [practicePhase, setPracticePhase] = useState<Record<string, "listening" | "result" | "done">>({});
   const [preferencesSaving, setPreferencesSaving] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "processing" | "complete" | "partial" | "failed">("idle");
   const [elapsed, setElapsed] = useState(0);
@@ -67,6 +71,7 @@ export function FloatingEnglishPartner() {
   const stopSessionRef = useRef<(() => void) | null>(null);
   const startListeningRef = useRef<(() => void) | null>(null);
   const requestAbortRef = useRef<AbortController | null>(null);
+  const practiceCorrectedSentenceRef = useRef<((messageId: string, target: string) => Promise<void>) | null>(null);
 
   useEffect(() => { messagesRef.current = messages; scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
   useEffect(() => {
@@ -105,7 +110,7 @@ export function FloatingEnglishPartner() {
   useEffect(() => () => {
     shouldListenRef.current = false;
     recognitionRef.current?.abort();
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
   }, []);
 
   const append = useCallback((role: Role, content: string) => {
@@ -129,22 +134,26 @@ export function FloatingEnglishPartner() {
     return message;
   }, [level, topic]);
 
-  const speak = useCallback((text: string) => new Promise<void>((resolve) => {
-    if (!("speechSynthesis" in window) || !text) { resolve(); return; }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = level === "Beginner" ? 0.88 : 0.98;
-    utterance.onstart = () => setStatus("Speaking");
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.speak(utterance);
-  }), [level]);
+  const speak = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    // Load the same database-backed preferences used by Listen buttons and Conversation Coach.
+    try {
+      await initializeDatabasePersistence();
+    } catch {
+      // Keep speech available with the preferences already in memory if persistence is temporarily unavailable.
+    }
+    setStatus("Speaking");
+    await new Promise<void>((resolve) => {
+      if (!speakText(text, resolve)) resolve();
+    });
+  }, []);
 
   const requestReply = useCallback(async (learnerText: string) => {
     if (busyRef.current || !learnerText.trim()) return;
     busyRef.current = true; setBusy(true); setStatus("Thinking");
     const controller = new AbortController();
     requestAbortRef.current = controller;
+    let correctedPractice: { messageId: string; target: string } | null = null;
     try {
       const learnerMessage = append("user", learnerText);
       if (!learnerMessage) return;
@@ -161,7 +170,12 @@ export function FloatingEnglishPartner() {
           });
           const feedbackData = await feedbackResponse.json() as { feedback?: Record<string, unknown>; error?: string };
           if (feedbackResponse.ok && feedbackData.feedback) {
-            setSentenceFeedbackByMessage((current) => ({ ...current, [learnerMessage.id]: feedbackData.feedback! }));
+            const item = feedbackData.feedback;
+            setSentenceFeedbackByMessage((current) => ({ ...current, [learnerMessage.id]: item }));
+            const corrected = String(item.correctedSentence ?? learnerMessage.content).trim();
+            if (repeatAfterFeedbackEnabled && corrected && (item.isCorrect === false || corrected.toLowerCase() !== learnerMessage.content.trim().toLowerCase())) {
+              correctedPractice = { messageId: learnerMessage.id, target: corrected };
+            }
             setStatus("Sentence feedback ready");
           } else {
             setStatus(feedbackData.error || "Sentence feedback is unavailable; continuing conversation.");
@@ -197,6 +211,11 @@ export function FloatingEnglishPartner() {
       append("assistant", reply.trim());
       setStatus("Speaking");
       await speak(reply.trim());
+      // After Jarvis responds, speak the corrected version automatically and invite the learner to repeat it.
+      if (correctedPractice && activeRef.current) {
+        shouldListenRef.current = false;
+        await practiceCorrectedSentenceRef.current?.(correctedPractice.messageId, correctedPractice.target);
+      }
     } catch (error) {
       if (!(error instanceof Error && error.name === "AbortError")) setStatus(error instanceof Error ? error.message : "Conversation failed. Please try again.");
     } finally {
@@ -204,7 +223,7 @@ export function FloatingEnglishPartner() {
       busyRef.current = false; setBusy(false);
       if (shouldListenRef.current) window.setTimeout(() => startListeningRef.current?.(), 180);
     }
-  }, [append, customTopic, level, sentenceFeedbackEnabled, speak, topic]);
+  }, [append, customTopic, level, repeatAfterFeedbackEnabled, sentenceFeedbackEnabled, speak, topic]);
 
   const startListening = useCallback(() => {
     if (!shouldListenRef.current || busyRef.current || recognitionRef.current) return;
@@ -259,7 +278,7 @@ export function FloatingEnglishPartner() {
     requestAbortRef.current?.abort(); requestAbortRef.current = null;
     setActive(false); setBusy(false); busyRef.current = false;
     recognitionRef.current?.stop(); recognitionRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setStatus("Finalizing transcript and generating feedback…");
     setFeedbackStatus("processing");
     try {
@@ -317,6 +336,7 @@ export function FloatingEnglishPartner() {
       setFeedback(data.feedback ?? []);
       setSentenceFeedbackByMessage(Object.fromEntries((data.feedback ?? []).map((item) => [String(item.messageId ?? ""), item])));
       setPracticeResult({});
+      setPracticePhase({});
       setOverallFeedback((data.session.overallFeedback as Record<string, unknown> | null) ?? null);
       setTopic(typeof data.session.topic === "string" ? data.session.topic : "Random Topic");
       setLevel(LEVELS.includes(data.session.proficiency as (typeof LEVELS)[number]) ? data.session.proficiency as (typeof LEVELS)[number] : "Intermediate");
@@ -335,13 +355,15 @@ export function FloatingEnglishPartner() {
     shouldListenRef.current = false;
     recognitionRef.current?.abort();
     recognitionRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
+    setPracticePhase((current) => ({ ...current, [messageId]: "listening" }));
     setPracticeResult((current) => ({ ...current, [messageId]: "Listen to the corrected sentence, then repeat it aloud." }));
     await speak(target);
     const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
     if (!recognitionConstructor) {
-      shouldListenRef.current = activeRef.current;
-      setPracticeResult((current) => ({ ...current, [messageId]: "Repeat the sentence aloud. Speech recognition is not supported in this browser." }));
+      shouldListenRef.current = false;
+      setPracticePhase((current) => ({ ...current, [messageId]: "result" }));
+      setPracticeResult((current) => ({ ...current, [messageId]: "Repeat the sentence aloud. Speech recognition is not supported in this browser. You can try again or continue when ready." }));
       return;
     }
     setPracticeResult((current) => ({ ...current, [messageId]: "Listening for your repetition…" }));
@@ -354,19 +376,28 @@ export function FloatingEnglishPartner() {
       const normalize = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}' ]/gu, " ").replace(/\s+/g, " ").trim();
       const expectedWords = normalize(target).split(" ").filter(Boolean);
       const spokenWords = normalize(spoken).split(" ").filter(Boolean);
-      const matched = expectedWords.filter((word) => spokenWords.includes(word)).length;
-      const similarity = matched / Math.max(expectedWords.length, spokenWords.length, 1);
+      const rows = Array.from({ length: expectedWords.length + 1 }, () => Array<number>(spokenWords.length + 1).fill(0));
+      for (let i = 0; i <= expectedWords.length; i += 1) rows[i][0] = i;
+      for (let j = 0; j <= spokenWords.length; j += 1) rows[0][j] = j;
+      for (let i = 1; i <= expectedWords.length; i += 1) {
+        for (let j = 1; j <= spokenWords.length; j += 1) {
+          rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + (expectedWords[i - 1] === spokenWords[j - 1] ? 0 : 1));
+        }
+      }
+      const similarity = 1 - rows[expectedWords.length][spokenWords.length] / Math.max(expectedWords.length, spokenWords.length, 1);
+      setPracticePhase((current) => ({ ...current, [messageId]: "result" }));
       setPracticeResult((current) => ({
         ...current,
-        [messageId]: similarity >= 0.75
+        [messageId]: similarity >= 0.85
           ? `Good repetition! You said: “${spoken}”`
-          : `Keep practicing. You said: “${spoken}”. Try to match: “${target}”`,
+          : `Not quite yet. You said: “${spoken}”. Compare it with the target sentence and try again when ready.`,
       }));
-      shouldListenRef.current = activeRef.current;
+      shouldListenRef.current = false;
     };
     recognition.onerror = () => {
+      setPracticePhase((current) => ({ ...current, [messageId]: "result" }));
       setPracticeResult((current) => ({ ...current, [messageId]: "I couldn't capture that repetition. Please try again." }));
-      shouldListenRef.current = activeRef.current;
+      shouldListenRef.current = false;
     };
     recognition.onend = () => {
       if (recognitionRef.current === recognition) recognitionRef.current = null;
@@ -381,8 +412,12 @@ export function FloatingEnglishPartner() {
     }
   }, [speak]);
 
+  useEffect(() => {
+    practiceCorrectedSentenceRef.current = practiceCorrectedSentence;
+  }, [practiceCorrectedSentence]);
+
   const interruptSpeech = useCallback(() => {
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setStatus("Speech interrupted");
     if (active) {
       shouldListenRef.current = true;
@@ -391,14 +426,14 @@ export function FloatingEnglishPartner() {
   }, [active]);
 
   const startSession = useCallback(async () => {
-    setMessages([]); messagesRef.current = []; setFeedback([]); setSentenceFeedbackByMessage({}); setPracticeResult({}); setOverallFeedback(null); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
+    setMessages([]); messagesRef.current = []; setFeedback([]); setSentenceFeedbackByMessage({}); setPracticeResult({}); setPracticePhase({}); setOverallFeedback(null); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
     const nextSessionId = newId();
     sessionIdRef.current = nextSessionId; setSessionId(nextSessionId); transcriptSequenceRef.current = 0;
     startedAtRef.current = Date.now();
     activeRef.current = true;
     setActive(true); setOpen(true); setMinimized(false); shouldListenRef.current = true;
-    append("assistant", `Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
-    await speak(`Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
+    append("assistant", `Hello! I'm Jarvis. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
+    await speak(`Hello! I'm Jarvis. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
     startListening();
   }, [append, customTopic, level, speak, startListening, topic]);
 
@@ -407,13 +442,14 @@ export function FloatingEnglishPartner() {
 
   return (
     <>
-      <button className="floating-english-trigger" type="button" aria-label="Open AI English Partner" aria-expanded={open} onClick={() => { setOpen(true); setMinimized(false); }}>
+      <button className="floating-english-trigger" type="button" aria-label="Open Jarvis assistant" aria-expanded={open} onClick={() => { setOpen(true); setMinimized(false); }}>
         <span aria-hidden="true">✦</span><span className="floating-english-trigger-label">Speak English</span>
       </button>
-      {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""}`} role="dialog" aria-label="AI English Partner" aria-modal="false">
+      {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""} ${fullscreen ? "is-fullscreen" : ""}`} role="dialog" aria-label="Jarvis" aria-modal="false">
         <header className="floating-english-header">
-          <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>AI English Partner</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
+          <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>Jarvis</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
           <div className="floating-english-header-actions">
+            <button type="button" aria-label={fullscreen ? "Exit full screen" : "Make conversation full screen"} title={fullscreen ? "Exit full screen" : "Full screen"} onClick={() => { setFullscreen((value) => !value); setMinimized(false); }}>{fullscreen ? "⤢" : "⛶"}</button>
             <button type="button" aria-label="Minimize conversation" onClick={() => setMinimized((v) => !v)}>{minimized ? "□" : "−"}</button>
             <button type="button" aria-label="Close conversation window" onClick={() => { if (active) void stopSession(); setOpen(false); }}>×</button>
           </div>
@@ -433,14 +469,15 @@ export function FloatingEnglishPartner() {
           {tab === "conversation" ? <div className="floating-english-transcript" ref={scrollRef} aria-live="polite">
             {messages.length === 0 && <div className="floating-english-empty"><span>✦</span><strong>Let&apos;s build confidence together.</strong><p>Start a conversation and speak naturally. You can interrupt, pause, or stop whenever you like.</p></div>}
             {messages.map((message) => <div key={message.id}>
-              <article className={`floating-english-message ${message.role}`}><small>{message.role === "user" ? "You" : "AI Partner"} · {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small><p>{message.content}</p></article>
+              <article className={`floating-english-message ${message.role}`}><small>{message.role === "user" ? "You" : "Jarvis"} · {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small><p>{message.content}</p></article>
               {message.role === "user" && sentenceFeedbackByMessage[message.id] && <section className="floating-english-inline-feedback" aria-live="polite">
                 <strong>Sentence feedback</strong>
                 <p><b>Corrected:</b> {String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content)}</p>
                 {typeof sentenceFeedbackByMessage[message.id].naturalSentence === "string" && String(sentenceFeedbackByMessage[message.id].naturalSentence).length > 0 && <p><b>More natural:</b> {String(sentenceFeedbackByMessage[message.id].naturalSentence)}</p>}
                 <p><b>Why:</b> {String(sentenceFeedbackByMessage[message.id].explanation ?? "")}</p>
-                {repeatAfterFeedbackEnabled && <button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Practice corrected sentence</button>}
+                {repeatAfterFeedbackEnabled && (!practicePhase[message.id] || practicePhase[message.id] === "done") && <button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Practice corrected sentence</button>}
                 {practiceResult[message.id] && <p role="status">{practiceResult[message.id]}</p>}
+                {practicePhase[message.id] === "result" && <div className="floating-english-practice-actions"><button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Repeat sentence</button><button type="button" onClick={() => { setPracticePhase((current) => ({ ...current, [message.id]: "done" })); if (activeRef.current) { shouldListenRef.current = true; if (!busyRef.current) window.setTimeout(() => startListeningRef.current?.(), 100); } }}>Continue conversation</button></div>}
               </section>}
             </div>)}
           </div> : tab === "feedback" ? <div className="floating-english-feedback" aria-live="polite">

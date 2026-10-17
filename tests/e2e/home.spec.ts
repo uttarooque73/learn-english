@@ -464,8 +464,9 @@ test("floating English partner opens, configures a topic, and loads saved-histor
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Open AI English Partner" }).click();
-  await expect(page.getByRole("dialog", { name: "AI English Partner" })).toBeVisible();
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
+  await expect(page.getByRole("dialog", { name: "Jarvis" })).toBeVisible();
+  await expect(page.getByText("Jarvis", { exact: true })).toBeVisible();
   await page.getByLabel("Topic").selectOption("Custom Topic");
   await expect(page.getByRole("textbox", { name: "Custom topic" })).toBeVisible();
   await page.getByRole("textbox", { name: "Custom topic" }).fill("Explaining a software release");
@@ -483,6 +484,23 @@ test("floating English partner opens, configures a topic, and loads saved-histor
 });
 
 
+
+test("Jarvis popup can switch to full screen and return to floating mode", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
+  const dialog = page.getByRole("dialog", { name: "Jarvis" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).not.toHaveClass(/is-fullscreen/);
+
+  await page.getByRole("button", { name: "Make conversation full screen" }).click();
+  await expect(dialog).toHaveClass(/is-fullscreen/);
+  await expect(page.getByRole("button", { name: "Exit full screen" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Exit full screen" }).click();
+  await expect(dialog).not.toHaveClass(/is-fullscreen/);
+  await expect(page.getByRole("button", { name: "Make conversation full screen" })).toBeVisible();
+});
+
 test("floating English partner sends typed turns and renders plain-text AI replies and feedback", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: undefined });
@@ -491,6 +509,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
       configurable: true,
       value: {
         cancel() {},
+        getVoices() { return []; },
         speak(utterance: SpeechSynthesisUtterance) {
           window.setTimeout(() => utterance.onend?.(new Event("end") as SpeechSynthesisEvent), 0);
         },
@@ -560,7 +579,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Open AI English Partner" }).click();
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
   await page.getByRole("button", { name: "Start Conversation" }).click();
   const composer = page.getByLabel("Type a message");
   await expect(composer).toBeVisible();
@@ -569,7 +588,12 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   await expect(page.getByText("That sounds interesting. What did you learn?")).toBeVisible();
   await expect(page.getByText("Sentence feedback")).toBeVisible();
   await expect(page.getByText("I work as a software engineer.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Practice corrected sentence" })).toBeVisible();
+  // Jarvis should speak the corrected sentence and enter repetition practice automatically.
+  await expect(page.getByRole("status").filter({ hasText: "Speech recognition is not supported" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Practice corrected sentence" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Repeat sentence" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Continue conversation" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue conversation" }).click();
   await page.getByRole("button", { name: "Stop Conversation" }).click();
   await expect(page.getByText("Overall feedback")).toBeVisible();
   await expect(page.getByText("Use an article before a singular countable job title.")).toBeVisible();

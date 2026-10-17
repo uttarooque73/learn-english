@@ -52,8 +52,9 @@ describe("SQLite schema migrations", () => {
       "007_adaptation_policy.sql",
       "008_floating_voice_conversations.sql",
       "009_voice_conversation_preferences.sql",
-      "010_ai_and_us_paragraph_practice.sql",
-      "011_aius_paragraph_feedback.sql",
+      "010_word_sentence_practice.sql",
+      "012_ai_and_us_paragraph_practice.sql",
+      "013_aius_paragraph_feedback.sql",
     ]);
     expect(tableNames).toContain("app_user_data");
     expect(tableNames).toContain("daily_vocabulary_topics");
@@ -101,7 +102,7 @@ describe("SQLite schema migrations", () => {
       .get() as { count: number };
 
     expect(saved?.data_value).toBe('{"dailyTarget":15}');
-    expect(migrationCount.count).toBe(11);
+    expect(migrationCount.count).toBe(13);
   });
   it("enforces learner ownership across plan items and practice attempts", () => {
     useTemporaryDatabase();

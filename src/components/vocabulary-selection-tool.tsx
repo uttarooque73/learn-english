@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { getVocabulary, saveVocabulary } from "@/lib/learning-storage";
 import { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { ShadowingPractice } from "@/components/shadowing-practice";
 
 type SelectionAnchor = { phrase: string; top: number; left: number };
 
@@ -16,6 +17,7 @@ export function VocabularySelectionTool() {
   const [meaning, setMeaning] = useState("");
   const [example, setExample] = useState("");
   const [status, setStatus] = useState("");
+  const [practicePhrase, setPracticePhrase] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.dataset.vocabularySelectionReady = "true";
@@ -43,7 +45,7 @@ export function VocabularySelectionTool() {
       setStatus("");
     }
     function dismissOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") { setSelection(null); setFormOpen(false); }
+      if (event.key === "Escape") { setSelection(null); setFormOpen(false); setPracticePhrase(null); }
     }
     window.addEventListener("mouseup", captureSelection);
     window.addEventListener("keyup", captureSelection);
@@ -100,8 +102,9 @@ export function VocabularySelectionTool() {
       {selection && !formOpen && (
         <div className="vocabulary-selection-action" data-vocabulary-selection-tool style={{ top: selection.top, left: selection.left }}>
           <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setFormOpen(true)} aria-label="Add selected text to vocabulary">
-            <span aria-hidden="true">＋</span> Add to vocabulary
+            <span aria-hidden="true">＋</span> Save vocabulary
           </button>
+          <button type="button" className="vocabulary-selection-practice" onMouseDown={(event) => event.preventDefault()} onClick={() => { const phrase = selection.phrase; setSelection(null); setFormOpen(false); window.getSelection()?.removeAllRanges(); setPracticePhrase(phrase); }} aria-label={`Practice ${selection.phrase}`}>🎙 Practice</button>
           <button type="button" className="vocabulary-selection-dismiss" onMouseDown={(event) => event.preventDefault()} onClick={() => setSelection(null)} aria-label="Dismiss vocabulary action">×</button>
         </div>
       )}
@@ -118,6 +121,14 @@ export function VocabularySelectionTool() {
             <button type="submit">Save to vocabulary</button>
           </div>
         </form>
+      )}
+      {practicePhrase && (
+        <div className="inline-practice-backdrop" data-vocabulary-selection-tool onMouseDown={(event) => { if (event.target === event.currentTarget) setPracticePhrase(null); }}>
+          <section className="inline-practice-dialog" role="dialog" aria-modal="true" aria-label={`Practice ${practicePhrase}`}>
+            <div className="inline-practice-dialog-header"><div><span className="eyebrow">PRACTISE WITHOUT LEAVING THIS PAGE</span><h2>{practicePhrase}</h2></div><button type="button" onClick={() => setPracticePhrase(null)} aria-label="Close practice popup">×</button></div>
+            <ShadowingPractice initialTarget={practicePhrase} />
+          </section>
+        </div>
       )}
       {status && <p className="vocabulary-selection-status" role="status" aria-live="polite">{status}<button type="button" onClick={() => setStatus("")} aria-label="Dismiss save confirmation">×</button></p>}
     </>

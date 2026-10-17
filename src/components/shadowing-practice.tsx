@@ -80,8 +80,9 @@ async function analyzeRecording(blob: Blob, wordCount: number): Promise<Acoustic
   }
 }
 
-export function ShadowingPractice() {
+export function ShadowingPractice({ initialTarget }: { initialTarget?: string }) {
   const [lines, setLines] = useState(DEFAULT_LINES);
+  const [vocabularySaved, setVocabularySaved] = useState(false);
   const [customLine, setCustomLine] = useState("");
   const [customLines, setCustomLines] = useState<string[]>([]);
   const [blindMode, setBlindMode] = useState(false);
@@ -111,8 +112,8 @@ export function ShadowingPractice() {
     const timer = window.setTimeout(() => {
       const w = window as SpeechWindow;
       setSupported(Boolean(w.SpeechRecognition || w.webkitSpeechRecognition));
-      const requestedTarget = new URLSearchParams(window.location.search).get("text")?.trim();
-      if (requestedTarget && requestedTarget.length <= 240) { setLines([requestedTarget, ...DEFAULT_LINES]); setIndex(0); setFeedback("Ready to practise the selected vocabulary item."); }
+      const requestedTarget = initialTarget?.trim() || new URLSearchParams(window.location.search).get("text")?.trim();
+      if (requestedTarget && requestedTarget.length <= 240) { setLines([requestedTarget, ...DEFAULT_LINES]); setIndex(0); setFeedback("Ready to practise the selected word or phrase."); }
       void fetch("/api/persistence", { cache: "no-store" })
         .then(async (response) => {
           if (!response.ok) throw new Error("Could not load saved shadowing sentences.");
@@ -145,6 +146,33 @@ export function ShadowingPractice() {
   }, []);
 
   const sentence = lines[index] ?? lines[0];
+
+  async function saveCurrentTargetToVocabulary() {
+    const phrase = sentence?.trim();
+    if (!phrase) return;
+    try {
+      const definitionResponse = await fetch("/api/vocabulary/define", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phrase }),
+      });
+      const definition = await definitionResponse.json() as { meaning?: string; example?: string; category?: "word" | "collocation" | "phrasal verb" | "expression"; error?: string };
+      if (!definitionResponse.ok || !definition.meaning) throw new Error(definition.error || "Could not generate a meaning for this item.");
+      const { initializeDatabasePersistence } = await import("@/lib/client-persistence");
+      const { saveVocabulary, getVocabulary } = await import("@/lib/learning-storage");
+      await initializeDatabasePersistence();
+      if (getVocabulary().some((item) => item.phrase.trim().toLocaleLowerCase() === phrase.toLocaleLowerCase())) {
+        setVocabularySaved(true);
+        setFeedback("This word or phrase is already saved in your vocabulary.");
+        return;
+      }
+      saveVocabulary({ phrase, meaning: definition.meaning, example: definition.example || "", category: definition.category || (/\s/.test(phrase) ? "expression" : "word") });
+      setVocabularySaved(true);
+      setFeedback("Saved this word or phrase to your vocabulary.");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Could not save this word or phrase.");
+    }
+  }
   const comparison: TranscriptAssessment | null = transcript ? assessTranscript(sentence, transcript) : null;
 
   async function saveListenHistory(target: string) {
@@ -324,7 +352,7 @@ export function ShadowingPractice() {
       {lines.map((line, i) => <option key={i + "-" + line} value={i}>{line}</option>)}
     </select></label>
     <div className="shadowing-target-tools"><button type="button" className={"button button-outline" + (blindMode ? " active" : "")} aria-pressed={blindMode} onClick={() => { const next = !blindMode; setBlindMode(next); setTargetRevealed(!next); }}>{blindMode ? "◉ Blind mode on" : "◉ Blind mode"}</button><button type="button" className="button button-outline" onClick={() => { if (lines.length < 2) return; let next = index; while (next === index) next = Math.floor(Math.random() * lines.length); setIndex(next); setTranscript(""); transcriptRef.current = ""; setFeedback("Random sentence selected. Listen and shadow it."); setAcoustic(null); setPhonemeResult(null); setPhonemeMessage(""); setTargetRevealed(!blindMode); }}>🎲 Random sentence</button>{blindMode && <button type="button" className="text-link" onClick={() => setTargetRevealed((value) => !value)}>{targetRevealed ? "Hide target" : "Reveal target"}</button>}</div><blockquote className={"shadowing-sentence" + (blindMode && !targetRevealed ? " shadowing-sentence-hidden" : "")}>{blindMode && !targetRevealed ? "Listen first, repeat from memory, then reveal the target to compare." : sentence}</blockquote>
-    <div className="shadowing-controls"><label>Speaking speed <select value={rate} onChange={(event) => setRate(Number(event.target.value))}><option value={0.7}>Slow</option><option value={0.85}>Steady</option><option value={1}>Natural</option></select></label><button type="button" className="button button-outline" onClick={speakSentence}>▶ Listen</button>{!listening ? <button type="button" className="button button-primary" onClick={startRepeat}>🎙 Start recording</button> : <button type="button" className="button button-primary" onClick={stopRepeat}>Stop and assess</button>}<button type="button" className="text-link" onClick={() => { setIndex((index + 1) % lines.length); setTranscript(""); setFeedback(""); setAcoustic(null); setPhonemeResult(null); setPhonemeMessage(""); }}>Next line →</button></div>
+    <div className="shadowing-controls"><button type="button" className="button button-outline" onClick={() => { void saveCurrentTargetToVocabulary(); }} disabled={vocabularySaved}>{vocabularySaved ? "Saved to vocabulary" : "Save vocabulary"}</button><label>Speaking speed <select value={rate} onChange={(event) => setRate(Number(event.target.value))}><option value={0.7}>Slow</option><option value={0.85}>Steady</option><option value={1}>Natural</option></select></label><button type="button" className="button button-outline" onClick={speakSentence}>▶ Listen</button>{!listening ? <button type="button" className="button button-primary" onClick={startRepeat}>🎙 Start recording</button> : <button type="button" className="button button-primary" onClick={stopRepeat}>Stop and assess</button>}<button type="button" className="text-link" onClick={() => { setIndex((index + 1) % lines.length); setTranscript(""); setFeedback(""); setAcoustic(null); setPhonemeResult(null); setPhonemeMessage(""); }}>Next line →</button></div>
     {transcript && comparison && <div className="shadowing-result"><strong>Your transcript</strong><p>{transcript}</p><div className="word-feedback" aria-label={`Word match ${comparison.score} percent`}>{comparison.expectedWords.map((word, i) => <span className={comparison.missingWords.includes(word) ? "word-miss" : "word-match"} key={i}>{word}</span>)}</div><p>Word-order similarity: {comparison.score}%.</p>{comparison.missingWords.length > 0 && <p><strong>Words to practise:</strong> {comparison.missingWords.join(", ")}. Listen to the target once, then repeat only the phrase containing these words.</p>}{comparison.extraWords.length > 0 && <p><strong>Extra words detected:</strong> {comparison.extraWords.join(", ")}. Try keeping the response close to the target sentence before adding natural variations.</p>}<p><strong>Next drill:</strong> {comparison.score >= 90 ? "Great match. Repeat once at natural speed and focus on sentence stress." : comparison.score >= 65 ? "Practise in two short chunks, then join them together at a steady pace." : "Listen at slow speed, repeat one phrase at a time, and compare the transcript again."}</p><small>Transcript similarity is not an accent score; browser speech recognition can mishear correct speech.</small></div>}
     {acoustic && <div className="shadowing-result"><strong>Rhythm and delivery</strong><div className="shadowing-metrics"><p><b>{acoustic.speechRateWpm}</b><span>estimated words/minute</span></p><p><b>{acoustic.pauseCount}</b><span>long pauses (≥180 ms)</span></p><p><b>{acoustic.pitchRangeHz === null ? "—" : `${acoustic.pitchRangeHz} Hz`}</b><span>estimated pitch range</span></p></div><p>{acoustic.intonation}</p><small>These are approximate acoustic coaching signals, not a validated prosody score. Pitch range is estimated from the recording.</small></div>}
     {phonemeResult && <div className="shadowing-result"><strong>Sound-level score: {phonemeResult.score}%</strong>{phonemeResult.errors.length ? <ul>{phonemeResult.errors.slice(0, 8).map((item, i) => <li key={item.word + i}><b>{item.word}</b>: expected {item.expected || "target sound"}{item.actual ? `, heard ${item.actual}` : ""}{item.phones.length ? ` (sounds: ${item.phones.map((phone) => `${phone.expected}→${phone.heard ?? "not detected"}`).join(", ")})` : ""}</li>)}</ul> : <p>No sound-level differences were returned by the assessment service.</p>}</div>}
