@@ -26,7 +26,7 @@ function savedExercise(w:SavedVocabulary):Exercise{return{id:"saved-"+w.id,kind:
 export function selectPracticeExercise(input:{kind:Kind|"mixed";topic:string;difficulty:"beginner"|"intermediate"|"advanced";history:Attempt[];savedWords:SavedVocabulary[];includeSavedWords:boolean;previousExerciseId?:string}):{exercise:Exercise;rationale:string;route:string}{
  const all=[...EXERCISES.filter(x=>input.topic==="Everyday English"||x.topic===input.topic),...(input.includeSavedWords?input.savedWords.map(savedExercise):[])].filter(x=>input.kind==="mixed"||x.kind===input.kind);
  const pool=all.length?all:EXERCISES.filter(x=>input.kind==="mixed"||x.kind===input.kind);
- const scores=new Map(input.history.map(x=>[x.id,x.score]));
+ const scores=new Map<string,number>();for(const attempt of input.history){if(!scores.has(attempt.id))scores.set(attempt.id,attempt.score)}
  const weak=pool.find(x=>scores.has(x.id)&&(scores.get(x.id)??1)<.75&&x.id!==input.previousExerciseId);
  const unseen=pool.find(x=>!scores.has(x.id)&&x.id!==input.previousExerciseId);
  const selected=weak??unseen??pool.find(x=>x.id!==input.previousExerciseId)??pool[0];
