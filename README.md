@@ -44,7 +44,7 @@ Keep these variables server-side; do not prefix them with `NEXT_PUBLIC_`.
 ## Data and privacy notes
 
 - The app creates its SQLite schema on first use. The database directory must be writable and stored on persistent disk.
-- Existing browser data is migrated when persistence is first connected. Browser localStorage remains a synchronous cache.
+- Existing `speakup:*` browser data is imported into SQLite once when persistence is first connected, then removed from localStorage. The client uses a synchronous in-memory cache backed by SQLite.
 - There is no sign-in system. Data is scoped to an anonymous, HTTP-only browser-owner cookie and does not sync between browsers or devices.
 - Serverless or ephemeral filesystems may lose the SQLite database after restart or redeployment.
 - AI features require Ollama. Speech recognition and playback depend on browser/OS support and microphone permissions; browser speech recognition may use a browser-vendor service.
