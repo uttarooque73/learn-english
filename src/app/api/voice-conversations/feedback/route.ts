@@ -193,6 +193,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ...(failure ? { warning: "Some utterances could not be analyzed; retry feedback generation to complete the report." } : {}),
     }, request, ownerId);
   } catch {
+    try {
+      const db = getDatabase();
+      db.prepare("UPDATE voice_conversation_sessions SET status='failed', feedback_status='failed' WHERE id=? AND owner_id=?")
+        .run(input.sessionId, ownerId);
+    } catch { /* Preserve the safe API error even if persistence itself is unavailable. */ }
     return response({ error: "Could not persist or analyze this conversation. Check the local AI provider and retry." }, request, ownerId, 503);
   }
 }
