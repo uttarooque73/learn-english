@@ -7,12 +7,16 @@ const globalForDatabase = globalThis as typeof globalThis & {
   speakupDatabase?: Database.Database;
 };
 
+export function getDatabasePath(): string {
+  const configuredPath = process.env.SQLITE_DATABASE_PATH;
+  return configuredPath
+    ? path.resolve(configuredPath)
+    : path.join(process.cwd(), "data", "speakup.sqlite");
+}
+
 export function getDatabase(): Database.Database {
   if (!globalForDatabase.speakupDatabase) {
-    const configuredPath = process.env.SQLITE_DATABASE_PATH;
-    const databasePath = configuredPath
-      ? path.resolve(configuredPath)
-      : path.join(process.cwd(), "data", "speakup.sqlite");
+    const databasePath = getDatabasePath();
 
     mkdirSync(path.dirname(databasePath), { recursive: true });
     const database = new Database(databasePath);
