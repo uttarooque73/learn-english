@@ -47,6 +47,11 @@ export function FloatingEnglishPartner() {
   const [history, setHistory] = useState<Array<Record<string, unknown>>>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState("");
+  const [sentenceFeedbackEnabled, setSentenceFeedbackEnabled] = useState(true);
+  const [repeatAfterFeedbackEnabled, setRepeatAfterFeedbackEnabled] = useState(true);
+  const [sentenceFeedbackByMessage, setSentenceFeedbackByMessage] = useState<Record<string, Record<string, unknown>>>({});
+  const [practiceResult, setPracticeResult] = useState<Record<string, string>>({});
+  const [preferencesSaving, setPreferencesSaving] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "processing" | "complete" | "partial" | "failed">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [sessionId, setSessionId] = useState("");
@@ -64,6 +69,33 @@ export function FloatingEnglishPartner() {
 
   useEffect(() => { messagesRef.current = messages; scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
   useEffect(() => {
+    void fetch("/api/voice-conversations/preferences", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json() as { sentenceFeedbackEnabled?: boolean; repeatAfterFeedbackEnabled?: boolean };
+        if (response.ok) {
+          if (typeof data.sentenceFeedbackEnabled === "boolean") setSentenceFeedbackEnabled(data.sentenceFeedbackEnabled);
+          if (typeof data.repeatAfterFeedbackEnabled === "boolean") setRepeatAfterFeedbackEnabled(data.repeatAfterFeedbackEnabled);
+        }
+      })
+      .catch(() => setStatus("Preferences could not be loaded; using defaults."));
+  }, []);
+  const savePreferences = useCallback(async (nextSentenceFeedback: boolean, nextRepeat: boolean) => {
+    setSentenceFeedbackEnabled(nextSentenceFeedback);
+    setRepeatAfterFeedbackEnabled(nextRepeat);
+    setPreferencesSaving(true);
+    try {
+      const response = await fetch("/api/voice-conversations/preferences", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sentenceFeedbackEnabled: nextSentenceFeedback, repeatAfterFeedbackEnabled: nextRepeat }),
+      });
+      if (!response.ok) throw new Error("Preferences could not be saved.");
+    } catch {
+      setStatus("Could not save preferences. Please try again.");
+    } finally {
+      setPreferencesSaving(false);
+    }
+  }, []);
+  useEffect(() => {
     if (!active) return;
     const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000)), 1000);
     return () => window.clearInterval(timer);
@@ -77,7 +109,8 @@ export function FloatingEnglishPartner() {
   const append = useCallback((role: Role, content: string) => {
     const message = { id: newId(), role, content: content.trim(), createdAt: new Date().toISOString() };
     if (!message.content) return null;
-    setMessages((current) => [...current, message]);
+    messagesRef.current = [...messagesRef.current, message];
+    setMessages(messagesRef.current);
     const currentSessionId = sessionIdRef.current;
     if (currentSessionId) {
       const sequenceNumber = transcriptSequenceRef.current++;
@@ -111,7 +144,32 @@ export function FloatingEnglishPartner() {
     const controller = new AbortController();
     requestAbortRef.current = controller;
     try {
-      const next = [...messagesRef.current, { id: newId(), role: "user" as const, content: learnerText.trim(), createdAt: new Date().toISOString() }];
+      const learnerMessage = append("user", learnerText);
+      if (!learnerMessage) return;
+      if (sentenceFeedbackEnabled && sessionIdRef.current) {
+        try {
+          const feedbackResponse = await fetch("/api/voice-conversations/sentence-feedback", {
+            method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
+            body: JSON.stringify({
+              sessionId: sessionIdRef.current, topic, proficiency: level,
+              startedAt: new Date(startedAtRef.current).toISOString(),
+              sequenceNumber: Math.max(0, transcriptSequenceRef.current - 1),
+              message: learnerMessage,
+            }),
+          });
+          const feedbackData = await feedbackResponse.json() as { feedback?: Record<string, unknown>; error?: string };
+          if (feedbackResponse.ok && feedbackData.feedback) {
+            setSentenceFeedbackByMessage((current) => ({ ...current, [learnerMessage.id]: feedbackData.feedback! }));
+            setStatus("Sentence feedback ready");
+          } else {
+            setStatus(feedbackData.error || "Sentence feedback is unavailable; continuing conversation.");
+          }
+        } catch (error) {
+          if (error instanceof Error && error.name === "AbortError") throw error;
+          setStatus("Sentence feedback is unavailable; continuing conversation.");
+        }
+      }
+      const next = messagesRef.current.map(({ role, content }) => ({ role, content }));
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,7 +179,7 @@ export function FloatingEnglishPartner() {
           scenario: topic === "Random Topic" ? "Free conversation" : topic === "Software Development" ? "Explain a technical concept" : topic === "Work and Meetings" ? "Team meeting" : topic === "Food and Cooking" ? "Restaurant conversation" : topic === "Daily Life" ? "Everyday life" : topic === "Travel" ? "Travel and directions" : topic === "Custom Topic" ? (customTopic.trim() || "Free conversation") : "Free conversation",
           difficulty: level,
           feedbackStyle: "gentle",
-          messages: next.map(({ role, content }) => ({ role, content })),
+          messages: next,
         }),
       });
       if (!response.ok || !response.body) throw new Error("The conversation service is unavailable.");
@@ -134,7 +192,6 @@ export function FloatingEnglishPartner() {
         if (done) break;
       }
       if (!reply.trim()) throw new Error("The AI returned an empty response.");
-      append("user", learnerText);
       append("assistant", reply.trim());
       setStatus("Speaking");
       await speak(reply.trim());
@@ -145,7 +202,7 @@ export function FloatingEnglishPartner() {
       busyRef.current = false; setBusy(false);
       if (shouldListenRef.current) window.setTimeout(() => startListeningRef.current?.(), 180);
     }
-  }, [append, customTopic, level, speak, topic]);
+  }, [append, customTopic, level, sentenceFeedbackEnabled, speak, topic]);
 
   const startListening = useCallback(() => {
     if (!shouldListenRef.current || busyRef.current || recognitionRef.current) return;
@@ -210,6 +267,7 @@ export function FloatingEnglishPartner() {
       const data = await response.json() as { feedback?: Array<Record<string, unknown>>; feedbackStatus?: string; overallFeedback?: Record<string, unknown>; error?: string };
       if (!response.ok) throw new Error(data.error || "Feedback could not be generated.");
       setFeedback(data.feedback ?? []);
+      setSentenceFeedbackByMessage(Object.fromEntries((data.feedback ?? []).map((item) => [String(item.messageId ?? ""), item])));
       setOverallFeedback((data.overallFeedback as Record<string, unknown> | undefined) ?? null);
       setFeedbackStatus(data.feedbackStatus === "complete" ? "complete" : data.feedbackStatus === "failed" ? "failed" : "partial");
       setTab("feedback");
@@ -254,6 +312,8 @@ export function FloatingEnglishPartner() {
       setMessages(savedMessages);
       messagesRef.current = savedMessages;
       setFeedback(data.feedback ?? []);
+      setSentenceFeedbackByMessage(Object.fromEntries((data.feedback ?? []).map((item) => [String(item.messageId ?? ""), item])));
+      setPracticeResult({});
       setOverallFeedback((data.session.overallFeedback as Record<string, unknown> | null) ?? null);
       setTopic(typeof data.session.topic === "string" ? data.session.topic : "Random Topic");
       setLevel(LEVELS.includes(data.session.proficiency as (typeof LEVELS)[number]) ? data.session.proficiency as (typeof LEVELS)[number] : "Intermediate");
@@ -268,6 +328,55 @@ export function FloatingEnglishPartner() {
     }
   }, []);
 
+  const practiceCorrectedSentence = useCallback(async (messageId: string, target: string) => {
+    window.speechSynthesis?.cancel();
+    setPracticeResult((current) => ({ ...current, [messageId]: "Listen to the corrected sentence, then repeat it aloud." }));
+    await speak(target);
+    const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
+    if (!recognitionConstructor) {
+      setPracticeResult((current) => ({ ...current, [messageId]: "Repeat the sentence aloud. Speech recognition is not supported in this browser." }));
+      return;
+    }
+    shouldListenRef.current = false;
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
+    setPracticeResult((current) => ({ ...current, [messageId]: "Listening for your repetition…" }));
+    const recognition = new recognitionConstructor();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.onresult = (event) => {
+      const spoken = event.results[0]?.[0]?.transcript ?? "";
+      const normalize = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}' ]/gu, " ").replace(/\s+/g, " ").trim();
+      const expectedWords = normalize(target).split(" ").filter(Boolean);
+      const spokenWords = normalize(spoken).split(" ").filter(Boolean);
+      const matched = expectedWords.filter((word) => spokenWords.includes(word)).length;
+      const similarity = matched / Math.max(expectedWords.length, spokenWords.length, 1);
+      setPracticeResult((current) => ({
+        ...current,
+        [messageId]: similarity >= 0.75
+          ? `Good repetition! You said: “${spoken}”`
+          : `Keep practicing. You said: “${spoken}”. Try to match: “${target}”`,
+      }));
+      shouldListenRef.current = active;
+    };
+    recognition.onerror = () => {
+      setPracticeResult((current) => ({ ...current, [messageId]: "I couldn't capture that repetition. Please try again." }));
+      shouldListenRef.current = active;
+    };
+    recognition.onend = () => {
+      if (recognitionRef.current === recognition) recognitionRef.current = null;
+      if (shouldListenRef.current && active && !busyRef.current) window.setTimeout(() => startListeningRef.current?.(), 250);
+    };
+    recognitionRef.current = recognition;
+    try { recognition.start(); }
+    catch {
+      recognitionRef.current = null;
+      shouldListenRef.current = active;
+      setPracticeResult((current) => ({ ...current, [messageId]: "Microphone could not start. Check browser permissions and try again." }));
+    }
+  }, [active, speak]);
+
   const interruptSpeech = useCallback(() => {
     window.speechSynthesis?.cancel();
     setStatus("Speech interrupted");
@@ -278,7 +387,7 @@ export function FloatingEnglishPartner() {
   }, [active]);
 
   const startSession = useCallback(async () => {
-    setMessages([]); messagesRef.current = []; setFeedback([]); setOverallFeedback(null); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
+    setMessages([]); messagesRef.current = []; setFeedback([]); setSentenceFeedbackByMessage({}); setPracticeResult({}); setOverallFeedback(null); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
     const nextSessionId = newId();
     sessionIdRef.current = nextSessionId; setSessionId(nextSessionId); transcriptSequenceRef.current = 0;
     startedAtRef.current = Date.now();
@@ -310,10 +419,25 @@ export function FloatingEnglishPartner() {
             {topic === "Custom Topic" && <label>Custom topic<input value={customTopic} onChange={(event) => setCustomTopic(event.target.value)} disabled={active} maxLength={120} placeholder="e.g. explaining a software release" /></label>}
             <label>English level<select value={level} onChange={(event) => setLevel(event.target.value as (typeof LEVELS)[number])} disabled={active}>{LEVELS.map((item) => <option key={item}>{item}</option>)}</select></label>
           </div>
+          <div className="floating-english-preference-toggles">
+            <label><input type="checkbox" checked={sentenceFeedbackEnabled} disabled={active || preferencesSaving} onChange={(event) => void savePreferences(event.target.checked, repeatAfterFeedbackEnabled)} /> Feedback after every sentence</label>
+            <label><input type="checkbox" checked={repeatAfterFeedbackEnabled} disabled={active || preferencesSaving || !sentenceFeedbackEnabled} onChange={(event) => void savePreferences(sentenceFeedbackEnabled, event.target.checked)} /> Enable repeat practice after feedback</label>
+            {preferencesSaving && <small>Saving preferences…</small>}
+          </div>
           <div className="floating-english-status"><span className={active ? "live-dot" : ""} />{active ? status : status}<span className="floating-english-timer">{time}</span></div>
           {tab === "conversation" ? <div className="floating-english-transcript" ref={scrollRef} aria-live="polite">
             {messages.length === 0 && <div className="floating-english-empty"><span>✦</span><strong>Let&apos;s build confidence together.</strong><p>Start a conversation and speak naturally. You can interrupt, pause, or stop whenever you like.</p></div>}
-            {messages.map((message) => <article key={message.id} className={`floating-english-message ${message.role}`}><small>{message.role === "user" ? "You" : "AI Partner"} · {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small><p>{message.content}</p></article>)}
+            {messages.map((message) => <div key={message.id}>
+              <article className={`floating-english-message ${message.role}`}><small>{message.role === "user" ? "You" : "AI Partner"} · {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small><p>{message.content}</p></article>
+              {message.role === "user" && sentenceFeedbackByMessage[message.id] && <section className="floating-english-inline-feedback" aria-live="polite">
+                <strong>Sentence feedback</strong>
+                <p><b>Corrected:</b> {String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content)}</p>
+                {typeof sentenceFeedbackByMessage[message.id].naturalSentence === "string" && sentenceFeedbackByMessage[message.id].naturalSentence && <p><b>More natural:</b> {String(sentenceFeedbackByMessage[message.id].naturalSentence)}</p>}
+                <p><b>Why:</b> {String(sentenceFeedbackByMessage[message.id].explanation ?? "")}</p>
+                {repeatAfterFeedbackEnabled && <button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Practice corrected sentence</button>}
+                {practiceResult[message.id] && <p role="status">{practiceResult[message.id]}</p>}
+              </section>}
+            </div>)}
           </div> : tab === "feedback" ? <div className="floating-english-feedback" aria-live="polite">
             {overallFeedback && <section className="floating-english-overall-feedback">
               <strong>Overall feedback</strong>
