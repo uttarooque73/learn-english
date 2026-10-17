@@ -51,7 +51,7 @@ export function ConversationCoach() {
   const [elapsed, setElapsed] = useState(0);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const recognitionRef = useRef<Recognition | null>(null);
-  const startListeningRef = useRef<(() => void) | null>(null);
+  const startListeningRef = useRef<((preserveError?: boolean) => void) | null>(null);
   const sessionIdRef = useRef("");
   const recognizedSpeechRef = useRef("");
   const turnsRef = useRef<Turn[]>([]);
@@ -114,7 +114,7 @@ export function ConversationCoach() {
     const resumeMicrophone = () => {
       if (!resumeListening || !sessionIdRef.current) return;
       window.setTimeout(() => {
-        if (sessionIdRef.current) startListeningRef.current?.();
+        if (sessionIdRef.current) startListeningRef.current?.(true);
       }, 300);
     };
     if (!("speechSynthesis" in window)) {
@@ -220,8 +220,8 @@ export function ConversationCoach() {
     } finally { setBusy(false); }
   }, [input, busy, sessionId, scenario, difficulty, correctionMode, persistSession, play]);
 
-  const startListening = () => {
-    setError("");
+  const startListening = (preserveError = false) => {
+    if (!preserveError) setError("");
     const ctor = (window as RecognitionWindow).SpeechRecognition || (window as RecognitionWindow).webkitSpeechRecognition;
     if (!ctor) { setError("Speech recognition is not available in this browser. You can type your answer instead."); return; }
     try {
