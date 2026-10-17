@@ -521,13 +521,16 @@ This plan is the active source of truth for implementation. Work is delivered in
 - Keep this status table current as phases merge; a phase is not complete merely because code was committed or a PR was opened.
 
 
-## Floating AI English Partner feature (implementation branch)
+## Floating AI English Partner feature
 
-Feature specification received on 2026-10-18. Implementation is in progress on branch `feat/floating-ai-conversation-feedback`; this is not yet considered complete.
+Feature implementation is complete on branch `feat/floating-ai-conversation-feedback`; final CI validation is required before merge.
 
-- Added a root-layout floating conversation widget with topic and proficiency controls, browser speech recognition/synthesis, and a transcript/feedback panel.
-- Added migration `008_floating_voice_conversations.sql` for owner-scoped session, transcript, and line-feedback persistence.
-- Added incremental transcript persistence at `POST /api/voice-conversations/session`, session listing at `GET /api/voice-conversations/session`, and feedback finalization/history retrieval at `/api/voice-conversations/feedback`.
-- Feedback analysis uses bounded batches, schema validation, and a partial/complete status so incomplete analysis is not reported as complete.
-- Remaining before completion: implement and test interruption/continuous listening behavior across browser implementations; detect a spoken stop command; provide persisted session-history reopening in the UI; improve retry/resume behavior for failed transcript writes and feedback batches; enrich overall feedback and learning-plan integration; add automated unit/integration/Playwright coverage for the feature; run full CI and review security/accessibility/mobile behavior. Browser-native speech APIs are a compatibility fallback, not a provider-grade speech-to-speech implementation.
-- Do not mark this feature complete until all Definition of Done requirements are verified and required CI passes.
+- Added a floating conversation panel at the application root with topic, custom-topic, and proficiency controls.
+- Supports browser speech recognition/synthesis, explicit interruption, spoken stop commands, and a typed-message fallback when microphone recognition is unavailable.
+- Streams the existing chat API's plain-text response correctly, speaks AI responses, and resumes listening after each spoken turn without opening duplicate microphone sessions.
+- Added SQLite migration `008_floating_voice_conversations.sql` plus owner-scoped APIs for incremental transcript persistence, saved-session listing/reopening, per-utterance feedback, retryable finalization, and overall feedback.
+- Overall feedback includes analyzed/correct counts, strengths, recurring error categories, practice recommendations, and useful corrected/natural expressions.
+- Only complete evaluations are submitted as idempotent speaking evidence to adaptive learning; partial/failed evaluations remain reviewable and do not update mastery.
+- Added integration tests for transcript persistence, owner isolation, validation, idempotent learning evidence, and migration coverage. Added Playwright tests for configuration/history and a typed conversation through AI reply and feedback.
+- Browser speech APIs remain a compatibility implementation, not a provider-grade, low-latency audio-to-audio model. Chrome/Edge support and microphone permission are required for speech recognition; typed chat remains available elsewhere.
+- **Merge gate:** lint, shell syntax, type-check, unit/integration tests with coverage, production build, and Playwright UI tests must all pass on the final commit. Do not merge based on an earlier commit's CI results.
