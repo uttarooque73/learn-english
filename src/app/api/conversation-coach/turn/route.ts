@@ -88,7 +88,10 @@ export async function POST(request: Request) {
   const scenario = typeof body.scenario === "string" ? body.scenario.trim().slice(0, 120) : "Free conversation";
   const difficulty = ["Beginner", "Intermediate", "Advanced"].includes(String(body.difficulty)) ? String(body.difficulty) : "Intermediate";
   const feedbackStyle = body.feedbackStyle === "detailed" ? "detailed" : "balanced";
-  const transcript = messages.slice(-12).map(m => `${m.role === "user" ? "Learner" : "Tutor"}: ${m.content.trim()}`).join("\n");
+  const transcript = messages.slice(-12).map((message) => {
+    const speaker = message.role === "user" ? "Learner" : "Tutor";
+    return `${speaker}: ${message.content.trim()}`;
+  }).join("\n");
   const latest = messages[messages.length - 1].content.trim();
 
   const conversationPrompt = `You are the single user-facing English conversation partner in SpeakUp AI. Scenario: ${scenario}. Learner level: ${difficulty}. Continue the role-play naturally, refer to recent context, and ask at most one relevant follow-up question. Keep the response concise and encouraging. Do not turn the response into a grammar lecture. Return JSON with exactly one string field: reply.`;
