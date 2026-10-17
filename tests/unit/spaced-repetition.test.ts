@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { getDueVocabulary, getVocabulary, reviewVocabulary, saveVocabulary } from "@/lib/learning-storage";
+import { resetPersistenceCacheForTests } from "@/lib/client-persistence";
 
-afterEach(() => window.localStorage.clear());
+afterEach(() => resetPersistenceCacheForTests());
 
 describe("spaced-repetition vocabulary review", () => {
   it("schedules a saved phrase after a review and tracks review history", () => {
