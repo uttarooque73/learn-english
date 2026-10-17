@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSessions, getVocabulary, saveVocabulary, type PracticeSession } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 type Candidate = { id: string; phrase: string; meaning: string; example: string; source: string };
 export function ConversationFlashcardExport() {
@@ -10,7 +11,7 @@ export function ConversationFlashcardExport() {
   const [selectedSession, setSelectedSession] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [message, setMessage] = useState("");
-  useEffect(() => { const timer = window.setTimeout(() => { const saved = getSessions().filter((session) => session.summary); setSessions(saved); setSelectedSession(saved[0]?.id ?? ""); }, 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { let active = true; void initializeDatabasePersistence().then(() => { if (!active) return; const saved = getSessions().filter((session) => session.summary); setSessions(saved); setSelectedSession(saved[0]?.id ?? ""); }).catch(() => undefined); return () => { active = false; }; }, []);
   const candidates = useMemo<Candidate[]>(() => {
     const session = sessions.find((item) => item.id === selectedSession);
     if (!session?.summary) return [];
