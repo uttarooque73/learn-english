@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const COOKIE = "speakup_owner";
 const MAX_HISTORY = 100;
-type HistoryEntry = { id: string; target: string; transcript: string; score: number | null; createdAt: string; favorite: boolean };
+type HistoryEntry = { id: string; target: string; transcript: string; score: number | null; createdAt: string; favorite: boolean; activity: "listen" | "attempt" };
 
 function ownerFor(req: NextRequest) {
   return req.cookies.get(COOKIE)?.value || randomUUID();
@@ -29,8 +29,13 @@ function schema() {
       transcript TEXT NOT NULL DEFAULT '',
       score INTEGER,
       created_at TEXT NOT NULL,
-      favorite INTEGER NOT NULL DEFAULT 0 CHECK (favorite IN (0, 1))
+      favorite INTEGER NOT NULL DEFAULT 0 CHECK (favorite IN (0, 1)),
+      activity TEXT NOT NULL DEFAULT 'attempt' CHECK (activity IN ('listen', 'attempt'))
     );
+    const columns = getDatabase().prepare("PRAGMA table_info(shadowing_history)").all() as Array<{ name: string }>;
+    if (!columns.some((column) => column.name === "activity")) {
+      getDatabase().exec("ALTER TABLE shadowing_history ADD COLUMN activity TEXT NOT NULL DEFAULT 'attempt'");
+    }
     CREATE INDEX IF NOT EXISTS idx_shadowing_history_owner_created
       ON shadowing_history(owner_id, created_at DESC);
   `);
@@ -39,12 +44,12 @@ function readEntry(row: Record<string, unknown>): HistoryEntry {
   return {
     id: String(row.id), target: String(row.target), transcript: String(row.transcript ?? ""),
     score: typeof row.score === "number" ? row.score : null,
-    createdAt: String(row.createdAt), favorite: Boolean(row.favorite),
+    createdAt: String(row.createdAt), favorite: Boolean(row.favorite), activity: row.activity === "listen" ? "listen" : "attempt",
   };
 }
 function loadHistory(owner: string): HistoryEntry[] {
   const rows = getDatabase().prepare(
-    "SELECT id,target,transcript,score,created_at AS createdAt,favorite FROM shadowing_history WHERE owner_id=? ORDER BY created_at DESC LIMIT ?",
+    "SELECT id,target,transcript,score,created_at AS createdAt,favorite,activity FROM shadowing_history WHERE owner_id=? ORDER BY created_at DESC LIMIT ?",
   ).all(owner, MAX_HISTORY) as Array<Record<string, unknown>>;
   return rows.map(readEntry);
 }
@@ -93,17 +98,19 @@ export async function POST(req: NextRequest) {
   const target = typeof input.target === "string" ? input.target.trim() : "";
   const transcript = typeof input.transcript === "string" ? input.transcript.trim() : "";
   const score = input.score === null || input.score === undefined ? null : input.score;
+  const activity = input.activity === "listen" ? "listen" : "attempt";
   if (!target || target.length > 240 || transcript.length > 2000
-    || !(score === null || (typeof score === "number" && Number.isInteger(score) && score >= 0 && score <= 100))) {
+    || !(score === null || (typeof score === "number" && Number.isInteger(score) && score >= 0 && score <= 100))
+    || (activity === "listen" && (transcript || score !== null))) {
     return respond({ error: "Provide a target (up to 240 characters), a transcript (up to 2,000 characters), and a valid word-match score." }, req, owner, 400);
   }
   try {
     schema();
     const db = getDatabase();
-    const entry: HistoryEntry = { id: randomUUID(), target, transcript, score, createdAt: new Date().toISOString(), favorite: false };
+    const entry: HistoryEntry = { id: randomUUID(), target, transcript, score, createdAt: new Date().toISOString(), favorite: false, activity };
     const save = db.transaction(() => {
-      db.prepare("INSERT INTO shadowing_history(id,owner_id,target,transcript,score,created_at,favorite) VALUES(?,?,?,?,?,?,0)")
-        .run(entry.id, owner, entry.target, entry.transcript, entry.score, entry.createdAt);
+      db.prepare("INSERT INTO shadowing_history(id,owner_id,target,transcript,score,created_at,favorite,activity) VALUES(?,?,?,?,?,?,0,?)")
+        .run(entry.id, owner, entry.target, entry.transcript, entry.score, entry.createdAt, entry.activity);
       db.prepare("DELETE FROM shadowing_history WHERE owner_id=? AND id NOT IN (SELECT id FROM shadowing_history WHERE owner_id=? ORDER BY created_at DESC LIMIT ?)")
         .run(owner, owner, MAX_HISTORY);
     });
@@ -129,7 +136,7 @@ export async function PATCH(req: NextRequest) {
     const result = getDatabase().prepare("UPDATE shadowing_history SET favorite=? WHERE id=? AND owner_id=?")
       .run(input.favorite ? 1 : 0, input.id, owner);
     if (!result.changes) return respond({ error: "Practice attempt not found." }, req, owner, 404);
-    const row = getDatabase().prepare("SELECT id,target,transcript,score,created_at AS createdAt,favorite FROM shadowing_history WHERE id=? AND owner_id=?")
+    const row = getDatabase().prepare("SELECT id,target,transcript,score,created_at AS createdAt,favorite,activity FROM shadowing_history WHERE id=? AND owner_id=?")
       .get(input.id, owner) as Record<string, unknown>;
     return respond({ entry: readEntry(row) }, req, owner);
   } catch (error) {
