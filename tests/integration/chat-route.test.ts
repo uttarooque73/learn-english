@@ -277,7 +277,7 @@ describe("POST /api/chat", () => {
     const sent = JSON.parse(String(options.body)) as { messages: { role: string; content: string }[] };
     expect(sent.messages[0]?.content).toContain("READING-DISCUSSION OUTPUT CONTRACT");
     expect(sent.messages[0]?.content).toContain("do not role-play a single live turn");
-    expect(sent.messages.at(-1)).toMatchObject({ role: "user", content: "Create four reading sentences about technology." });
+    expect(sent.messages[sent.messages.length - 1]).toMatchObject({ role: "user", content: "Create four reading sentences about technology." });
   });
 
 });
