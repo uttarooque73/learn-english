@@ -30,15 +30,18 @@ afterEach(() => {
 describe("learning recovery and worker contention validation", () => {
   it("assigns each queued job to at most one worker across repeated competing claims", () => {
     setupDatabase();
+    const claimTime = new Date("2026-10-17T12:00:00.000Z");
+    const availableAt = new Date(claimTime.getTime() - 1_000).toISOString();
     for (let index = 0; index < 12; index += 1) {
       enqueueLearningJob("owner-a", "generate_daily_plan", { sequence: index }, {
         idempotencyKey: `contention-job-${index}`,
         priority: index % 3,
+        availableAt,
       });
     }
 
     const claimed = Array.from({ length: 12 }, (_, index) =>
-      claimNextLearningJob(`worker-${index}`, new Date("2026-10-17T12:00:00.000Z")),
+      claimNextLearningJob(`worker-${index}`, claimTime),
     ).filter((job) => job !== null);
     const ids = claimed.map((job) => job.id);
     const ownership = getDatabase().prepare(
@@ -50,7 +53,7 @@ describe("learning recovery and worker contention validation", () => {
     expect(ownership).toHaveLength(12);
     expect(new Set(ownership.map((job) => job.claimed_by)).size).toBe(12);
     expect(ownership.every((job) => job.status === "running")).toBe(true);
-    expect(claimNextLearningJob("worker-overflow", new Date("2026-10-17T12:00:00.000Z"))).toBeNull();
+    expect(claimNextLearningJob("worker-overflow", claimTime)).toBeNull();
   });
 
   it("backs up and restores the migrated database without losing learner records", async () => {
@@ -81,7 +84,7 @@ describe("learning recovery and worker contention validation", () => {
         daily_target_minutes: 25,
         goals_json: '["Workplace conversations"]',
       });
-      expect(migrationCount.count).toBe(7);
+      expect(migrationCount.count).toBe(8);
       expect(restored.pragma("integrity_check")).toEqual([{ integrity_check: "ok" }]);
     } finally {
       restored.close();

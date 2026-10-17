@@ -519,3 +519,18 @@ This plan is the active source of truth for implementation. Work is delivered in
 - Merge only after required checks pass, then verify the merge commit and `main` CI before starting the next phase.
 - Keep local developer configuration and user data safe. Update scripts must never silently discard tracked edits or untracked files.
 - Keep this status table current as phases merge; a phase is not complete merely because code was committed or a PR was opened.
+
+
+## Floating AI English Partner feature
+
+Feature implementation is complete on branch `feat/floating-ai-conversation-feedback`; final CI validation is required before merge.
+
+- Added a floating conversation panel at the application root with topic, custom-topic, and proficiency controls.
+- Supports browser speech recognition/synthesis, explicit interruption, spoken stop commands, and a typed-message fallback when microphone recognition is unavailable.
+- Streams the existing chat API's plain-text response correctly, speaks AI responses, and resumes listening after each spoken turn without opening duplicate microphone sessions.
+- Added SQLite migration `008_floating_voice_conversations.sql` plus owner-scoped APIs for incremental transcript persistence, saved-session listing/reopening, per-utterance feedback, retryable finalization, and overall feedback.
+- Overall feedback includes analyzed/correct counts, strengths, recurring error categories, practice recommendations, and useful corrected/natural expressions.
+- Only complete evaluations are submitted as idempotent speaking evidence to adaptive learning; partial/failed evaluations remain reviewable and do not update mastery.
+- Added integration tests for transcript persistence, owner isolation, validation, idempotent learning evidence, and migration coverage. Added Playwright tests for configuration/history and a typed conversation through AI reply and feedback.
+- Browser speech APIs remain a compatibility implementation, not a provider-grade, low-latency audio-to-audio model. Chrome/Edge support and microphone permission are required for speech recognition; typed chat remains available elsewhere.
+- **Merge gate:** lint, shell syntax, type-check, unit/integration tests with coverage, production build, and Playwright UI tests must all pass on the final commit. Do not merge based on an earlier commit's CI results.
