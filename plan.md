@@ -498,9 +498,9 @@ This plan is the active source of truth for implementation. Work is delivered in
 | 4 | Connect existing activities to persisted learning evidence | Merged (PR #45) |
 | 5–6 | Durable scheduler, worker, and evidence-based adaptation | Merged (PR #46) |
 | 7 | Learner routine controls and adaptive progress UI/API | Merged (PR #47) |
-| 8 | Security hardening, reliability/operational monitoring, end-to-end validation, and staged rollout | Next; do not mark complete until implemented and CI passes |
+| 8 | Security hardening, reliability/operational monitoring, end-to-end validation, and staged rollout | In progress — PR pending CI and load/migration validation |
 
-### Required execution rules
+### Phase 8 implementation progress\n\n- Added an operator-only operations endpoint protected by the worker bearer secret; it exposes rolling 24-hour aggregate workflow/queue metrics and bounded failure codes, without learner IDs, prompts, responses, or payloads.\n- Added an explicit automation pause flag (`LEARNING_AUTOMATION_ENABLED=false` or `0`) that stops scheduled enqueueing and background job processing while preserving manual practice. The default remains enabled for backwards compatibility.\n- Added tests for aggregate metrics, privacy, empty windows, and rollout-flag behavior.\n- Added operator documentation for rollout pause, recovery, backup, and concurrency/load-test requirements.\n- Still required before phase completion: CI pass, Playwright verification, fresh/upgrade migration validation, and a controlled concurrency/load test in an appropriate environment.\n\n### Required execution rules
 
 - Before each phase, inspect the current `main` branch and the latest CI results; do not rely on stale branch snapshots.
 - Implement one phase at a time and keep database migrations additive and reversible where feasible.
