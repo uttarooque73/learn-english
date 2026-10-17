@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PracticeExperience } from "@/components/practice-experience";
 import { getSessions } from "@/lib/learning-storage";
+import { resetPersistenceCacheForTests } from "@/lib/client-persistence";
 
 const prompts = [
   { number: "01", title: "Everyday life", description: "Talk about your day.", icon: "☕", tone: "peach" },
@@ -10,7 +11,7 @@ const prompts = [
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  window.localStorage.clear();
+  resetPersistenceCacheForTests();
 });
 
 describe("PracticeExperience", () => {
