@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 test("AI and Us provides discussion and paragraph practice tabs", async ({ page }) => {
+  await page.route("**/api/chat", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/plain",
+      body: "A healthy routine can make each day easier. Planning meals saves time and reduces stress. A short walk can improve energy. Which habit would you like to build first?",
+    });
+  });
   await page.route("**/api/ai-and-us", async (route) => {
     if (route.request().method() === "POST") {
       const payload = route.request().postDataJSON() as { kind?: string };
@@ -27,6 +34,8 @@ test("AI and Us provides discussion and paragraph practice tabs", async ({ page 
   await page.getByRole("tab", { name: "Paragraph Practice" }).click();
   await expect(page.getByRole("heading", { name: "Paragraph Practice" })).toBeVisible();
   await expect(page.getByLabel("Paragraph")).toBeVisible();
+  await page.getByRole("button", { name: "Generate paragraph" }).click();
+  await expect(page.getByLabel("Paragraph")).toHaveValue(/A healthy routine can make each day easier/);
   await page.getByRole("button", { name: "Save paragraph" }).click();
   await expect(page.getByText("Paragraph saved to your learning history.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Saved paragraphs" })).toBeVisible();
