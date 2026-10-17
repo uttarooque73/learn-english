@@ -72,4 +72,29 @@ describe("LearningPlan", () => {
     });
   });
 
+  it("orders overdue vocabulary by the oldest review date and hides future reviews", async () => {
+    vi.mocked(initializeDatabasePersistence).mockResolvedValue(undefined);
+    vi.mocked(readPersistedValue).mockReturnValue(null);
+    vi.mocked(getSessions).mockReturnValue([]);
+    vi.mocked(getLearningAnalytics).mockReturnValue({
+      currentStreak: 0,
+      commonCorrections: [],
+    } as unknown as ReturnType<typeof getLearningAnalytics>);
+    vi.mocked(getVocabulary).mockReturnValue([
+      { id: "newer", phrase: "newer overdue", meaning: "second", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2026-10-16T00:00:00.000Z" },
+      { id: "future", phrase: "future word", meaning: "not due", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2099-01-01T00:00:00.000Z" },
+      { id: "older", phrase: "oldest overdue", meaning: "first", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2026-10-01T00:00:00.000Z" },
+    ]);
+
+    render(<LearningPlan />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "oldest overdue" })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "newer overdue" })).toBeTruthy();
+    });
+    expect(screen.queryByRole("heading", { name: "future word" })).toBeNull();
+    const headings = screen.getAllByRole("heading").map((heading) => heading.textContent);
+    expect(headings.indexOf("oldest overdue")).toBeLessThan(headings.indexOf("newer overdue"));
+  });
+
 });
