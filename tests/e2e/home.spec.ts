@@ -391,7 +391,7 @@ test("session goal guides the tutor and the optional timer ends a timed session"
 
 
 test("selected text can be saved to vocabulary from different app pages", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("speakup:vocabulary:v1", "[]"));
+  await page.request.delete("/api/persistence");
   for (const route of ["/vocabulary", "/settings"]) {
     await page.goto(route);
     await page.waitForFunction(() => document.documentElement.dataset.vocabularySelectionReady === "true");
@@ -412,10 +412,13 @@ test("selected text can be saved to vocabulary from different app pages", async 
     await page.getByLabel("Example (optional)").fill("This is an example.");
     await page.getByRole("button", { name: "Save to vocabulary" }).click();
     await expect(page.locator(".vocabulary-selection-status")).toContainText(/Saved .* to your vocabulary/);
-    await expect.poll(() => page.evaluate(() => {
-      const words = JSON.parse(localStorage.getItem("speakup:vocabulary:v1") ?? "[]") as { phrase: string; meaning: string; example: string }[];
+    await expect.poll(async () => {
+      const response = await page.request.get("/api/persistence");
+      const payload = await response.json() as { entries: Array<{ key: string; value: string }> };
+      const entry = payload.entries.find((item) => item.key === "speakup:vocabulary:v1");
+      const words = JSON.parse(entry?.value ?? "[]") as { phrase: string; meaning: string; example: string }[];
       return words.some((word) => word.meaning === "A test meaning" && word.example === "This is an example.");
-    })).toBeTruthy();
-    await page.evaluate(() => localStorage.setItem("speakup:vocabulary:v1", "[]"));
+    }).toBeTruthy();
+    await page.request.delete("/api/persistence?key=speakup%3Avocabulary%3Av1");
   }
 });
