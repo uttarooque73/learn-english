@@ -107,7 +107,7 @@ export function FloatingEnglishPartner() {
   useEffect(() => () => {
     shouldListenRef.current = false;
     recognitionRef.current?.abort();
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
   }, []);
 
   const append = useCallback((role: Role, content: string) => {
@@ -264,7 +264,7 @@ export function FloatingEnglishPartner() {
     requestAbortRef.current?.abort(); requestAbortRef.current = null;
     setActive(false); setBusy(false); busyRef.current = false;
     recognitionRef.current?.stop(); recognitionRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setStatus("Finalizing transcript and generating feedback…");
     setFeedbackStatus("processing");
     try {
@@ -340,7 +340,7 @@ export function FloatingEnglishPartner() {
     shouldListenRef.current = false;
     recognitionRef.current?.abort();
     recognitionRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setPracticeResult((current) => ({ ...current, [messageId]: "Listen to the corrected sentence, then repeat it aloud." }));
     await speak(target);
     const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
@@ -387,7 +387,7 @@ export function FloatingEnglishPartner() {
   }, [speak]);
 
   const interruptSpeech = useCallback(() => {
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setStatus("Speech interrupted");
     if (active) {
       shouldListenRef.current = true;
