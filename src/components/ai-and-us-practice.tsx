@@ -231,8 +231,8 @@ export function AiAndUsPractice() {
     const practiceLines: PracticeLine[] = split.map((text) => ({ id: id(), text, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" }));
     setLines(practiceLines);
     setLineIndex(0);
-    setTab("paragraph");
     setMessage("Read one sentence at a time. Each completed attempt is saved to your database-backed history.");
+    setStatus("Paragraph practice ready");
     if (autoPlay) window.setTimeout(() => speak(practiceLines[0].text), 100);
   };
 
@@ -263,8 +263,8 @@ export function AiAndUsPractice() {
         <div className="aius-hero-mark" aria-hidden="true"><span>Ab</span><small>your voice, your pace</small></div>
       </section>
       <div className="aius-tabs" role="tablist" aria-label="AI and Us practice modes">
-        <button role="tab" aria-selected={tab === "discussion"} className={tab === "discussion" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("discussion"); }}>AI and Us Discussion</button>
-        <button role="tab" aria-selected={tab === "paragraph"} className={tab === "paragraph" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("paragraph"); }}>Paragraph Practice</button>
+        <button role="tab" aria-selected={tab === "discussion"} className={tab === "discussion" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("discussion"); setLines([]); setLineIndex(0); }}>AI and Us Discussion</button>
+        <button role="tab" aria-selected={tab === "paragraph"} className={tab === "paragraph" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("paragraph"); setLines([]); setLineIndex(0); }}>Paragraph Practice</button>
       </div>
 
       {tab === "discussion" ? <section className="aius-panel">
