@@ -37,7 +37,10 @@ restore_local_changes() {
   log "Restoring local changes from stash $STASH_REF..."
   if git stash apply "$STASH_REF"; then
     # Drop only the exact stash we created, and only after a successful restore.
-    git stash drop "$STASH_REF" >/dev/null 2>&1 || log "Local changes were restored; the backup stash remains in 'git stash list'."
+    STASH_SELECTOR="$(git stash list --format='%H %gd' | awk -v sha="$STASH_REF" '$1 == sha { print $2; exit }')"
+    if [[ -n "$STASH_SELECTOR" ]]; then
+      git stash drop "$STASH_SELECTOR" >/dev/null 2>&1 || log "Local changes were restored; the backup stash remains in 'git stash list'."
+    fi
     STASH_REF=""
     return 0
   fi
