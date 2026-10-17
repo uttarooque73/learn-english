@@ -567,7 +567,7 @@ Feature branch: `feat/ai-and-us-paragraph-practice`
 - [x] Added API/unit tests for owner-scoped paragraph/attempt persistence, persisted AI writing feedback, migration registration, and the AI reading-discussion output contract.
 - [x] Added Playwright coverage for the two tabs, AI-generated discussion, paragraph generation, and writing-feedback display.
 - [x] Added pause/resume/stop controls for speech playback and persisted learner reading attempts for generated discussions.
-- [ ] CI validation on the latest branch commit.
+- [ ] CI validation on the latest branch commit after the final UI-test locator fix.
 - [ ] Final code review and PR readiness.
 
 ### Known initial limits to resolve before marking complete
