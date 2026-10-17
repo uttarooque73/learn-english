@@ -58,6 +58,7 @@ export function FloatingEnglishPartner() {
   const startedAtRef = useRef<number>(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stopSessionRef = useRef<(() => void) | null>(null);
+  const requestAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => { messagesRef.current = messages; scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
   useEffect(() => {
@@ -105,11 +106,14 @@ export function FloatingEnglishPartner() {
   const requestReply = useCallback(async (learnerText: string) => {
     if (busyRef.current || !learnerText.trim()) return;
     busyRef.current = true; setBusy(true); setStatus("Thinking");
+    const controller = new AbortController();
+    requestAbortRef.current = controller;
     try {
       const next = [...messagesRef.current, { id: newId(), role: "user" as const, content: learnerText.trim(), createdAt: new Date().toISOString() }];
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           mode: "conversation",
           scenario: topic === "Random Topic" ? "Free conversation" : topic === "Software Development" ? "Explain a technical concept" : topic === "Work and Meetings" ? "Team meeting" : topic === "Food and Cooking" ? "Restaurant conversation" : topic === "Daily Life" ? "Everyday life" : topic === "Travel" ? "Travel and directions" : topic === "Custom Topic" ? (customTopic.trim() || "Free conversation") : "Free conversation",
@@ -124,17 +128,8 @@ export function FloatingEnglishPartner() {
       let reply = "";
       while (true) {
         const { done, value } = await reader.read();
+        reply += decoder.decode(value, { stream: !done });
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split("\n")) {
-          if (!line.startsWith("data:")) continue;
-          const raw = line.slice(5).trim();
-          if (!raw || raw === "[DONE]") continue;
-          try {
-            const parsed = JSON.parse(raw) as { message?: { content?: string }; response?: string; content?: string };
-            reply += parsed.message?.content ?? parsed.response ?? parsed.content ?? "";
-          } catch { /* ignore non-JSON keepalive lines */ }
-        }
       }
       if (!reply.trim()) throw new Error("The AI returned an empty response.");
       append("user", learnerText);
@@ -143,9 +138,10 @@ export function FloatingEnglishPartner() {
       await speak(reply.trim());
       if (shouldListenRef.current) startListening();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Conversation failed. Please try again.");
+      if (!(error instanceof Error && error.name === "AbortError")) setStatus(error instanceof Error ? error.message : "Conversation failed. Please try again.");
       if (shouldListenRef.current) window.setTimeout(() => startListening(), 1200);
     } finally {
+      requestAbortRef.current = null;
       busyRef.current = false; setBusy(false);
     }
   // startListening is intentionally declared below and referenced through a stable function.
@@ -199,6 +195,7 @@ export function FloatingEnglishPartner() {
 
   const stopSession = useCallback(async () => {
     shouldListenRef.current = false;
+    requestAbortRef.current?.abort(); requestAbortRef.current = null;
     setActive(false); setBusy(false); busyRef.current = false;
     recognitionRef.current?.stop(); recognitionRef.current = null;
     window.speechSynthesis?.cancel();
@@ -279,7 +276,7 @@ export function FloatingEnglishPartner() {
     setStatus("Speech interrupted");
     if (active) {
       shouldListenRef.current = true;
-      window.setTimeout(() => startListening(), 150);
+      window.setTimeout(() => { if (!busyRef.current && shouldListenRef.current) startListening(); }, 400);
     }
   }, [active, startListening]);
 
