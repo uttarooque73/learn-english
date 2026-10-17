@@ -2,9 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { initializeDatabasePersistence, readPersistedValue, writePersistedValue } from "@/lib/client-persistence";
 import { getSessions, getVocabulary, reviewVocabulary, type SavedVocabulary, type PracticeSession } from "@/lib/learning-storage";
 import { getLearningAnalytics } from "@/lib/learning-analytics";
+
+const PLAN_KEY = "speakup:daily-learning-plan:v1";
+const DAILY_TARGETS = [10, 15, 25, 30];
+type SavedPlan = { target?: number; date?: string; completed?: string[] };
+
+function localDateKey() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 
 const ACTIVITIES = [
   { title: "Review due vocabulary", minutes: 5, href: "/vocabulary", detail: "Strengthen words you have already learned." },
@@ -20,6 +29,7 @@ export function LearningPlan() {
   const [ready, setReady] = useState(false);
   const [target, setTarget] = useState(25);
   const [completed, setCompleted] = useState<string[]>([]);
+  const [error, setError] = useState("");
 
   const refresh = useCallback(() => {
     setWords(getVocabulary());
@@ -30,11 +40,33 @@ export function LearningPlan() {
     let active = true;
     void initializeDatabasePersistence().then(() => {
       if (!active) return;
+      const raw = readPersistedValue(PLAN_KEY);
+      if (raw) {
+        try {
+          const saved = JSON.parse(raw) as SavedPlan;
+          if (typeof saved.target === "number" && DAILY_TARGETS.includes(saved.target)) setTarget(saved.target);
+          if (saved.date === localDateKey() && Array.isArray(saved.completed)) {
+            const validTitles = new Set(ACTIVITIES.map(activity => activity.title));
+            setCompleted(saved.completed.filter((title): title is string => typeof title === "string" && validTitles.has(title)));
+          }
+        } catch {
+          setError("Your saved daily plan could not be read. You can reset it by changing the time target or checklist.");
+        }
+      }
       refresh();
       setReady(true);
-    }).catch(() => { if (active) setReady(true); });
+    }).catch(() => {
+      if (!active) return;
+      setError("Could not load your saved learning data from the database. Refresh to retry.");
+      setReady(true);
+    });
     return () => { active = false; };
   }, [refresh]);
+
+  useEffect(() => {
+    if (!ready || error) return;
+    writePersistedValue(PLAN_KEY, JSON.stringify({ target, date: localDateKey(), completed }));
+  }, [ready, target, completed, error]);
 
   const dueWords = useMemo(() => {
     const now = Date.now();
@@ -50,6 +82,7 @@ export function LearningPlan() {
   }
 
   if (!ready) return <section className="section-block"><p>Loading your saved learning data…</p></section>;
+  if (error) return <section className="section-block" role="alert"><h2>Learning plan unavailable</h2><p>{error}</p><button type="button" onClick={() => window.location.reload()}>Retry</button></section>;
 
   return (
     <div className="learning-plan">
