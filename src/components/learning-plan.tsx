@@ -20,7 +20,7 @@ const ACTIVITIES = [
   { title: "Speak with your AI coach", minutes: 10, href: "/conversation-coach", detail: "Use complete sentences and learn from corrections." },
   { title: "Shadow a native-style sentence", minutes: 5, href: "/shadowing", detail: "Listen, repeat, and compare your attempt." },
   { title: "Practice a fluency exercise", minutes: 5, href: "/fluency", detail: "Build faster, more natural responses." },
-  { title: "Check your progress", minutes: 2, href: "/progress", detail: "Review your streak and recurring mistakes." },
+  { title: "Check your progress", minutes: 5, href: "/progress", detail: "Review your streak and recurring mistakes." },
 ];
 
 export function LearningPlan() {
@@ -73,7 +73,16 @@ export function LearningPlan() {
     return words.filter(word => !word.nextReviewAt || Date.parse(word.nextReviewAt) <= now).slice(0, 8);
   }, [words]);
   const analytics = useMemo(() => getLearningAnalytics(sessions, words), [sessions, words]);
-  const plannedMinutes = Math.min(target, ACTIVITIES.reduce((sum, item) => sum + item.minutes, 0));
+  const plannedActivities = useMemo(() => {
+    let minutes = 0;
+    return ACTIVITIES.filter(activity => {
+      if (minutes + activity.minutes > target) return false;
+      minutes += activity.minutes;
+      return true;
+    });
+  }, [target]);
+  const plannedMinutes = plannedActivities.reduce((sum, activity) => sum + activity.minutes, 0);
+  const completedCount = plannedActivities.filter(activity => completed.includes(activity.title)).length;
   const toggleActivity = (title: string) => setCompleted(current => current.includes(title) ? current.filter(item => item !== title) : [...current, title]);
 
   function rateWord(id: string, rating: "again" | "good" | "easy") {
@@ -100,9 +109,9 @@ export function LearningPlan() {
       </section>
 
       <section className="section-block">
-        <div className="section-heading"><div><p className="eyebrow">TODAY'S ROUTINE</p><h2>{completed.length} of {ACTIVITIES.length} activities completed</h2></div><span className="section-note">{plannedMinutes} minute target</span></div>
+        <div className="section-heading"><div><p className="eyebrow">TODAY'S ROUTINE</p><h2>{completedCount} of {plannedActivities.length} activities completed</h2></div><span className="section-note">{plannedMinutes} minute target</span></div>
         <div className="stats-grid">
-          {ACTIVITIES.map(activity => (
+          {plannedActivities.map(activity => (
             <article className="stat-card" key={activity.title}>
               <div className="stat-top">
                 <label><input type="checkbox" checked={completed.includes(activity.title)} onChange={() => toggleActivity(activity.title)} /> Done</label>
