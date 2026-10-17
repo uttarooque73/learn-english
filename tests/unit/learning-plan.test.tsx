@@ -97,4 +97,25 @@ describe("LearningPlan", () => {
     expect(headings.indexOf("oldest overdue")).toBeLessThan(headings.indexOf("newer overdue"));
   });
 
+  it("recommends reviewing due vocabulary before other practice", async () => {
+    vi.mocked(initializeDatabasePersistence).mockResolvedValue(undefined);
+    vi.mocked(readPersistedValue).mockReturnValue(null);
+    vi.mocked(getSessions).mockReturnValue([]);
+    vi.mocked(getLearningAnalytics).mockReturnValue({
+      currentStreak: 0,
+      commonCorrections: [],
+    } as unknown as ReturnType<typeof getLearningAnalytics>);
+    vi.mocked(getVocabulary).mockReturnValue([
+      { id: "due", phrase: "follow up", meaning: "contact again", example: "I will follow up tomorrow.", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2026-10-01T00:00:00.000Z" },
+    ]);
+
+    render(<LearningPlan />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Recommended focus" })).toBeTruthy();
+      expect(screen.getByText("Start with vocabulary recall")).toBeTruthy();
+      expect(screen.getByRole("link", { name: "Review vocabulary →" })).toBeTruthy();
+    });
+  });
+
 });
