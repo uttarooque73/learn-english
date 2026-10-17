@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 import { AdaptiveLearningError, evaluatePracticeAttempt, type AttemptResult } from "@/lib/ai/adaptive-learning";
-import { ModelProviderError } from "@/lib/ai/model-provider";
+import { ModelProviderError, type ModelProvider } from "@/lib/ai/model-provider";
 import { ensurePersistenceSchema, getDatabase, getDatabasePath } from "@/lib/database";
 
 export type EvaluationInput = {
@@ -43,9 +43,10 @@ function safeParse<T>(json: string): T | null {
 export async function runMultiAgentEvaluation(
   ownerId: string,
   input: EvaluationInput,
+  provider?: ModelProvider,
 ): Promise<{ runId: string; attempt: AttemptResult; summary: string; agents: string[] }> {
   if (typeof ownerId !== "string" || !ownerId.trim() || ownerId.length > 200) {
-    throw new Error("A valid learner owner is required.");
+    throw new AdaptiveLearningError("invalid_owner", "A valid learner owner is required.");
   }
   ensurePersistenceSchema();
   const runId = randomUUID();
@@ -61,7 +62,7 @@ export async function runMultiAgentEvaluation(
     .addNode("evaluationAgent", async (state) => {
       const request = safeParse<EvaluationInput>(state.inputJson);
       if (!request) throw new Error("Invalid evaluation input.");
-      const attempt = await evaluatePracticeAttempt(state.ownerId, request);
+      const attempt = await evaluatePracticeAttempt(state.ownerId, request, provider);
       return { attemptJson: JSON.stringify(attempt), agents: [...state.agents, "evaluation-agent"] };
     })
     .addNode("progressAnalyst", (state) => {
@@ -101,4 +102,9 @@ export async function runMultiAgentEvaluation(
     if (error instanceof AdaptiveLearningError || error instanceof ModelProviderError) throw error;
     throw error;
   }
+}
+
+export function resetMultiAgentEvaluationForTests(): void {
+  globals.speakupEvaluationSaver?.db.close();
+  delete globals.speakupEvaluationSaver;
 }

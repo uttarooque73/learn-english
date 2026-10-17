@@ -2,11 +2,13 @@ import { createHash, randomUUID } from "node:crypto";
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 import { AdaptiveLearningError, generateDailyLearningPlan, type DailyLearningPlan } from "@/lib/ai/adaptive-learning";
+import type { ModelProvider } from "@/lib/ai/model-provider";
 import { ensurePersistenceSchema, getDatabase, getDatabasePath } from "@/lib/database";
 
 const WORKFLOW_NAME = "adaptive-multi-agent-learning";
 const GRAPH_VERSION = "v2";
 const MAX_GOAL_LENGTH = 350;
+const SAFE_MISTAKE_CATEGORIES = new Set(["grammar", "vocabulary", "pronunciation", "speaking", "listening", "fluency", "writing", "articles", "prepositions", "verb-tense", "subject-verb-agreement", "word-order", "word-choice", "sentence-structure"]);
 
 type SkillEvidence = { skillKey: string; mastery: number; confidence: number; evidenceCount: number };
 type MistakeEvidence = { category: string; normalizedKey: string; occurrenceCount: number };
@@ -99,6 +101,7 @@ export function diagnoseLearningContext(context: LearningContext): LearningDiagn
   const focusSkills = new Set<string>();
   const reasons: string[] = [];
   for (const skill of [...context.skills].sort((a, b) => a.mastery - b.mastery)) {
+    if (!(["speaking", "pronunciation", "grammar", "vocabulary", "listening", "fluency", "writing"] as string[]).includes(skill.skillKey)) continue;
     if (skill.evidenceCount > 0 && skill.confidence >= 0.25 && skill.mastery < 0.7) {
       focusSkills.add(skill.skillKey);
       if (reasons.length < 4) reasons.push(`${skill.skillKey} has a saved mastery estimate of ${Math.round(skill.mastery * 100)}%.`);
@@ -106,8 +109,10 @@ export function diagnoseLearningContext(context: LearningContext): LearningDiagn
     if (focusSkills.size >= 3) break;
   }
   for (const mistake of context.mistakes.slice(0, 2)) {
-    focusSkills.add(mistake.category);
-    if (reasons.length < 4) reasons.push(`Recurring ${mistake.category} issue observed ${mistake.occurrenceCount} times.`);
+    const normalizedCategory = mistake.category.toLowerCase().replace(/\\s+/g, "-");
+    const category = SAFE_MISTAKE_CATEGORIES.has(normalizedCategory) ? normalizedCategory : "grammar";
+    focusSkills.add(category);
+    if (reasons.length < 4) reasons.push(`Recurring ${category} issue observed ${Math.max(1, Math.min(10_000, Math.floor(mistake.occurrenceCount)))} times.`);
   }
   if (context.dueVocabularyReviews > 0) {
     focusSkills.add("vocabulary");
@@ -188,7 +193,7 @@ function updateRun(ownerId: string, runId: string, status: "completed" | "failed
   `).run(status, now, Math.max(0, Date.now() - startedAt), errorCode, ownerId, runId);
 }
 
-function buildMultiAgentGraph(checkpointer: SqliteSaver) {
+function buildMultiAgentGraph(checkpointer: SqliteSaver, provider?: ModelProvider) {
   return new StateGraph(AgentStateAnnotation)
     .addNode("contextLoader", (state) => {
       const context = readLearningContext(state.ownerId);
@@ -232,7 +237,7 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver) {
         goal: state.goal || undefined,
         generationSource: "ai",
         diagnosticContext: diagnosis,
-      });
+      }, provider);
       return {
         planJson: JSON.stringify(plan),
         agentSequence: [...state.agentSequence, "practice-planner-agent"],
@@ -270,6 +275,7 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver) {
 export async function runMultiAgentLearningWorkflow(
   ownerId: string,
   input: { goal?: string; dailyTargetMinutes?: number } = {},
+  provider?: ModelProvider,
 ): Promise<{
   runId: string;
   plan: DailyLearningPlan;
@@ -282,7 +288,7 @@ export async function runMultiAgentLearningWorkflow(
   }
   const goal = typeof input.goal === "string" ? input.goal.trim() : "";
   if ((input.goal !== undefined && !goal) || goal.length > MAX_GOAL_LENGTH) {
-    throw new MultiAgentLearningError("invalid_input", "A learning goal must contain 1–1000 characters.");
+    throw new MultiAgentLearningError("invalid_input", "A learning goal must contain 1–350 characters.");
   }
   if (input.dailyTargetMinutes !== undefined
     && (!Number.isInteger(input.dailyTargetMinutes) || input.dailyTargetMinutes < 5 || input.dailyTargetMinutes > 240)) {
@@ -300,7 +306,7 @@ export async function runMultiAgentLearningWorkflow(
   `).run(runId, ownerId, WORKFLOW_NAME, GRAPH_VERSION, inputHash, startedAtIso);
 
   try {
-    const graph = buildMultiAgentGraph(getCheckpointer());
+    const graph = buildMultiAgentGraph(getCheckpointer(), provider);
     const result = await graph.invoke({
       ownerId, runId, goal,
       dailyTargetMinutes: input.dailyTargetMinutes ?? 0,
