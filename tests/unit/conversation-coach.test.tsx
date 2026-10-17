@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ConversationCoach } from "@/components/conversation-coach";
 
 afterEach(() => {
@@ -23,9 +23,9 @@ describe("ConversationCoach", () => {
   it("shows saved-history and progress sections", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ sessions: [] }), { status: 200 })));
     render(<ConversationCoach />);
-    screen.getByRole("tab", { name: /history/i }).click();
+    fireEvent.click(screen.getByRole("tab", { name: /history/i }));
     expect(screen.getByRole("heading", { name: /your story starts here/i })).toBeTruthy();
-    screen.getByRole("tab", { name: /progress/i }).click();
+    fireEvent.click(screen.getByRole("tab", { name: /progress/i }));
     expect(screen.getByRole("heading", { name: /progress, not perfection/i })).toBeTruthy();
     expect(screen.getByText(/not an automated proficiency score/i)).toBeTruthy();
   });
