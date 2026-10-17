@@ -534,3 +534,13 @@ Feature implementation is complete on branch `feat/floating-ai-conversation-feed
 - Added integration tests for transcript persistence, owner isolation, validation, idempotent learning evidence, and migration coverage. Added Playwright tests for configuration/history and a typed conversation through AI reply and feedback.
 - Browser speech APIs remain a compatibility implementation, not a provider-grade, low-latency audio-to-audio model. Chrome/Edge support and microphone permission are required for speech recognition; typed chat remains available elsewhere.
 - **Merge gate:** lint, shell syntax, type-check, unit/integration tests with coverage, production build, and Playwright UI tests must all pass on the final commit. Do not merge based on an earlier commit's CI results.
+
+
+### Sentence feedback and repeat-practice enhancement — 2026-10-18
+
+- Conversation transcripts and final feedback continue to persist in SQLite under the anonymous browser-owner scope; the History tab lists saved sessions and can reopen their transcript and feedback.
+- Added an immediate, per-learner-utterance feedback endpoint that saves corrections to the existing voice feedback table and returns the correction before the AI's next reply.
+- Added database-backed preferences for enabling/disabling sentence-level feedback and enabling/disabling repeat practice. Preferences are owner-scoped and survive refreshes.
+- When repeat practice is enabled, each sentence feedback card offers **Practice corrected sentence**: the browser speaks the corrected version, listens for the learner's repetition, and provides a lightweight transcript similarity hint. This is not a phoneme-level pronunciation score.
+- Added integration tests for preference persistence, owner isolation, sentence feedback persistence, and invalid settings, plus Playwright coverage for toggles and the per-sentence feedback UI.
+- **Validation gate:** run full CI on the final branch head; merge only after all required checks pass and verify post-merge CI.
