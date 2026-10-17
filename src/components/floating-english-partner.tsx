@@ -285,7 +285,9 @@ export function FloatingEnglishPartner() {
 
   const startSession = useCallback(async () => {
     setMessages([]); messagesRef.current = []; setFeedback([]); setOverallFeedback(null); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
-    const nextSessionId = newId();\n    sessionIdRef.current = nextSessionId; setSessionId(nextSessionId); transcriptSequenceRef.current = 0;\n    startedAtRef.current = Date.now();
+    const nextSessionId = newId();
+    sessionIdRef.current = nextSessionId; setSessionId(nextSessionId); transcriptSequenceRef.current = 0;
+    startedAtRef.current = Date.now();
     setActive(true); setOpen(true); setMinimized(false); shouldListenRef.current = true;
     append("assistant", `Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
     await speak(`Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
