@@ -519,3 +519,15 @@ This plan is the active source of truth for implementation. Work is delivered in
 - Merge only after required checks pass, then verify the merge commit and `main` CI before starting the next phase.
 - Keep local developer configuration and user data safe. Update scripts must never silently discard tracked edits or untracked files.
 - Keep this status table current as phases merge; a phase is not complete merely because code was committed or a PR was opened.
+
+
+## Floating AI English Partner feature (implementation branch)
+
+Feature specification received on 2026-10-18. Implementation is in progress on branch `feat/floating-ai-conversation-feedback`; this is not yet considered complete.
+
+- Added a root-layout floating conversation widget with topic and proficiency controls, browser speech recognition/synthesis, and a transcript/feedback panel.
+- Added migration `008_floating_voice_conversations.sql` for owner-scoped session, transcript, and line-feedback persistence.
+- Added incremental transcript persistence at `POST /api/voice-conversations/session`, session listing at `GET /api/voice-conversations/session`, and feedback finalization/history retrieval at `/api/voice-conversations/feedback`.
+- Feedback analysis uses bounded batches, schema validation, and a partial/complete status so incomplete analysis is not reported as complete.
+- Remaining before completion: implement and test interruption/continuous listening behavior across browser implementations; detect a spoken stop command; provide persisted session-history reopening in the UI; improve retry/resume behavior for failed transcript writes and feedback batches; enrich overall feedback and learning-plan integration; add automated unit/integration/Playwright coverage for the feature; run full CI and review security/accessibility/mobile behavior. Browser-native speech APIs are a compatibility fallback, not a provider-grade speech-to-speech implementation.
+- Do not mark this feature complete until all Definition of Done requirements are verified and required CI passes.
