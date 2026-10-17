@@ -493,3 +493,169 @@ export async function evaluatePracticeAttempt(
   if (!saved || !saved.evaluation) throw new AdaptiveLearningError("invalid_evaluation", "The evaluation evidence could not be saved.");
   return { attemptId: saved.attemptId, duplicate: !saved.inserted, evaluation: saved.evaluation };
 }
+
+export type EvidenceSource = "conversation" | "shadowing" | "fluency" | "micro_lesson" | "vocabulary" | "listening";
+
+export type LearningEvidenceRequest = {
+  source: EvidenceSource;
+  activityType: ActivityType;
+  activityRef?: string;
+  skillKey?: string;
+  responseText?: string;
+  durationSeconds: number;
+  idempotencyKey: string;
+  score?: number;
+  confidence?: number;
+  feedback?: string;
+  strengths?: string[];
+  corrections?: Array<{ original: string; improved: string; reason: string }>;
+};
+
+export type RecordEvidenceResult = { attemptId: string; duplicate: boolean };
+
+const EVIDENCE_SOURCES: readonly EvidenceSource[] = [
+  "conversation", "shadowing", "fluency", "micro_lesson", "vocabulary", "listening",
+];
+
+function validEvidenceCorrections(value: unknown): value is Array<{ original: string; improved: string; reason: string }> {
+  return Array.isArray(value) && value.length <= 8 && value.every((correction) => isRecord(correction)
+    && typeof correction.original === "string" && correction.original.trim().length > 0 && correction.original.length <= 500
+    && typeof correction.improved === "string" && correction.improved.trim().length > 0 && correction.improved.length <= 500
+    && typeof correction.reason === "string" && correction.reason.trim().length > 0 && correction.reason.length <= 500);
+}
+
+function persistMistakeEvidence(
+  ownerId: string,
+  attemptId: string,
+  skillKey: string,
+  corrections: Array<{ original: string; improved: string; reason: string }>,
+  now: string,
+): void {
+  const database = getDatabase();
+  for (const correction of corrections) {
+    const normalizedKey = correction.original.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 240);
+    if (!normalizedKey) continue;
+    const activeMistake = database.prepare(`
+      SELECT id, occurrence_count AS occurrenceCount, evidence_json AS evidenceJson
+      FROM learning_mistakes WHERE owner_id = ? AND normalized_key = ? AND status = 'active'
+    `).get(ownerId, normalizedKey) as { id: string; occurrenceCount: number; evidenceJson: string } | undefined;
+    if (activeMistake) {
+      const evidence = parseStringList(activeMistake.evidenceJson, 100);
+      if (!evidence.includes(attemptId)) evidence.push(attemptId);
+      database.prepare(`
+        UPDATE learning_mistakes SET occurrence_count = ?, last_seen_at = ?, evidence_json = ?
+        WHERE id = ? AND owner_id = ?
+      `).run(activeMistake.occurrenceCount + 1, now, JSON.stringify(evidence.slice(-100)), activeMistake.id, ownerId);
+    } else {
+      database.prepare(`
+        INSERT INTO learning_mistakes (id, owner_id, category, normalized_key, evidence_json, first_seen_at, last_seen_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(randomUUID(), ownerId, skillKey, normalizedKey, JSON.stringify([attemptId]), now, now);
+    }
+  }
+}
+
+function upsertSkillEvidence(ownerId: string, attemptId: string, skillKey: string, score: number, confidence: number, rubricVersion: string, now: string): void {
+  const database = getDatabase();
+  database.prepare(`
+    INSERT INTO skill_assessments (id, owner_id, skill_key, score, confidence, rubric_version, evidence_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(randomUUID(), ownerId, skillKey, score, confidence, rubricVersion, JSON.stringify([attemptId]));
+
+  database.prepare(`
+    INSERT INTO learner_skill_scores (owner_id, skill_key, mastery, confidence, evidence_count, updated_at)
+    VALUES (?, ?, ?, ?, 1, ?)
+    ON CONFLICT(owner_id, skill_key) DO UPDATE SET
+      mastery = ((learner_skill_scores.mastery * learner_skill_scores.evidence_count + excluded.mastery)
+        / (learner_skill_scores.evidence_count + 1)),
+      confidence = ((learner_skill_scores.confidence * learner_skill_scores.evidence_count + excluded.confidence)
+        / (learner_skill_scores.evidence_count + 1)),
+      evidence_count = learner_skill_scores.evidence_count + 1,
+      updated_at = excluded.updated_at
+  `).run(ownerId, skillKey, score, confidence, now);
+}
+
+/** Save evidence already produced by an existing learning experience without re-running a model. */
+export function recordPracticeEvidence(ownerId: string, request: LearningEvidenceRequest): RecordEvidenceResult {
+  assertOwner(ownerId);
+  ensurePersistenceSchema();
+  if (!request || !EVIDENCE_SOURCES.includes(request.source) || !isActivityType(request.activityType)
+    || (request.activityRef !== undefined && (typeof request.activityRef !== "string" || request.activityRef.length > 240))
+    || (request.skillKey !== undefined && !(SKILLS as readonly string[]).includes(request.skillKey))
+    || (request.responseText !== undefined && (typeof request.responseText !== "string" || request.responseText.length > MAX_RESPONSE_LENGTH))
+    || !Number.isInteger(request.durationSeconds) || request.durationSeconds < 0 || request.durationSeconds > 86_400
+    || typeof request.idempotencyKey !== "string" || !request.idempotencyKey.trim() || request.idempotencyKey.length > 160
+    || (request.score !== undefined && (typeof request.score !== "number" || !Number.isFinite(request.score) || request.score < 0 || request.score > 1))
+    || (request.confidence !== undefined && (typeof request.confidence !== "number" || !Number.isFinite(request.confidence) || request.confidence < 0 || request.confidence > 1))
+    || (request.feedback !== undefined && (typeof request.feedback !== "string" || request.feedback.length > 1200))
+    || (request.strengths !== undefined && !isStringList(request.strengths))
+    || (request.corrections !== undefined && !validEvidenceCorrections(request.corrections))) {
+    throw new AdaptiveLearningError("invalid_input", "The learning evidence payload is invalid.");
+  }
+
+  const database = getDatabase();
+  const prior = database.prepare(`
+    SELECT id FROM practice_attempts WHERE owner_id = ? AND idempotency_key = ?
+  `).get(ownerId, request.idempotencyKey) as { id: string } | undefined;
+  if (prior) return { attemptId: prior.id, duplicate: true };
+
+  const attemptId = randomUUID();
+  const now = new Date().toISOString();
+  const activityRef = request.activityRef?.trim().slice(0, 240) || request.activityType;
+  const skillKey = request.skillKey ?? (
+    request.activityType === "vocabulary" ? "vocabulary"
+      : request.activityType === "grammar" ? "grammar"
+        : request.activityType === "shadowing" ? "pronunciation"
+          : request.activityType === "listening" ? "listening" : "speaking"
+  );
+  // Client-side scores are useful signals, but cap confidence so they cannot alone imply mastery.
+  const confidence = Math.min(request.confidence ?? 0.45, 0.6);
+  const score = request.score;
+  const corrections = request.corrections ?? [];
+  const evidence = {
+    source: request.source,
+    ...(score === undefined ? {} : { score }),
+    ...(score === undefined ? {} : { confidence }),
+    skillKey,
+    feedback: request.feedback?.slice(0, 1200) ?? "",
+    strengths: request.strengths ?? [],
+    corrections,
+  };
+
+  const persist = database.transaction(() => {
+    const inserted = database.prepare(`
+      INSERT OR IGNORE INTO practice_attempts (
+        id, owner_id, plan_item_id, activity_type, activity_ref, response_json, result_json,
+        duration_seconds, idempotency_key, submitted_at, completed_at
+      ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      attemptId, ownerId, request.activityType, activityRef,
+      JSON.stringify({ text: request.responseText?.slice(0, MAX_RESPONSE_LENGTH) ?? "" }),
+      JSON.stringify(evidence), request.durationSeconds, request.idempotencyKey, now, now,
+    );
+    if (inserted.changes === 0) {
+      const existing = database.prepare(`
+        SELECT id FROM practice_attempts WHERE owner_id = ? AND idempotency_key = ?
+      `).get(ownerId, request.idempotencyKey) as { id: string } | undefined;
+      return { attemptId: existing?.id ?? attemptId, duplicate: true };
+    }
+
+    if (score !== undefined) {
+      upsertSkillEvidence(ownerId, attemptId, skillKey, score, confidence, `client-${request.source}-v1`, now);
+    }
+    persistMistakeEvidence(ownerId, attemptId, skillKey, corrections, now);
+
+    if (request.activityType === "vocabulary" && activityRef && score !== undefined) {
+      const recallRating = Math.round(score * 5);
+      const intervalDays = recallRating <= 1 ? 1 : recallRating === 2 ? 2 : recallRating === 3 ? 4 : recallRating === 4 ? 7 : 14;
+      const dueAt = new Date(Date.now() + intervalDays * 86_400_000).toISOString();
+      database.prepare(`
+        INSERT INTO vocabulary_review_events (id, owner_id, vocabulary_ref, recall_rating, interval_days, next_due_at, policy_version)
+        VALUES (?, ?, ?, ?, ?, ?, 'evidence-v1')
+      `).run(randomUUID(), ownerId, activityRef, recallRating, intervalDays, dueAt);
+    }
+    return { attemptId, duplicate: false };
+  });
+
+  return persist();
+}
