@@ -102,21 +102,14 @@ export function CustomScenarioBuilder() {
     recognition.lang = "en-US";
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
-    let finalTranscript = "";
+    const startingDraft = draft.trim();
     recognition.onresult = (event) => {
-      let interimTranscript = "";
-      for (let index = 0; index < event.results.length; index++) {
-        const result = event.results[index];
-        const transcript = result?.[0]?.transcript ?? "";
-        if ((result as unknown as { isFinal?: boolean }).isFinal) finalTranscript += transcript;
-        else interimTranscript += transcript;
-      }
-      const spokenText = (finalTranscript + " " + interimTranscript).trim();
+      const spokenText = Array.from(event.results)
+        .map((result) => result[0]?.transcript ?? "")
+        .join(" ")
+        .trim();
       if (spokenText) {
-        setDraft((current) => {
-          const prefix = current.trim();
-          return prefix ? prefix + (/[.!?]$/.test(prefix) ? " " : " ") + spokenText : spokenText;
-        });
+        setDraft([startingDraft, spokenText].filter(Boolean).join(" ").slice(0, 4000));
       }
     };
     recognition.onerror = (event) => {
