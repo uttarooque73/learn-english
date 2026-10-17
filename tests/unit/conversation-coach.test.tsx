@@ -22,6 +22,7 @@ describe("ConversationCoach", () => {
 
 
   it("automatically reactivates the microphone after the tutor finishes speaking", async () => {
+    Element.prototype.scrollIntoView = vi.fn();
     const spoken: SpeechSynthesisUtterance[] = [];
     const synthesis = {
       cancel: vi.fn(),
