@@ -41,7 +41,7 @@ export function FloatingEnglishPartner() {
   const [topic, setTopic] = useState("Random Topic");
   const [customTopic, setCustomTopic] = useState("");
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("Intermediate");
-  const [tab, setTab] = useState<"conversation" | "feedback">("conversation");
+  const [tab, setTab] = useState<"conversation" | "feedback" | "history">("conversation");
   const [feedback, setFeedback] = useState<Array<Record<string, unknown>>>([]);
   const [overallFeedback, setOverallFeedback] = useState<Record<string, unknown> | null>(null);
   const [history, setHistory] = useState<Array<Record<string, unknown>>>([]);
@@ -152,7 +152,6 @@ export function FloatingEnglishPartner() {
     const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
     if (!recognitionConstructor) { setStatus("Voice input is not supported in this browser. You can still use text input."); return; }
     try {
-      recognitionRef.current?.abort();
       const recognition = new recognitionConstructor();
       recognition.continuous = false;
       recognition.interimResults = true;
@@ -208,7 +207,7 @@ export function FloatingEnglishPartner() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, topic, proficiency: level, durationSeconds: elapsed, messages: messagesRef.current }),
       });
-      const data = await response.json() as { feedback?: Array<Record<string, unknown>>; feedbackStatus?: string; error?: string };
+      const data = await response.json() as { feedback?: Array<Record<string, unknown>>; feedbackStatus?: string; overallFeedback?: Record<string, unknown>; error?: string };
       if (!response.ok) throw new Error(data.error || "Feedback could not be generated.");
       setFeedback(data.feedback ?? []);
       setOverallFeedback((data.overallFeedback as Record<string, unknown> | undefined) ?? null);
@@ -321,7 +320,7 @@ export function FloatingEnglishPartner() {
             {feedbackStatus === "failed" && <p>Feedback could not be completed. Your transcript remains available in this window; stop again to retry.</p>}
             {feedbackStatus === "partial" && <p>Some feedback is available. The report is marked partial, not complete.</p>}
             {feedbackStatus === "complete" && <p className="feedback-success">All eligible learner utterances have feedback.</p>}
-            {feedback.map((item, index) => <details className="floating-english-feedback-item" key={String(item.messageId ?? index)} open={index === 0}><summary>{String(item.originalSentence ?? "Sentence")} {item.isCorrect ? "✓" : "•"}</summary><p><strong>Original:</strong> {String(item.originalSentence ?? "")}</p><p><strong>Corrected:</strong> {String(item.correctedSentence ?? "")}</p>{item.naturalSentence && <p><strong>Natural:</strong> {String(item.naturalSentence)}</p>}<p><strong>Why:</strong> {String(item.explanation ?? "")}</p><p><strong>Category:</strong> {Array.isArray(item.errorCategories) ? item.errorCategories.join(", ") : "—"} · <strong>Severity:</strong> {String(item.severity ?? "—")}</p><button type="button" onClick={() => copyText(item.correctedSentence)}>Copy corrected sentence</button></details>)}
+            {feedback.map((item, index) => <details className="floating-english-feedback-item" key={String(item.messageId ?? index)} open={index === 0}><summary>{String(item.originalSentence ?? "Sentence")} {item.isCorrect ? "✓" : "•"}</summary><p><strong>Original:</strong> {String(item.originalSentence ?? "")}</p><p><strong>Corrected:</strong> {String(item.correctedSentence ?? "")}</p>{typeof item.naturalSentence === "string" && item.naturalSentence && <p><strong>Natural:</strong> {item.naturalSentence}</p>}<p><strong>Why:</strong> {String(item.explanation ?? "")}</p><p><strong>Category:</strong> {Array.isArray(item.errorCategories) ? item.errorCategories.join(", ") : "—"} · <strong>Severity:</strong> {String(item.severity ?? "—")}</p><button type="button" onClick={() => copyText(item.correctedSentence)}>Copy corrected sentence</button></details>)}
           </div> : <div className="floating-english-history" aria-live="polite">
             {historyLoading && <p>Loading saved conversations…</p>}
             {historyError && <p role="alert">{historyError}</p>}
