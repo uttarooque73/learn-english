@@ -92,7 +92,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (!paragraph) return respond({ error: "Paragraph not found." }, request, ownerId, 404);
 
       const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
-      const model = process.env.OLLAMA_MODEL || "qwen3:4b";
+      const model = process.env.OLLAMA_MODEL || "llama3.1:8b";
       const prompt = [
         "You are a careful, encouraging English writing coach.",
         "Analyze the learner's saved paragraph and produce actionable feedback without inventing errors.",
