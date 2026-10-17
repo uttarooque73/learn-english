@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { LearningSettings } from "@/components/learning-settings";
+import { LearningRoutineControls } from "@/components/learning-routine-controls";
 
 export default function SettingsPage() {
   return (
@@ -7,8 +8,9 @@ export default function SettingsPage() {
       <section className="settings-intro">
         <p className="eyebrow">YOUR SPACE, YOUR RULES</p>
         <h2>A learning plan that feels like yours.</h2>
-        <p>Set a daily target, choose the conversations that matter, and tune how the coach gives feedback. These settings are saved locally on this device.</p>
+        <p>Set your learning style and preferences, then configure the database-backed daily schedule and evidence-based adaptation policy.</p>
       </section>
+      <LearningRoutineControls />
       <LearningSettings />
     </AppShell>
   );
