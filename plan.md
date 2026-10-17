@@ -498,12 +498,14 @@ This plan is the active source of truth for implementation. Work is delivered in
 | 4 | Connect existing activities to persisted learning evidence | Merged (PR #45) |
 | 5–6 | Durable scheduler, worker, and evidence-based adaptation | Merged (PR #46) |
 | 7 | Learner routine controls and adaptive progress UI/API | Merged (PR #47) |
-| 8 | Security hardening, reliability/operational monitoring, end-to-end validation, and staged rollout | Core code merged (PR #48; CI and Playwright passed); recovery-validation tests in progress; deployment load/migration checks remain |
+| 8 | Security hardening, reliability/operational monitoring, end-to-end validation, and staged rollout | Core code and recovery regression tests merged (PRs #48–#49; post-merge CI passed); deployment load/migration checks remain |
+
+| 9 | Full LangGraph multi-agent orchestration, conditional routing, and agent-level tests | In progress (PR #50) |
 
 ### Phase 8 implementation progress
 
 - Merged the authenticated operations endpoint, privacy-safe aggregate metrics, and automation pause flag in PR #48; PR CI and post-merge `main` CI/Playwright passed.
-- Added regression tests for repeated competing worker claims and SQLite backup/restore integrity, including restored learner data, migration ledger, and `integrity_check`.
+- Added regression tests for repeated competing worker claims and SQLite backup/restore integrity, including restored learner data, migration ledger, and `integrity_check`. PR #49 is merged and its post-merge CI passed.
 - Clarified operator instructions and distinguished automated regression coverage from required multi-process/load testing.
 - Remaining before phase completion: pass CI for the recovery-validation PR, then perform deployment-specific multi-process contention/load tests and representative migration/backup-restore checks.
 
