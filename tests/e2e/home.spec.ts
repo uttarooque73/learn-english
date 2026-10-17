@@ -49,10 +49,10 @@ test("fluency page offers timed speaking and filler-word awareness exercises", a
   await expect(fillers).toBeEnabled({ timeout: 10_000 });
   await fillers.click();
   await expect(fillers).toHaveAttribute("aria-pressed", "true");
-  await page.getByLabel("Your response").fill("Um, I like this tool, you know, because it helps.");
+  await page.getByLabel("Transcript of your spoken answer").fill("Um, I like this tool, you know, because it helps.");
   await expect(page.getByText("3 possible filler words detected")).toBeVisible();
   await page.getByRole("button", { name: "Finish exercise" }).click();
-  await expect(page.getByRole("status")).toContainText("You wrote 10 words.");
+  await expect(page.getByRole("status")).toContainText("Your transcript contains 10 words.");
 });
 
 test("practice room generates a structured session summary", async ({ page }) => {
