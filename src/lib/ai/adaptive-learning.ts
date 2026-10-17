@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import { createOllamaProvider, ModelProvider, ModelProviderError } from "@/lib/ai/model-provider";
 
-export const ACTIVITY_TYPES = ["conversation", "vocabulary", "grammar", "shadowing", "listening"] as const;
+export const ACTIVITY_TYPES = ["conversation", "vocabulary", "grammar", "shadowing", "listening", "fluency"] as const;
 export type ActivityType = typeof ACTIVITY_TYPES[number];
 
 export type PlannedActivity = {
@@ -308,7 +308,7 @@ export async function generateDailyLearningPlan(
     "You are an evidence-based English learning planner.",
     "Return JSON matching {activities:[{activityType,title,skillKey,durationMinutes,priority,reason}]}.",
     `Create a plan totaling no more than ${targetMinutes} minutes. Use 1 to ${MAX_ACTIVITIES} activities.`,
-    "Allowed activityType values: conversation, vocabulary, grammar, shadowing, listening.",
+    "Allowed activityType values: conversation, vocabulary, grammar, shadowing, listening, fluency.",
     "Allowed skillKey values: speaking, pronunciation, grammar, vocabulary, listening, fluency, writing.",
     "Each durationMinutes must be an integer from 1 to 240. priority must be 0 to 1. Each reason must briefly cite the goal or supplied evidence.",
     "Do not claim mastery or improvement without saved evidence. Prefer due reviews and recurring mistakes when relevant.",
