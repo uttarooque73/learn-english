@@ -147,6 +147,15 @@ export function LearningPlan() {
           ))}</div>}
       </section>
 
+      <section className="section-block" aria-labelledby="weekly-check-in-heading">
+        <div className="section-heading"><div><p className="eyebrow">WEEKLY CHECK-IN</p><h2 id="weekly-check-in-heading">Your progress this week</h2></div><Link className="text-link" href="/progress">Full progress report →</Link></div>
+        <div className="stats-grid">
+          <article className="stat-card"><div className="stat-top"><span className="stat-tag">PRACTICE DAYS</span></div><div className="stat-value">{analytics.practiceDaysThisWeek ?? 0}</div><p>Days practiced this week</p></article>
+          <article className="stat-card"><div className="stat-top"><span className="stat-tag">SESSIONS</span></div><div className="stat-value">{analytics.sessionsThisWeek ?? 0}</div><p>Saved speaking sessions</p></article>
+          <article className="stat-card"><div className="stat-top"><span className="stat-tag">LEARNING TIME</span></div><div className="stat-value">{analytics.minutesThisWeek ?? 0} <small>min</small></div><p>Time spent practicing</p></article>
+        </div>
+      </section>
+
       <section className="section-block" aria-labelledby="recommended-focus-heading">
         <div className="section-heading"><div><p className="eyebrow">PERSONALIZED NEXT STEP</p><h2 id="recommended-focus-heading">Recommended focus</h2></div></div>
         {dueWords.length > 0 ? (
