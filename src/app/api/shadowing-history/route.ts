@@ -32,14 +32,14 @@ function schema() {
       favorite INTEGER NOT NULL DEFAULT 0 CHECK (favorite IN (0, 1)),
       activity TEXT NOT NULL DEFAULT 'attempt' CHECK (activity IN ('listen', 'attempt'))
     );
-    const columns = getDatabase().prepare("PRAGMA table_info(shadowing_history)").all() as Array<{ name: string }>;
-    if (!columns.some((column) => column.name === "activity")) {
-      getDatabase().exec("ALTER TABLE shadowing_history ADD COLUMN activity TEXT NOT NULL DEFAULT 'attempt'");
-    }
-    CREATE INDEX IF NOT EXISTS idx_shadowing_history_owner_created
-      ON shadowing_history(owner_id, created_at DESC);
   `);
+  const columns = getDatabase().prepare("PRAGMA table_info(shadowing_history)").all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "activity")) {
+    getDatabase().exec("ALTER TABLE shadowing_history ADD COLUMN activity TEXT NOT NULL DEFAULT 'attempt'");
+  }
+  getDatabase().exec("CREATE INDEX IF NOT EXISTS idx_shadowing_history_owner_created ON shadowing_history(owner_id, created_at DESC)");
 }
+
 function readEntry(row: Record<string, unknown>): HistoryEntry {
   return {
     id: String(row.id), target: String(row.target), transcript: String(row.transcript ?? ""),
