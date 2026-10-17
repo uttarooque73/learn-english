@@ -184,8 +184,9 @@ export function AiAndUsPractice() {
         if (mode === "discussion") {
           setLines((previous) => previous.map((line) => line.id === currentLineRef.current ? { ...line, transcript, score: assessment.score, missingWords: assessment.missingWords, extraWords: assessment.extraWords, status: "complete" } : line));
           setStatus("Sentence reviewed");
+          void saveAttempt(lineText, transcript, assessment.score, assessment.missingWords, assessment.extraWords, discussionParagraphId || null);
         } else {
-          void saveAttempt(lineText, transcript, assessment.score, assessment.missingWords, assessment.extraWords, mode === "discussion" ? discussionParagraphId || null : activeParagraphId || null);
+          void saveAttempt(lineText, transcript, assessment.score, assessment.missingWords, assessment.extraWords, activeParagraphId || null);
         }
         listeningRef.current = false;
         setListening(false);
