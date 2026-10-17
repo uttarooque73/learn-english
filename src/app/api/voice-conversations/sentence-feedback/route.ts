@@ -48,10 +48,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
     const model = process.env.OLLAMA_MODEL || "qwen3:4b";
     const prompt = [
-      "You are a careful, encouraging English teacher. Give concise feedback on exactly one learner sentence.",
-      "Keep the original text unchanged. If correct and natural, correctedSentence must equal originalSentence and isCorrect=true.",
-      "If incorrect, provide a grammatically correct sentence with the same intended meaning. Provide a naturalSentence only when a genuinely more natural alternative exists.",
-      "Explain the key grammar or vocabulary point in plain language. Do not invent errors or guess if the transcript is uncertain.",
+      "You are a careful, encouraging English coach. Analyze exactly one learner sentence for both grammatical correctness and natural, idiomatic spoken English.",
+      "Keep originalSentence exactly as the learner said it. Preserve the intended meaning and learner level.",
+      "Check grammar, word choice, word order, collocations, register, and whether a fluent speaker would naturally say the sentence in this context. Do not label a sentence correct just because its grammar is technically possible.",
+      "If the sentence is grammatically wrong, correctedSentence must fix it. If grammar is acceptable but the wording sounds awkward, overly literal, or unnatural, correctedSentence must provide a natural version and errorCategories must include natural-expression or word-choice as appropriate.",
+      "Set isCorrect=true only when the sentence is both grammatically correct and reasonably natural for the context. If it is correct and natural, correctedSentence must equal originalSentence and severity must be none.",
+      "Use naturalSentence only for an additional useful alternative that differs meaningfully from correctedSentence; otherwise use null. Never repeat the same sentence in both fields.",
+      "Explain the specific issue in plain, supportive language. For awkward wording, explicitly say what sounds unnatural and why, then explain the more natural phrasing. Do not invent errors or guess when speech recognition may have distorted the sentence; use transcription-uncertainty when appropriate.",
       "Return JSON only: { originalSentence, correctedSentence, naturalSentence, isCorrect, errorCategories, severity, explanation }.",
       "errorCategories is an array using grammar, vocabulary, word-choice, word-order, sentence-structure, natural-expression, transcription-uncertainty. severity is none, minor, or major.",
       "Learner level: " + input.proficiency,
