@@ -54,4 +54,22 @@ describe("LearningPlan", () => {
       expect.stringContaining('"Review due vocabulary"'),
     );
   });
+  it("includes real-life role-play in a full daily routine", async () => {
+    vi.mocked(initializeDatabasePersistence).mockResolvedValue(undefined);
+    vi.mocked(readPersistedValue).mockReturnValue(JSON.stringify({ target: 30, date: "not-today", completed: [] }));
+    vi.mocked(getVocabulary).mockReturnValue([]);
+    vi.mocked(getSessions).mockReturnValue([]);
+    vi.mocked(getLearningAnalytics).mockReturnValue({
+      currentStreak: 0,
+      commonCorrections: [],
+    } as unknown as ReturnType<typeof getLearningAnalytics>);
+
+    render(<LearningPlan />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Role-play a real-life situation" })).toBeTruthy();
+      expect(screen.getByText("Practice a situation you expect to face at work or in daily life.")).toBeTruthy();
+    });
+  });
+
 });
