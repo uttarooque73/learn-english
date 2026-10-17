@@ -82,6 +82,12 @@ describe("ConversationCoach", () => {
     recognitions[0].onend?.();
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/chat", expect.objectContaining({ method: "POST" })));
     await waitFor(() => expect(spoken).toHaveLength(2));
+
+    // A playback error must not strand the hands-free conversation.
+    spoken[1].onerror?.(new Event("error") as SpeechSynthesisErrorEvent);
+    await waitFor(() => expect(startRecognition).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: /stop recording/i })).toBeTruthy();
+    expect(screen.getByText(/tutor audio could not play/i)).toBeTruthy();
   });
 
   it("shows saved-history and progress sections", async () => {
