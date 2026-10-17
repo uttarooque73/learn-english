@@ -1028,3 +1028,12 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .floating-english-inline-feedback p{margin:6px 0;overflow-wrap:anywhere}
 .floating-english-inline-feedback button{margin-top:5px;padding:8px 10px;border:1px solid var(--green);border-radius:8px;background:#fff;color:var(--green-dark);font-size:10px;font-weight:700;cursor:pointer}
 .floating-english-inline-feedback button:disabled{opacity:.5;cursor:not-allowed}
+
+
+/* Global selected-text vocabulary and practice actions */
+.vocabulary-selection-action{display:flex;align-items:center;gap:6px;max-width:calc(100vw - 24px);padding:6px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 8px 28px #20281825;z-index:1000}
+.vocabulary-selection-action button{min-height:34px;padding:8px 10px;border:0;border-radius:8px;background:var(--green);color:#fff;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer}
+.vocabulary-selection-action .vocabulary-selection-practice{background:#edf2e8;color:var(--green-dark)}
+.vocabulary-selection-action .vocabulary-selection-dismiss{width:30px;padding:5px;background:transparent;color:var(--muted);font-size:18px}
+.vocabulary-detail-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.vocabulary-detail-actions>span{font-size:11px;color:var(--muted)}
