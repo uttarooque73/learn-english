@@ -823,3 +823,24 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 @media(max-width:560px){.daily-vocab-hero{padding:20px}.daily-vocab-hero-stats{gap:6px}.daily-vocab-hero-stats>div{padding:11px 8px}.daily-vocab-hero-stats strong{font-size:22px}.daily-vocab-tabs button{padding:10px;font-size:11px}.daily-vocab-form-grid{grid-template-columns:1fr}.daily-vocab-list-tools{flex-wrap:wrap}.daily-vocab-list-tools input{flex-basis:100%}.daily-vocab-history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.daily-vocab-history-row{grid-template-columns:38px minmax(0,1fr) 40px 10px;gap:8px;padding:11px}.daily-vocab-history-mini-progress{display:none}.daily-vocab-additional-controls{width:100%}.daily-vocab-additional-controls select{flex:1;min-width:80px}.daily-vocab-selected-history{align-items:flex-start;flex-direction:column}.daily-vocab-pronunciation button{margin-left:0}}
 
 .daily-vocab-topic-progress{display:grid;gap:7px;margin:2px 0 13px}.daily-vocab-topic-progress>div:first-child{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:10px}.daily-vocab-topic-progress strong{color:var(--ink)}.daily-vocab-topic-progress .daily-vocab-progress-track{margin:0;height:6px}.daily-vocab-practice-link{display:inline-flex;align-items:center;border:1px solid #dce5d2;border-radius:8px;padding:7px 9px;color:var(--green-dark);background:#f6f9f1;font-size:10px;font-weight:800;text-decoration:none}.daily-vocab-practice-link:hover{background:#edf4e5}
+
+
+/* Daily vocabulary listening and one-tap learning actions */
+.daily-vocab-definition-row,.daily-vocab-example-line,.daily-vocab-context-row,.daily-vocab-history-word-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.daily-vocab-definition-row .daily-vocab-definition{flex:1;min-width:0}
+.daily-vocab-example-line p{flex:1;min-width:0}
+.daily-vocab-listen-button{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;gap:5px;border:1px solid #dce5d2;border-radius:9px;padding:7px 9px;background:#f5f8ef;color:var(--green-dark);font:inherit;font-size:10px;font-weight:800;line-height:1.25;cursor:pointer;white-space:nowrap;transition:background .15s ease,border-color .15s ease}
+.daily-vocab-listen-button:hover{background:#eaf2df;border-color:#c7d7b8}
+.daily-vocab-listen-button:focus-visible,.daily-vocab-mark-learned:focus-visible,.daily-vocab-example-practice:focus-visible{outline:3px solid #a6bf8e;outline-offset:2px}
+.daily-vocab-pronunciation .daily-vocab-listen-button{margin-left:auto}
+.daily-vocab-example-practice{display:inline-flex;margin-top:8px;color:var(--green-dark);font-size:10px;font-weight:800;text-decoration:none}
+.daily-vocab-example-practice:hover{text-decoration:underline}
+.daily-vocab-context-row{align-items:center;margin-top:10px}
+.daily-vocab-context-row .daily-vocab-context{flex:1;margin:0}
+.daily-vocab-mark-learned{border:1px solid #dce5d2;border-radius:8px;padding:7px 9px;background:#f5f8ef;color:var(--green-dark);font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+.daily-vocab-mark-learned:hover{background:#eaf2df}
+.daily-vocab-mark-learned:disabled{opacity:.55;cursor:wait}
+.daily-vocab-history-word-title{align-items:center}
+.daily-vocab-history-word-title h3{flex:1;min-width:0}
+.daily-vocab-history-word-title .daily-vocab-listen-button{margin-top:8px}
+@media(max-width:560px){.daily-vocab-definition-row,.daily-vocab-example-line,.daily-vocab-context-row{gap:7px}.daily-vocab-listen-button{padding:7px;font-size:9px}.daily-vocab-pronunciation .daily-vocab-listen-button{margin-left:0}.daily-vocab-context-row{align-items:flex-start}}
