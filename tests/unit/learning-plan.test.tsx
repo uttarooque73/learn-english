@@ -43,7 +43,7 @@ describe("LearningPlan", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "1 of 2 activities completed" })).toBeTruthy();
-      expect(screen.getByLabelText("Daily time target")).toHaveValue(15);
+      expect(screen.getByLabelText("Daily time target")).toHaveValue("15");
     });
     await waitFor(() => expect(writePersistedValue).toHaveBeenCalledWith(
       "speakup:daily-learning-plan:v1",
