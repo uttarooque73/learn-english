@@ -63,7 +63,7 @@ describe("durable learning jobs", () => {
     expect(completeLearningJob(next!.id, "worker-a", { planId: "plan-a" })).toBe(true);
 
     const attempts = getDatabase().prepare(
-      "SELECT status FROM learning_job_attempts ORDER BY created_at ASC",
+      "SELECT status FROM learning_job_attempts ORDER BY attempt_number ASC",
     ).all() as Array<{ status: string }>;
     expect(attempts.every((attempt) => attempt.status === "completed")).toBe(true);
   });
