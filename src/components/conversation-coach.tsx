@@ -103,7 +103,7 @@ export function ConversationCoach() {
       : voiceGender === "male"
         ? voices.filter(v => /alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron|male/i.test(v.name))
         : [];
-    return preferred.find(v => v.voiceURI === voiceURI) || preferred[0] || voices.find(v => v.voiceURI === voiceURI) || voices.find(v => v.lang.toLowerCase() === "en-us") || voices[0];
+    return voices.find(v => v.voiceURI === voiceURI) || preferred[0] || voices.find(v => v.lang.toLowerCase() === "en-us") || voices[0];
   }, [voices, voiceGender, voiceURI]);
 
   const play = useCallback((text: string) => {
