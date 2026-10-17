@@ -55,6 +55,7 @@ export function AiAndUsPractice() {
   const [autoPlay, setAutoPlay] = useState(true);
   const [rate, setRate] = useState(0.85);
   const [busy, setBusy] = useState(false);
+  const [paragraphSaving, setParagraphSaving] = useState(false);
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const listeningRef = useRef(false);
   const currentLineRef = useRef<string | null>(null);
@@ -81,7 +82,7 @@ export function AiAndUsPractice() {
 
   const current = lines[lineIndex];
   const paragraphLines = useMemo(() => splitSentences(paragraph), [paragraph]);
-  const browserSpeechSupported = typeof window !== "undefined" && Boolean((window as SpeechWindow).SpeechRecognition || (window as SpeechWindow).webkitSpeechRecognition);
+
 
   const speak = (text: string, done?: () => void) => {
     stopListening();
@@ -122,7 +123,7 @@ export function AiAndUsPractice() {
       } else {
         setMessage("Recognized: " + transcript);
       }
-      const finalResult = event.results.length > 0 && Boolean(event.results[event.results.length - 1]?.[0]) && Boolean((event.results[event.results.length - 1] as unknown as { isFinal?: boolean })?.isFinal);
+      const finalResult = event.results.length > 0 && Boolean((event.results[event.results.length - 1] as unknown as { isFinal?: boolean })?.isFinal);
       if (finalResult) {
         const assessment = assessTranscript(lineText, transcript);
         if (mode === "discussion") {
@@ -172,8 +173,7 @@ export function AiAndUsPractice() {
   };
 
   const saveAttempt = async (target: string, transcript: string, score: number, missingWords: string[], extraWords: string[]) => {
-    if (busy) return;
-    setBusy(true);
+    setStatus("Saving reading attempt");
     setStatus("Saving reading attempt");
     try {
       const response = await fetch("/api/ai-and-us", {
@@ -188,12 +188,12 @@ export function AiAndUsPractice() {
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not save reading attempt.");
       setStatus("Save failed");
-    } finally { setBusy(false); }
+    } finally { /* Attempt saving is independent from paragraph editing. */ }
   };
 
-  const saveParagraph = async () => {
-    if (!paragraph.trim()) { setMessage("Enter a paragraph before saving it."); return; }
-    setBusy(true);
+  const saveParagraph = async (): Promise<SavedParagraph | null> => {
+    if (!paragraph.trim()) { setMessage("Enter a paragraph before saving it."); return null; }
+    setParagraphSaving(true);
     try {
       const response = await fetch("/api/ai-and-us", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -204,8 +204,9 @@ export function AiAndUsPractice() {
       setParagraphs((previous) => [data.paragraph!, ...previous.filter((item) => item.id !== data.paragraph!.id)].slice(0, 100));
       setActiveParagraphId(data.paragraph.id);
       setMessage("Paragraph saved to your learning history.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save paragraph."); }
-    finally { setBusy(false); }
+      return data.paragraph;
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save paragraph."); return null; }
+    finally { setParagraphSaving(false); }
   };
 
   const nextDiscussionLine = () => {
@@ -217,10 +218,13 @@ export function AiAndUsPractice() {
     if (autoPlay) window.setTimeout(() => speak(lines[nextIndex].text), 100);
   };
 
-  const startParagraphPractice = () => {
+  const startParagraphPractice = async () => {
     const split = splitSentences(paragraph);
     if (!split.length) { setMessage("Enter a paragraph to begin practising."); return; }
-    if (!activeParagraphId) { void saveParagraph(); }
+    if (!activeParagraphId) {
+      const saved = await saveParagraph();
+      if (!saved) return;
+    }
     const practiceLines: PracticeLine[] = split.map((text) => ({ id: id(), text, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" }));
     setLines(practiceLines);
     setLineIndex(0);
@@ -287,7 +291,7 @@ export function AiAndUsPractice() {
           <label>Paragraph title<input value={paragraphTitle} onChange={(event) => { setParagraphTitle(event.target.value); setActiveParagraphId(""); }} maxLength={120} /></label>
           <label>English level<select value={level} onChange={(event) => setLevel(event.target.value as Level)}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
           <label>Paragraph<textarea value={paragraph} onChange={(event) => { setParagraph(event.target.value); setActiveParagraphId(""); }} rows={7} maxLength={12000} placeholder="Paste or write a paragraph here…" /></label>
-          <div className="aius-editor-actions"><button className="button button-light" onClick={() => setParagraph(samples[level])}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={busy} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-dark" onClick={startParagraphPractice}>Start reading practice <span>→</span></button></div>
+          <div className="aius-editor-actions"><button className="button button-light" onClick={() => setParagraph(samples[level])}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
         </div>
         {paragraphs.length > 0 && <div className="aius-history"><h4>Saved paragraphs</h4>{paragraphs.map((saved) => <button key={saved.id} className={activeParagraphId === saved.id ? "aius-history-item selected" : "aius-history-item"} onClick={() => loadParagraph(saved)}><span><strong>{saved.title}</strong><small>{saved.level} · {splitSentences(saved.text).length} sentences</small></span><span>Open →</span></button>)}</div>}
         {activeAttempts.length > 0 && <div className="aius-history"><h4>Reading attempts ({activeAttempts.length})</h4>{activeAttempts.map((attempt) => <article className="aius-attempt" key={attempt.id}><div><strong>{attempt.target}</strong><small>{new Date(attempt.createdAt).toLocaleString()}</small></div><span>{attempt.score === null ? "—" : `${attempt.score}% match`}</span><button className="text-link" onClick={() => retrySavedFeedback(attempt)}>Review</button></article>)}</div>}
