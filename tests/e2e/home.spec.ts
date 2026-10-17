@@ -492,6 +492,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
       configurable: true,
       value: {
         cancel() {},
+        getVoices() { return []; },
         speak(utterance: SpeechSynthesisUtterance) {
           window.setTimeout(() => utterance.onend?.(new Event("end") as SpeechSynthesisEvent), 0);
         },
