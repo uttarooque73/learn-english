@@ -5,13 +5,14 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "settings" | "learning-plan" | "mistake-micro-lessons";
+type PageKey = "home" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "settings" | "learning-plan" | "mistake-micro-lessons";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
   { key: "learning-plan", label: "Daily learning plan", href: "/learning-plan", icon: "✓" },
   { key: "mistake-micro-lessons", label: "Mistake Micro-Lessons", href: "/mistake-micro-lessons", icon: "✎" },
   { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
+  { key: "word-practice", label: "Words & sentences", href: "/word-practice", icon: "Aa" },
   { key: "custom-scenarios", label: "Custom scenarios", href: "/custom-scenarios", icon: "✦" },
   { key: "conversation-coach", label: "AI Conversation Coach", href: "/conversation-coach", icon: "🎙" },
   { key: "vocabulary", label: "Vocabulary", href: "/vocabulary", icon: "Aa" },
