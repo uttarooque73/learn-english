@@ -4,6 +4,20 @@ import { PracticeExperience } from "@/components/practice-experience";
 import { getSessions } from "@/lib/learning-storage";
 import { resetPersistenceCacheForTests } from "@/lib/client-persistence";
 
+
+function mockPracticeFetch(chatResponses: Response[]) {
+  const responses = [...chatResponses];
+  return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    if (url.startsWith("/api/persistence")) {
+      if ((init?.method ?? "GET") === "GET") return Promise.resolve(Response.json({ entries: [] }));
+      return Promise.resolve(Response.json({ saved: true, deleted: true }));
+    }
+    if (url === "/api/chat") return Promise.resolve(responses.shift() ?? new Response("Unexpected chat request", { status: 500 }));
+    return Promise.resolve(new Response("Unexpected request", { status: 500 }));
+  });
+}
+
 const prompts = [
   { number: "01", title: "Everyday life", description: "Talk about your day.", icon: "☕", tone: "peach" },
   { number: "02", title: "At work", description: "Practice meetings.", icon: "↗", tone: "lavender" },
@@ -31,7 +45,7 @@ describe("PracticeExperience", () => {
   });
 
   it("sends a message and displays the streamed AI reply", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
+    const fetchMock = mockPracticeFetch([
       new Response(new ReadableStream({
         start(controller) {
           controller.enqueue(new TextEncoder().encode("Hello "));
@@ -39,7 +53,7 @@ describe("PracticeExperience", () => {
           controller.close();
         },
       }), { status: 200, headers: { "Content-Type": "text/plain" } }),
-    );
+    ]);
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PracticeExperience prompts={prompts} />);
@@ -56,9 +70,10 @@ describe("PracticeExperience", () => {
   });
 
   it("requests an adaptive follow-up and saves it in the existing conversation", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response("Tell me about your latest project.", { status: 200, headers: { "Content-Type": "text/plain" } }))
-      .mockResolvedValueOnce(new Response("What was the biggest challenge you solved?", { status: 200, headers: { "Content-Type": "text/plain" } }));
+    const fetchMock = mockPracticeFetch([
+      new Response("Tell me about your latest project.", { status: 200, headers: { "Content-Type": "text/plain" } }),
+      new Response("What was the biggest challenge you solved?", { status: 200, headers: { "Content-Type": "text/plain" } }),
+    ]);
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PracticeExperience prompts={prompts} />);
@@ -70,19 +85,20 @@ describe("PracticeExperience", () => {
     await waitFor(() => expect(followUpButton).toBeEnabled());
     fireEvent.click(followUpButton);
     await waitFor(() => expect(screen.getByText("What was the biggest challenge you solved?")).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/chat", expect.objectContaining({
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/chat")[1]).toEqual(["/api/chat", expect.objectContaining({
       method: "POST",
       body: expect.stringContaining('"mode":"follow-up"'),
-    }));
+    })]);
     await waitFor(() => expect(getSessions().some((session) =>
       session.messages?.some((message) => message.content === "What was the biggest challenge you solved?")
     )).toBe(true));
   });
 
   it("asks for a simpler explanation and saves it in the current conversation", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response("A server provides resources to other computers.", { status: 200, headers: { "Content-Type": "text/plain" } }))
-      .mockResolvedValueOnce(new Response("A server is a computer that helps other computers.", { status: 200, headers: { "Content-Type": "text/plain" } }));
+    const fetchMock = mockPracticeFetch([
+      new Response("A server provides resources to other computers.", { status: 200, headers: { "Content-Type": "text/plain" } }),
+      new Response("A server is a computer that helps other computers.", { status: 200, headers: { "Content-Type": "text/plain" } }),
+    ]);
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PracticeExperience prompts={prompts} />);
@@ -94,19 +110,19 @@ describe("PracticeExperience", () => {
     await waitFor(() => expect(simplifyButton).toBeEnabled());
     fireEvent.click(simplifyButton);
     await waitFor(() => expect(screen.getByText("A server is a computer that helps other computers.")).toBeInTheDocument());
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/chat", expect.objectContaining({
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/chat")[1]).toEqual(["/api/chat", expect.objectContaining({
       method: "POST",
       body: expect.stringContaining('"mode":"simplify"'),
-    }));
+    })]);
     await waitFor(() => expect(getSessions().some((session) =>
       session.messages?.some((message) => message.content === "A server is a computer that helps other computers.")
     )).toBe(true));
   });
 
   it("shows a helpful message when the API reports an error", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+    vi.stubGlobal("fetch", mockPracticeFetch([
       Response.json({ error: "Cannot connect to Ollama." }, { status: 503 }),
-    ));
+    ]));
 
     render(<PracticeExperience prompts={prompts} />);
     fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Hi" } });
@@ -125,9 +141,10 @@ describe("PracticeExperience", () => {
       improvements: ["Add a specific result"],
       followUpExercise: "Repeat the answer and include one measurable result.",
     };
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response("Tell me about your experience.", { status: 200, headers: { "Content-Type": "text/plain" } }))
-      .mockResolvedValueOnce(Response.json(summary));
+    const fetchMock = mockPracticeFetch([
+      new Response("Tell me about your experience.", { status: 200, headers: { "Content-Type": "text/plain" } }),
+      Response.json(summary),
+    ]);
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PracticeExperience prompts={prompts} />);
