@@ -36,6 +36,7 @@ export function FloatingEnglishPartner() {
   const [active, setActive] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("Ready when you are");
+  const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [topic, setTopic] = useState("Random Topic");
   const [customTopic, setCustomTopic] = useState("");
@@ -330,6 +331,17 @@ export function FloatingEnglishPartner() {
             {!historyLoading && history.length === 0 && !historyError && <p>No saved conversations yet.</p>}
             {history.map((item) => <button className="floating-english-history-item" type="button" key={String(item.id)} onClick={() => void openHistorySession(String(item.id))}><strong>{String(item.topic ?? "Conversation")}</strong><span>{String(item.proficiency ?? "Intermediate")} · {String(item.startedAt ?? "")}</span><small>Feedback: {String(item.feedbackStatus ?? "pending")}</small></button>)}
           </div>}
+          {active && tab === "conversation" && <form className="floating-english-composer" onSubmit={(event) => {
+            event.preventDefault();
+            const text = draft.trim();
+            if (!text || busyRef.current) return;
+            setDraft("");
+            shouldListenRef.current = false;
+            void requestReply(text);
+          }}>
+            <label htmlFor="floating-english-message-input">Type a message</label>
+            <div><input id="floating-english-message-input" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={4000} placeholder="Speak or type your answer…" disabled={busy} /><button type="submit" disabled={busy || !draft.trim()}>Send</button></div>
+          </form>}
           <footer className="floating-english-controls">
             {!active ? <button className="floating-english-start" type="button" onClick={() => void startSession()} disabled={busy}>Start Conversation</button> : <><button type="button" onClick={interruptSpeech}>Interrupt speech</button><button className="floating-english-stop" type="button" onClick={() => void stopSession()}>Stop Conversation</button></>}
             {!active && feedbackStatus !== "idle" && feedbackStatus !== "processing" && <button type="button" onClick={() => void stopSession()}>Retry feedback</button>}
