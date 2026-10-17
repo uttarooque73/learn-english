@@ -8,7 +8,7 @@ import { getLearningPreferences, saveLearningPreferences, type SpeechRate, type 
 
 type Correction = { original: string; improved: string; reason: string };
 type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[] };
-type Session = { id: string; title: string; scenario: string; difficulty: string; status: string; startedAt: string; updatedAt: string; durationSeconds: number; turnCount?: number; summary?: Record<string, unknown>; turns?: Turn[] };
+type Session = { id: string; title: string; scenario: string; difficulty: string; status: string; startedAt: string; updatedAt: string; durationSeconds: number; turnCount?: number; correctionCount?: number; summary?: Record<string, unknown>; turns?: Turn[] };
 type RecognitionResult = { results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }>; resultIndex: number };
 type Recognition = { lang: string; interimResults: boolean; continuous: boolean; onresult: ((event: RecognitionResult) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null; start(): void; stop(): void; abort(): void };
 type RecognitionWindow = Window & { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
@@ -66,6 +66,7 @@ export function ConversationCoach() {
       setVoiceGender(preferences.speechVoiceGender);
       setVoiceURI(preferences.speechVoiceURI);
       setSpeed(preferences.speechRate);
+      setCorrectionMode(preferences.feedbackStyle === "detailed" ? "detailed" : "balanced");
     }).catch(() => {
       if (active) setError("Could not load saved speech preferences from the database.");
     }).finally(() => {
@@ -243,13 +244,14 @@ export function ConversationCoach() {
   }, [startListening]);
   const stopListening = () => { recognitionRef.current?.stop(); setListening(false); };
   const endSession = async () => {
-    sessionIdRef.current = "";
     stopListening(); stopSpeaking();
     try {
       await persistSession("completed");
       sessionIdRef.current = "";
       setSessionId(""); setActiveSession(null); startedAtRef.current = 0; setTab("history"); await refreshHistory();
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not finish the session."); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not finish the session. Your session remains active; please try again.");
+    }
   };
   const openHistory = async (id: string) => {
     setError("");
@@ -286,6 +288,7 @@ export function ConversationCoach() {
   };
   const allCorrections = turns.flatMap(t => t.corrections || []);
   const totalTurns = sessions.reduce((sum, s) => sum + (s.turnCount || 0), 0);
+  const totalCorrections = sessions.reduce((sum, s) => sum + (s.correctionCount || 0), 0);
   const completed = sessions.filter(s => s.status === "completed").length;
 
   return <div className="coach-workspace">
@@ -302,7 +305,7 @@ export function ConversationCoach() {
         <label>Tutor voice<select value={voiceGender} disabled={!speechPreferencesReady} onChange={e => { const next = e.target.value as SpeechVoiceGender; setVoiceGender(next); setVoiceURI(""); saveLearningPreferences({ ...getLearningPreferences(), speechVoiceGender: next, speechVoiceURI: "" }); }}><option value="automatic">Automatic</option><option value="female">Female voice</option><option value="male">Male voice</option></select></label>
         <label>Specific voice<select value={voiceURI} disabled={!speechPreferencesReady} onChange={e => { const next = e.target.value; setVoiceURI(next); saveLearningPreferences({ ...getLearningPreferences(), speechVoiceURI: next }); }}><option value="">Automatic best match</option>{voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}</select><small>Available voices depend on your device and browser.</small></label>
         <label>Speaking speed <span className="coach-speed-value">{speed.toFixed(1)}×</span><input type="range" min="0.8" max="1.2" step="0.2" value={speed} disabled={!speechPreferencesReady} onChange={e => { const next = Number(e.target.value) as SpeechRate; setSpeed(next); saveLearningPreferences({ ...getLearningPreferences(), speechRate: next }); }}/></label>
-        <label>Feedback style<select value={correctionMode} onChange={e => setCorrectionMode(e.target.value as "balanced" | "detailed")}><option value="balanced">Balanced and encouraging</option><option value="detailed">More detailed explanations</option></select></label>
+        <label>Feedback style<select value={correctionMode} onChange={e => { const next = e.target.value as "balanced" | "detailed"; setCorrectionMode(next); saveLearningPreferences({ ...getLearningPreferences(), feedbackStyle: next }); }}><option value="balanced">Balanced and encouraging</option><option value="detailed">More detailed explanations</option></select></label>
         {!sessionId ? <button className="button button-primary coach-start" onClick={() => void startSession()}>Start conversation <span>↗</span></button> : <button className="button button-light coach-start" onClick={() => void endSession()}>Finish & save session</button>}
         <p className="coach-privacy">Your transcripts and feedback are saved in your local SQLite database.</p>
       </aside>
@@ -319,7 +322,7 @@ export function ConversationCoach() {
         <div className="coach-history-grid">{sessions.map(s => <article key={s.id} className={`coach-history-card ${activeSession?.id === s.id ? "selected" : ""}`}><button className="coach-history-open" onClick={() => void openHistory(s.id)}><span className="coach-history-icon">✦</span><span className="coach-history-status">{s.status === "completed" ? "Completed" : "In progress"}</span><h3>{s.title}</h3><p>{s.scenario} · {s.difficulty}</p><small>{new Date(s.updatedAt).toLocaleString()} · {s.turnCount || 0} turns · {formatDuration(s.durationSeconds || 0)}</small></button><button className="coach-delete" aria-label={`Delete ${s.title}`} onClick={() => void deleteSession(s.id)}>Delete</button></article>)}</div>}
       {activeSession && <article className="coach-review"><div className="coach-section-heading"><div><p className="eyebrow">SESSION REVIEW</p><h2>{activeSession.title}</h2><p>{activeSession.scenario} · {new Date(activeSession.startedAt).toLocaleString()}</p></div><button className="button button-light" onClick={() => void createSummary()} disabled={busy || turns.filter(t => t.content.trim()).length < 2}>{busy ? "Preparing…" : "✨ Generate AI review"}</button></div><div className="coach-review-turns">{turns.map(t => <article key={t.id} className={`coach-message ${t.role}`}><div className="coach-message-label">{t.role === "assistant" ? "Tutor" : "You"}</div><p>{t.content}</p><ListenButton text={t.content} label="Replay" className="coach-mini-button"/>{t.corrections?.map((c, i) => <div key={i} className="coach-correction"><del>{c.original}</del><strong>{c.improved}</strong><small>{c.reason}</small></div>)}</article>)}</div>{summary && <div className="coach-summary"><p className="eyebrow">AI LEARNING REVIEW</p><h3>{String(summary.topicSummary || "Session summary")}</h3>{Array.isArray(summary.strengths) && <><strong>What went well</strong><ul>{(summary.strengths as string[]).map((x,i)=><li key={i}>{x}</li>)}</ul></>}{Array.isArray(summary.corrections) && <><strong>Useful corrections</strong>{(summary.corrections as Correction[]).map((x,i)=><p key={i}><del>{x.original}</del> → <b>{x.improved}</b><small>{x.reason}</small></p>)}</>}{typeof summary.followUpExercise === "string" && <p><strong>Next exercise:</strong> {summary.followUpExercise}</p>}</div>}</article>}
     </section>}
-    {tab === "progress" && <section className="coach-history"><p className="eyebrow">YOUR SPEAKING JOURNEY</p><h2>Progress, not perfection.</h2><p className="coach-progress-intro">A transparent view of your saved practice activity. These are activity counts, not an automated proficiency score.</p><div className="coach-progress-stats"><article><span>◷</span><strong>{sessions.length}</strong><p>Sessions saved</p></article><article><span>✓</span><strong>{completed}</strong><p>Sessions completed</p></article><article><span>☷</span><strong>{totalTurns}</strong><p>Conversation turns</p></article><article><span>✦</span><strong>{allCorrections.length}</strong><p>Corrections in this review</p></article></div><div className="coach-progress-card"><h3>Topics you have practised</h3>{sessions.length ? <div className="coach-topic-chips">{Array.from(new Set(sessions.map(s => s.scenario))).map(topic => <span key={topic}>{topic} · {sessions.filter(s => s.scenario === topic).length}</span>)}</div> : <p>Start a conversation to begin building your practice history.</p>}<button className="button button-primary" onClick={() => setTab("practice")}>Practise again <span>→</span></button></div><p className="coach-progress-note">Pronunciation is not scored by this feature. Browser speech-to-text transcripts can help review wording, but they do not measure phoneme accuracy, intonation, or accent.</p></section>}
+    {tab === "progress" && <section className="coach-history"><p className="eyebrow">YOUR SPEAKING JOURNEY</p><h2>Progress, not perfection.</h2><p className="coach-progress-intro">A transparent view of your saved practice activity. These are activity counts, not an automated proficiency score.</p><div className="coach-progress-stats"><article><span>◷</span><strong>{sessions.length}</strong><p>Sessions saved</p></article><article><span>✓</span><strong>{completed}</strong><p>Sessions completed</p></article><article><span>☷</span><strong>{totalTurns}</strong><p>Conversation turns</p></article><article><span>✦</span><strong>{totalCorrections}</strong><p>Saved corrections</p></article></div><div className="coach-progress-card"><h3>Topics you have practised</h3>{sessions.length ? <div className="coach-topic-chips">{Array.from(new Set(sessions.map(s => s.scenario))).map(topic => <span key={topic}>{topic} · {sessions.filter(s => s.scenario === topic).length}</span>)}</div> : <p>Start a conversation to begin building your practice history.</p>}<button className="button button-primary" onClick={() => setTab("practice")}>Practise again <span>→</span></button></div><p className="coach-progress-note">Pronunciation is not scored by this feature. Browser speech-to-text transcripts can help review wording, but they do not measure phoneme accuracy, intonation, or accent.</p></section>}
     {speaking && <button className="coach-stop-audio" onClick={() => { stopSpeaking(); setSpeaking(false); }}>■ Stop tutor audio</button>}
   </div>;
 }
