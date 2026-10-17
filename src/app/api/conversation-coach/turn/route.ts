@@ -10,7 +10,7 @@ const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 4_000;
 const OLLAMA_TIMEOUT_MS = 45_000;
 
-function validMessage(value: unknown): value is Message {
+function endsWithLearnerMessage(values: unknown[]): boolean {\n  const last = values[values.length - 1];\n  return !!last && typeof last === "object" && (last as Record<string, unknown>).role === "user";\n}\n\nfunction validMessage(value: unknown): value is Message {
   if (!value || typeof value !== "object") return false;
   const item = value as Record<string, unknown>;
   return (item.role === "user" || item.role === "assistant")
@@ -53,11 +53,6 @@ async function runAgent(system: string, user: string, timeoutMs = OLLAMA_TIMEOUT
   } finally { clearTimeout(timer); }
 }
 
-function strings(value: unknown, max: number): string[] {
-  return Array.isArray(value)
-    ? value.filter((x): x is string => typeof x === "string" && !!x.trim()).slice(0, max).map(x => x.trim().slice(0, 300))
-    : [];
-}
 function corrections(value: unknown): Correction[] {
   if (!Array.isArray(value)) return [];
   return value.filter((x): x is Correction => !!x && typeof x === "object"
@@ -80,7 +75,7 @@ export async function POST(request: Request) {
   }
   const body = payload as Record<string, unknown>;
   if (!Array.isArray(body.messages) || body.messages.length < 1 || body.messages.length > MAX_MESSAGES
-    || !body.messages.every(validMessage) || body.messages[body.messages.length - 1]?.role !== "user") {
+    || !body.messages.every(validMessage) || !endsWithLearnerMessage(body.messages)) {
     return NextResponse.json({ error: `Provide 1–${MAX_MESSAGES} valid messages ending with a learner message.` }, { status: 400 });
   }
 
