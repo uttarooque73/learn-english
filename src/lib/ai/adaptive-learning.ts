@@ -434,6 +434,22 @@ export async function generateDailyLearningPlan(
   `).run(targetMinutes, updatedProfile.goals_json, ownerId);
 
   const context = loadPlanningContext(ownerId, updatedProfile);
+  const policy = buildAdaptationPolicy(context, readAdaptationSettings(ownerId));
+  const plannerContext = policy.enabled ? {
+    ...context,
+    adaptationPolicy: {
+      policyVersion: policy.policyVersion,
+      skillWeights: policy.weights,
+      focusSkills: policy.focusSkills.slice(0, 3),
+      reviewIntervalScale: policy.reviewIntervalScale,
+    },
+  } : {
+    timezone: context.timezone,
+    proficiencyLevel: context.proficiencyLevel,
+    goals: context.goals,
+    preferences: context.preferences,
+    adaptationPolicy: { enabled: false, policyVersion: policy.policyVersion },
+  };
   const prompt = [
     "You are an evidence-based English learning planner.",
     "Return JSON matching {activities:[{activityType,title,skillKey,durationMinutes,priority,reason}]}.",
@@ -441,10 +457,10 @@ export async function generateDailyLearningPlan(
     "Allowed activityType values: conversation, vocabulary, grammar, shadowing, listening, fluency.",
     "Allowed skillKey values: speaking, pronunciation, grammar, vocabulary, listening, fluency, writing.",
     "Each durationMinutes must be an integer from 1 to 240. priority must be 0 to 1. Each reason must briefly cite the goal or supplied evidence.",
-    "Do not claim mastery or improvement without saved evidence. Prefer due reviews and recurring mistakes when relevant.",
+    "Do not claim mastery or improvement without saved evidence. When adaptation is enabled, prioritize higher skillWeights and due reviews.",
     `Learner goals: ${JSON.stringify(normalizedGoals)}`,
     `Daily target minutes: ${targetMinutes}`,
-    `Learner evidence context: ${JSON.stringify(context)}`,
+    `Learner evidence context: ${JSON.stringify(plannerContext)}`,
   ].join("\n");
 
   let generated: { activities: PlannedActivity[] };
@@ -454,13 +470,31 @@ export async function generateDailyLearningPlan(
     if (error instanceof ModelProviderError) throw error;
     throw new AdaptiveLearningError("invalid_plan", "The planner could not produce a valid learning plan.", { cause: error });
   }
-  const totalMinutes = generated.activities.reduce((sum, activity) => sum + activity.durationMinutes, 0);
+  const activities = [...generated.activities];
+  if (policy.enabled && context.dueVocabularyReviews > 0
+    && !activities.some((activity) => activity.activityType === "vocabulary")
+    && (context.dueVocabularyReviews >= 3 || policy.focusSkills[0] === "vocabulary")) {
+    const replaceIndex = activities.reduce((lowest, activity, index, all) =>
+      activity.priority < all[lowest].priority ? index : lowest, 0);
+    const replaced = activities[replaceIndex];
+    activities[replaceIndex] = {
+      activityType: "vocabulary",
+      title: "Review due vocabulary",
+      skillKey: "vocabulary",
+      durationMinutes: replaced.durationMinutes,
+      priority: Math.max(replaced.priority, Math.min(1, policy.weights.vocabulary / 3)),
+      reason: `Prioritized ${context.dueVocabularyReviews} due spaced-repetition review(s).`,
+    };
+  }
+  const totalMinutes = activities.reduce((sum, activity) => sum + activity.durationMinutes, 0);
   if (totalMinutes > targetMinutes) {
     throw new AdaptiveLearningError("invalid_plan", "The generated plan exceeds the learner's daily time target.");
   }
 
   const planId = randomUUID();
   const createdAt = new Date().toISOString();
+  const decisionContext = JSON.stringify(policy.contextSummary);
+  const decisionWeights = JSON.stringify(policy.weights);
 
   const savePlan = database.transaction(() => {
     const nextVersion = (database.prepare(`
@@ -479,12 +513,16 @@ export async function generateDailyLearningPlan(
         estimated_minutes, priority, reason_codes_json, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `);
-    generated.activities.forEach((activity, position) => {
+    activities.forEach((activity, position) => {
       insertItem.run(
         randomUUID(), planId, ownerId, position, activity.activityType, activity.title,
         activity.skillKey, activity.durationMinutes, activity.priority, JSON.stringify([activity.reason]),
       );
     });
+    database.prepare(`
+      INSERT INTO learning_plan_decisions (id, owner_id, plan_id, policy_version, context_json, weights_json)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(randomUUID(), ownerId, planId, policy.policyVersion, decisionContext, decisionWeights);
   });
   savePlan();
 
