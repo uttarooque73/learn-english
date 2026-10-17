@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { DEFAULT_SCENARIOS, getLearningScenarios, type LearningScenario } from "@/lib/learning-scenarios";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 export function DynamicHomeTopics() {
   const [topics, setTopics] = useState<LearningScenario[]>(DEFAULT_SCENARIOS.slice(0, 3));
-  useEffect(() => { const timer = window.setTimeout(() => setTopics(getLearningScenarios()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { let active = true; void initializeDatabasePersistence().then(() => { if (active) setTopics(getLearningScenarios()); }).catch(() => undefined); return () => { active = false; }; }, []);
   return <div className="topic-grid">
     {topics.map((topic, index) => <Link className="topic-card" href="/practice" key={topic.id}>
       <div className={`topic-art ${topic.tone}`}><span>{topic.icon}</span><small>{String(index + 1).padStart(2, "0")}</small></div>
