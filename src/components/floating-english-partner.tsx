@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { speakText, stopSpeaking } from "@/lib/speech-playback";
 
 type Role = "user" | "assistant";
 type Message = { id: string; role: Role; content: string; createdAt: string };
@@ -105,7 +107,7 @@ export function FloatingEnglishPartner() {
   useEffect(() => () => {
     shouldListenRef.current = false;
     recognitionRef.current?.abort();
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
   }, []);
 
   const append = useCallback((role: Role, content: string) => {
@@ -129,16 +131,19 @@ export function FloatingEnglishPartner() {
     return message;
   }, [level, topic]);
 
-  const speak = useCallback((text: string) => new Promise<void>((resolve) => {
-    if (!("speechSynthesis" in window) || !text) { resolve(); return; }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = level === "Beginner" ? 0.88 : 0.98;
-    utterance.onstart = () => setStatus("Speaking");
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.speak(utterance);
-  }), [level]);
+  const speak = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    // Load the same database-backed preferences used by Listen buttons and Conversation Coach.
+    try {
+      await initializeDatabasePersistence();
+    } catch {
+      // Keep speech available with the preferences already in memory if persistence is temporarily unavailable.
+    }
+    setStatus("Speaking");
+    await new Promise<void>((resolve) => {
+      if (!speakText(text, resolve)) resolve();
+    });
+  }, []);
 
   const requestReply = useCallback(async (learnerText: string) => {
     if (busyRef.current || !learnerText.trim()) return;
@@ -259,7 +264,7 @@ export function FloatingEnglishPartner() {
     requestAbortRef.current?.abort(); requestAbortRef.current = null;
     setActive(false); setBusy(false); busyRef.current = false;
     recognitionRef.current?.stop(); recognitionRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setStatus("Finalizing transcript and generating feedback…");
     setFeedbackStatus("processing");
     try {
@@ -335,7 +340,7 @@ export function FloatingEnglishPartner() {
     shouldListenRef.current = false;
     recognitionRef.current?.abort();
     recognitionRef.current = null;
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setPracticeResult((current) => ({ ...current, [messageId]: "Listen to the corrected sentence, then repeat it aloud." }));
     await speak(target);
     const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
@@ -382,7 +387,7 @@ export function FloatingEnglishPartner() {
   }, [speak]);
 
   const interruptSpeech = useCallback(() => {
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setStatus("Speech interrupted");
     if (active) {
       shouldListenRef.current = true;
@@ -397,8 +402,8 @@ export function FloatingEnglishPartner() {
     startedAtRef.current = Date.now();
     activeRef.current = true;
     setActive(true); setOpen(true); setMinimized(false); shouldListenRef.current = true;
-    append("assistant", `Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
-    await speak(`Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
+    append("assistant", `Hello! I'm Lexi, your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
+    await speak(`Hello! I'm Lexi, your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
     startListening();
   }, [append, customTopic, level, speak, startListening, topic]);
 
@@ -412,7 +417,7 @@ export function FloatingEnglishPartner() {
       </button>
       {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""}`} role="dialog" aria-label="AI English Partner" aria-modal="false">
         <header className="floating-english-header">
-          <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>AI English Partner</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
+          <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>Lexi · AI English Partner</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
           <div className="floating-english-header-actions">
             <button type="button" aria-label="Minimize conversation" onClick={() => setMinimized((v) => !v)}>{minimized ? "□" : "−"}</button>
             <button type="button" aria-label="Close conversation window" onClick={() => { if (active) void stopSession(); setOpen(false); }}>×</button>

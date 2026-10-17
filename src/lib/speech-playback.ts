@@ -17,9 +17,9 @@ export function speakText(text: string, onEnd?: () => void, rateOverride?: numbe
     ? voices.find((voice) => voice.voiceURI === preferences.speechVoiceURI)
     : undefined;
   const preferredVoicePattern = preferences.speechVoiceGender === "female"
-    ? /\\bfemale\\b|samantha|victoria|karen|zira|jenny|aria|ava|susan|hazel|moira|tessa|fiona|allison/i
+    ? /\bfemale\b|samantha|victoria|karen|zira|jenny|aria|ava|susan|hazel|moira|tessa|fiona|allison/i
     : preferences.speechVoiceGender === "male"
-      ? /\\bmale\\b|alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron/i
+      ? /\bmale\b|alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron/i
       : null;
   const genderMatchedVoice = preferredVoicePattern
     ? englishVoices.find((candidate) => preferredVoicePattern.test(candidate.name))
