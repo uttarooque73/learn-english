@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
+import { recordPracticeEvidence } from "@/lib/ai/adaptive-learning";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -179,6 +180,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       recommendations: [...new Set(feedback.filter((item) => !item.isCorrect).map((item) => item.explanation))].slice(0, 5),
       usefulExpressions: [],
     };
+
+    // Only complete evaluations update learning evidence and skill estimates.
+    // Partial model output remains reviewable but must not influence mastery.
+    if (complete) {
+      const corrections = feedback.filter((item) => !item.isCorrect).slice(0, 8).map((item) => ({
+        original: item.originalSentence.slice(0, 500),
+        improved: item.correctedSentence.slice(0, 500),
+        reason: item.explanation.slice(0, 500) || "Review this sentence.",
+      }));
+      recordPracticeEvidence(ownerId, {
+        source: "conversation",
+        activityType: "conversation",
+        activityRef: input.sessionId as string,
+        skillKey: "speaking",
+        responseText: persistedLearner.map((message) => message.content).join("\n").slice(0, 4000),
+        durationSeconds: Math.floor(input.durationSeconds as number),
+        idempotencyKey: `voice-conversation:${input.sessionId}:feedback-v1`,
+        score: persistedLearner.length ? correctCount / persistedLearner.length : 0,
+        confidence: Math.min(0.6, 0.35 + (persistedLearner.length / 20)),
+        feedback: `Analyzed ${feedback.length} utterances. ${correctCount} were marked correct. ${overall.recommendations.join(" ")}`.slice(0, 1200),
+        strengths: feedback.filter((item) => item.isCorrect).slice(0, 8).map((item) => `Clear sentence: ${item.originalSentence}`.slice(0, 240)),
+        corrections,
+      });
+    }
+
     db.prepare("UPDATE voice_conversation_sessions SET status=?, feedback_status=?, overall_feedback_json=? WHERE id=? AND owner_id=?")
       .run(complete ? "completed" : "failed", status, JSON.stringify(overall), input.sessionId, ownerId);
     const savedFeedback = db.prepare(`SELECT f.message_id AS messageId, f.original_sentence AS originalSentence,
