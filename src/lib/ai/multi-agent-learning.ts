@@ -193,7 +193,7 @@ function updateRun(ownerId: string, runId: string, status: "completed" | "failed
   `).run(status, now, Math.max(0, Date.now() - startedAt), errorCode, ownerId, runId);
 }
 
-function buildMultiAgentGraph(checkpointer: SqliteSaver) {
+function buildMultiAgentGraph(checkpointer: SqliteSaver, provider?: ModelProvider) {
   return new StateGraph(AgentStateAnnotation)
     .addNode("contextLoader", (state) => {
       const context = readLearningContext(state.ownerId);
@@ -288,7 +288,7 @@ export async function runMultiAgentLearningWorkflow(
   }
   const goal = typeof input.goal === "string" ? input.goal.trim() : "";
   if ((input.goal !== undefined && !goal) || goal.length > MAX_GOAL_LENGTH) {
-    throw new MultiAgentLearningError("invalid_input", "A learning goal must contain 1–1000 characters.");
+    throw new MultiAgentLearningError("invalid_input", "A learning goal must contain 1–350 characters.");
   }
   if (input.dailyTargetMinutes !== undefined
     && (!Number.isInteger(input.dailyTargetMinutes) || input.dailyTargetMinutes < 5 || input.dailyTargetMinutes > 240)) {
@@ -306,7 +306,7 @@ export async function runMultiAgentLearningWorkflow(
   `).run(runId, ownerId, WORKFLOW_NAME, GRAPH_VERSION, inputHash, startedAtIso);
 
   try {
-    const graph = buildMultiAgentGraph(getCheckpointer());
+    const graph = buildMultiAgentGraph(getCheckpointer(), provider);
     const result = await graph.invoke({
       ownerId, runId, goal,
       dailyTargetMinutes: input.dailyTargetMinutes ?? 0,
