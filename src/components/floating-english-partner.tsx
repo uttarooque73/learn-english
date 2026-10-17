@@ -58,6 +58,7 @@ export function FloatingEnglishPartner() {
   const sessionIdRef = useRef("");
   const transcriptSequenceRef = useRef(0);
   const recognitionRef = useRef<Recognition | null>(null);
+  const activeRef = useRef(false);
   const shouldListenRef = useRef(false);
   const busyRef = useRef(false);
   const messagesRef = useRef<Message[]>([]);
@@ -95,6 +96,7 @@ export function FloatingEnglishPartner() {
       setPreferencesSaving(false);
     }
   }, []);
+  useEffect(() => { activeRef.current = active; }, [active]);
   useEffect(() => {
     if (!active) return;
     const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAtRef.current) / 1000)), 1000);
@@ -253,6 +255,7 @@ export function FloatingEnglishPartner() {
 
   const stopSession = useCallback(async () => {
     shouldListenRef.current = false;
+    activeRef.current = false;
     requestAbortRef.current?.abort(); requestAbortRef.current = null;
     setActive(false); setBusy(false); busyRef.current = false;
     recognitionRef.current?.stop(); recognitionRef.current = null;
@@ -337,7 +340,7 @@ export function FloatingEnglishPartner() {
     await speak(target);
     const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
     if (!recognitionConstructor) {
-      shouldListenRef.current = active;
+      shouldListenRef.current = activeRef.current;
       setPracticeResult((current) => ({ ...current, [messageId]: "Repeat the sentence aloud. Speech recognition is not supported in this browser." }));
       return;
     }
@@ -359,21 +362,21 @@ export function FloatingEnglishPartner() {
           ? `Good repetition! You said: “${spoken}”`
           : `Keep practicing. You said: “${spoken}”. Try to match: “${target}”`,
       }));
-      shouldListenRef.current = active;
+      shouldListenRef.current = activeRef.current;
     };
     recognition.onerror = () => {
       setPracticeResult((current) => ({ ...current, [messageId]: "I couldn't capture that repetition. Please try again." }));
-      shouldListenRef.current = active;
+      shouldListenRef.current = activeRef.current;
     };
     recognition.onend = () => {
       if (recognitionRef.current === recognition) recognitionRef.current = null;
-      if (shouldListenRef.current && active && !busyRef.current) window.setTimeout(() => startListeningRef.current?.(), 250);
+      if (shouldListenRef.current && activeRef.current && !busyRef.current) window.setTimeout(() => startListeningRef.current?.(), 250);
     };
     recognitionRef.current = recognition;
     try { recognition.start(); }
     catch {
       recognitionRef.current = null;
-      shouldListenRef.current = active;
+      shouldListenRef.current = activeRef.current;
       setPracticeResult((current) => ({ ...current, [messageId]: "Microphone could not start. Check browser permissions and try again." }));
     }
   }, [active, speak]);
@@ -392,6 +395,7 @@ export function FloatingEnglishPartner() {
     const nextSessionId = newId();
     sessionIdRef.current = nextSessionId; setSessionId(nextSessionId); transcriptSequenceRef.current = 0;
     startedAtRef.current = Date.now();
+    activeRef.current = true;
     setActive(true); setOpen(true); setMinimized(false); shouldListenRef.current = true;
     append("assistant", `Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
     await speak(`Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
