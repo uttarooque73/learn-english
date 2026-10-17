@@ -81,10 +81,10 @@ export function LearningInsights({ mode }: { mode: "overview" | "progress" | "vo
           </section>
         </div>
         <div className="insights-panel">
-          <div className="section-heading"><div><p className="eyebrow">RECENT ACTIVITY</p><h2>Your practice history</h2></div><span className="section-note">Stored on this browser</span></div>
+          <div className="section-heading"><div><p className="eyebrow">RECENT ACTIVITY</p><h2>Your practice history</h2></div><span className="section-note">Saved in the database</span></div>
           {sessions.length ? <div className="activity-list">{sessions.slice(0, 12).map((session) => <article className="activity-row" key={session.id}><div className="activity-icon">✦</div><div className="activity-copy"><strong>{session.scenario}</strong><span>{new Date(session.startedAt).toLocaleString()} · {session.messageCount} messages</span></div><span className="activity-duration">{Math.max(1, Math.round(session.durationSeconds / 60))} min</span></article>)}</div> : <div className="insights-empty"><h3>Your first session sets the baseline</h3><p>Complete a conversation in Practice Room and it will appear here.</p></div>}
         </div>
-        <p className="storage-note">Your learning data is stored in this browser only. Clearing browser storage will remove it.</p>
+        <p className="storage-note">Your learning history is loaded from the application database. Legacy browser-saved data is migrated during initialization.</p>
       </section>
     );
   }
@@ -93,7 +93,7 @@ export function LearningInsights({ mode }: { mode: "overview" | "progress" | "vo
     <section className="learning-insights">
       <div className="vocabulary-toolbar"><div><strong>{words.length} saved {words.length === 1 ? "item" : "items"}</strong><p>Useful phrases you can revisit and practice.</p></div></div>
       {words.length ? <div className="saved-word-grid">{words.map((word) => <article className="saved-word-card" key={word.id}><div className="saved-word-top"><span className="stat-icon mint">Aa</span><button className="remove-word" type="button" onClick={() => { removeVocabulary(word.id); setWords(getVocabulary()); }} aria-label={`Remove ${word.phrase}`}>Remove</button></div><h3>{word.phrase}</h3><p>{word.meaning}</p><blockquote>{word.example}</blockquote><span className="saved-date">Saved {new Date(word.savedAt).toLocaleDateString()}</span></article>)}</div> : <div className="insights-empty"><h3>Your word bank starts here</h3><p>In Practice Room, ask for feedback and save useful vocabulary suggestions to build your personal word bank.</p></div>}
-      <p className="storage-note">Vocabulary is stored in this browser only, not sent to a remote database.</p>
+      <p className="storage-note">Vocabulary is saved to the application database and synced when you make changes.</p>
     </section>
   );
 }
