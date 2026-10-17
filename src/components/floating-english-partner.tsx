@@ -42,6 +42,10 @@ export function FloatingEnglishPartner() {
   const [level, setLevel] = useState<(typeof LEVELS)[number]>("Intermediate");
   const [tab, setTab] = useState<"conversation" | "feedback">("conversation");
   const [feedback, setFeedback] = useState<Array<Record<string, unknown>>>([]);
+  const [overallFeedback, setOverallFeedback] = useState<Record<string, unknown> | null>(null);
+  const [history, setHistory] = useState<Array<Record<string, unknown>>>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "processing" | "complete" | "partial" | "failed">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [sessionId, setSessionId] = useState("");
@@ -53,6 +57,7 @@ export function FloatingEnglishPartner() {
   const messagesRef = useRef<Message[]>([]);
   const startedAtRef = useRef<number>(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stopSessionRef = useRef<(() => void) | null>(null);
 
   useEffect(() => { messagesRef.current = messages; scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
   useEffect(() => {
@@ -84,7 +89,7 @@ export function FloatingEnglishPartner() {
         .catch(() => setStatus("Transcript save failed. Check your connection."));
     }
     return message;
-  }, []);
+  }, [level, topic]);
 
   const speak = useCallback((text: string) => new Promise<void>((resolve) => {
     if (!("speechSynthesis" in window) || !text) { resolve(); return; }
@@ -169,6 +174,11 @@ export function FloatingEnglishPartner() {
         if (finalTranscript.trim()) {
           const text = finalTranscript.trim();
           finalTranscript = "";
+          if (/^(please\\s+)?(stop|end|finish)\\s+(the\\s+)?(conversation|session)(\\s+please)?[.! ]*$/i.test(text)) {
+            const stop = stopSessionRef.current;
+            if (stop) stop();
+            return;
+          }
           shouldListenRef.current = true;
           void requestReply(text);
         }
@@ -202,7 +212,8 @@ export function FloatingEnglishPartner() {
       const data = await response.json() as { feedback?: Array<Record<string, unknown>>; feedbackStatus?: string; error?: string };
       if (!response.ok) throw new Error(data.error || "Feedback could not be generated.");
       setFeedback(data.feedback ?? []);
-      setFeedbackStatus(data.feedbackStatus === "complete" ? "complete" : "partial");
+      setOverallFeedback((data.overallFeedback as Record<string, unknown> | undefined) ?? null);
+      setFeedbackStatus(data.feedbackStatus === "complete" ? "complete" : data.feedbackStatus === "failed" ? "failed" : "partial");
       setTab("feedback");
       setStatus(data.feedbackStatus === "complete" ? "Conversation complete" : "Feedback partially available");
     } catch (error) {
@@ -210,8 +221,70 @@ export function FloatingEnglishPartner() {
     }
   }, [elapsed, level, sessionId, topic]);
 
+  useEffect(() => { stopSessionRef.current = () => { void stopSession(); }; }, [stopSession]);
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    setHistoryError("");
+    try {
+      const response = await fetch("/api/voice-conversations/session", { cache: "no-store" });
+      const data = await response.json() as { sessions?: Array<Record<string, unknown>>; error?: string };
+      if (!response.ok) throw new Error(data.error || "Conversation history could not be loaded.");
+      setHistory(data.sessions ?? []);
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : "Conversation history could not be loaded.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  const openHistorySession = useCallback(async (id: string) => {
+    setStatus("Loading saved conversation…");
+    try {
+      const response = await fetch(`/api/voice-conversations/feedback?sessionId=${encodeURIComponent(id)}`, { cache: "no-store" });
+      const data = await response.json() as {
+        session?: Record<string, unknown>;
+        messages?: Message[];
+        feedback?: Array<Record<string, unknown>>;
+        error?: string;
+      };
+      if (!response.ok || !data.session) throw new Error(data.error || "Saved conversation could not be opened.");
+      const savedMessages = data.messages ?? [];
+      sessionIdRef.current = id;
+      setSessionId(id);
+      transcriptSequenceRef.current = savedMessages.length;
+      setMessages(savedMessages);
+      messagesRef.current = savedMessages;
+      setFeedback(data.feedback ?? []);
+      setOverallFeedback((data.session.overallFeedback as Record<string, unknown> | null) ?? null);
+      setTopic(typeof data.session.topic === "string" ? data.session.topic : "Random Topic");
+      setLevel(LEVELS.includes(data.session.proficiency as (typeof LEVELS)[number]) ? data.session.proficiency as (typeof LEVELS)[number] : "Intermediate");
+      setElapsed(typeof data.session.durationSeconds === "number" ? data.session.durationSeconds : 0);
+      const savedStatus = String(data.session.feedbackStatus ?? "idle");
+      setFeedbackStatus(savedStatus === "complete" ? "complete" : savedStatus === "partial" ? "partial" : savedStatus === "failed" ? "failed" : "idle");
+      setActive(false);
+      setTab("conversation");
+      setStatus("Saved conversation loaded");
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : "Saved conversation could not be opened.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open && tab === "history") void loadHistory();
+  }, [loadHistory, open, tab]);
+
+  const interruptSpeech = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    setStatus("Speech interrupted");
+    if (active) {
+      shouldListenRef.current = true;
+      window.setTimeout(() => startListening(), 150);
+    }
+  }, [active, startListening]);
+
   const startSession = useCallback(async () => {
-    setMessages([]); setFeedback([]); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
+    setMessages([]); messagesRef.current = []; setFeedback([]); setOverallFeedback(null); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
     const nextSessionId = newId();\n    sessionIdRef.current = nextSessionId; setSessionId(nextSessionId); transcriptSequenceRef.current = 0;\n    startedAtRef.current = Date.now();
     setActive(true); setOpen(true); setMinimized(false); shouldListenRef.current = true;
     append("assistant", `Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
@@ -245,16 +318,25 @@ export function FloatingEnglishPartner() {
           {tab === "conversation" ? <div className="floating-english-transcript" ref={scrollRef} aria-live="polite">
             {messages.length === 0 && <div className="floating-english-empty"><span>✦</span><strong>Let's build confidence together.</strong><p>Start a conversation and speak naturally. You can interrupt, pause, or stop whenever you like.</p></div>}
             {messages.map((message) => <article key={message.id} className={`floating-english-message ${message.role}`}><small>{message.role === "user" ? "You" : "AI Partner"} · {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small><p>{message.content}</p></article>)}
-          </div> : <div className="floating-english-feedback" aria-live="polite">
+          </div> : tab === "feedback" ? <div className="floating-english-feedback" aria-live="polite">
+            {overallFeedback && <section className="floating-english-overall-feedback"><strong>Overall feedback</strong><p>Analyzed {String(overallFeedback.analyzedUtterances ?? 0)} of {String(overallFeedback.totalUtterances ?? 0)} learner utterances; {String(overallFeedback.correctUtterances ?? 0)} were marked correct.</p>{Array.isArray(overallFeedback.frequentErrors) && overallFeedback.frequentErrors.length > 0 && <p><strong>Frequent patterns:</strong> {(overallFeedback.frequentErrors as Array<Record<string, unknown>>).map((item) => `${String(item.category)} (${String(item.count)})`).join(", ")}</p>}{Array.isArray(overallFeedback.recommendations) && overallFeedback.recommendations.length > 0 && <p><strong>Practice next:</strong> {(overallFeedback.recommendations as string[]).join(" ")}</p>}</section>}
             {feedbackStatus === "processing" && <p>Analyzing each sentence in order. Please keep this window open.</p>}
             {feedbackStatus === "failed" && <p>Feedback could not be completed. Your transcript remains available in this window; stop again to retry.</p>}
             {feedbackStatus === "partial" && <p>Some feedback is available. The report is marked partial, not complete.</p>}
             {feedbackStatus === "complete" && <p className="feedback-success">All eligible learner utterances have feedback.</p>}
             {feedback.map((item, index) => <details className="floating-english-feedback-item" key={String(item.messageId ?? index)} open={index === 0}><summary>{String(item.originalSentence ?? "Sentence")} {item.isCorrect ? "✓" : "•"}</summary><p><strong>Original:</strong> {String(item.originalSentence ?? "")}</p><p><strong>Corrected:</strong> {String(item.correctedSentence ?? "")}</p>{item.naturalSentence && <p><strong>Natural:</strong> {String(item.naturalSentence)}</p>}<p><strong>Why:</strong> {String(item.explanation ?? "")}</p><p><strong>Category:</strong> {Array.isArray(item.errorCategories) ? item.errorCategories.join(", ") : "—"} · <strong>Severity:</strong> {String(item.severity ?? "—")}</p><button type="button" onClick={() => copyText(item.correctedSentence)}>Copy corrected sentence</button></details>)}
+          </div> : <div className="floating-english-history" aria-live="polite">
+            {historyLoading && <p>Loading saved conversations…</p>}
+            {historyError && <p role="alert">{historyError}</p>}
+            {!historyLoading && history.length === 0 && !historyError && <p>No saved conversations yet.</p>}
+            {history.map((item) => <button className="floating-english-history-item" type="button" key={String(item.id)} onClick={() => void openHistorySession(String(item.id))}><strong>{String(item.topic ?? "Conversation")}</strong><span>{String(item.proficiency ?? "Intermediate")} · {String(item.startedAt ?? "")}</span><small>Feedback: {String(item.feedbackStatus ?? "pending")}</small></button>)}
           </div>}
           <footer className="floating-english-controls">
-            {!active ? <button className="floating-english-start" type="button" onClick={() => void startSession()} disabled={busy}>Start Conversation</button> : <button className="floating-english-stop" type="button" onClick={() => void stopSession()}>Stop Conversation</button>}
-            {feedbackStatus !== "idle" && <button type="button" onClick={() => setTab((value) => value === "conversation" ? "feedback" : "conversation")}>{tab === "feedback" ? "Conversation" : "Review feedback"}</button>}
+            {!active ? <button className="floating-english-start" type="button" onClick={() => void startSession()} disabled={busy}>Start Conversation</button> : <><button type="button" onClick={interruptSpeech}>Interrupt speech</button><button className="floating-english-stop" type="button" onClick={() => void stopSession()}>Stop Conversation</button></>}
+            {!active && feedbackStatus !== "idle" && feedbackStatus !== "processing" && <button type="button" onClick={() => void stopSession()}>Retry feedback</button>}
+            <button type="button" onClick={() => setTab("history")}>History</button>
+            {tab !== "conversation" && <button type="button" onClick={() => setTab("conversation")}>Conversation</button>}
+            {tab !== "feedback" && feedbackStatus !== "idle" && <button type="button" onClick={() => setTab("feedback")}>Review feedback</button>}
           </footer>
         </>}
       </section>}
