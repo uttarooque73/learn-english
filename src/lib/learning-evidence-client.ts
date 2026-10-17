@@ -3,7 +3,7 @@
 import { initializeDatabasePersistence, readPersistedValue, writePersistedValue } from "@/lib/client-persistence";
 
 export type EvidenceSource = "conversation" | "shadowing" | "fluency" | "micro_lesson" | "vocabulary" | "listening";
-export type EvidenceActivityType = "conversation" | "vocabulary" | "grammar" | "shadowing" | "listening";
+export type EvidenceActivityType = "conversation" | "vocabulary" | "grammar" | "shadowing" | "listening" | "fluency";
 
 export type LearningEvidencePayload = {
   source: EvidenceSource;
