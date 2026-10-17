@@ -464,8 +464,8 @@ test("floating English partner opens, configures a topic, and loads saved-histor
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Open AI English Partner" }).click();
-  await expect(page.getByRole("dialog", { name: "AI English Partner" })).toBeVisible();
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
+  await expect(page.getByRole("dialog", { name: "Jarvis" })).toBeVisible();
   await expect(page.getByText("Jarvis", { exact: true })).toBeVisible();
   await page.getByLabel("Topic").selectOption("Custom Topic");
   await expect(page.getByRole("textbox", { name: "Custom topic" })).toBeVisible();
@@ -561,7 +561,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Open AI English Partner" }).click();
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
   await page.getByRole("button", { name: "Start Conversation" }).click();
   const composer = page.getByLabel("Type a message");
   await expect(composer).toBeVisible();
@@ -572,7 +572,7 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   await expect(page.getByText("I work as a software engineer.", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Practice corrected sentence" })).toBeVisible();
   await page.getByRole("button", { name: "Practice corrected sentence" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Listen to the corrected sentence" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Speech recognition is not supported" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Repeat sentence" })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: "Continue conversation" })).toBeVisible();
   await page.getByRole("button", { name: "Continue conversation" }).click();
