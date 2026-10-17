@@ -35,13 +35,14 @@ function cleanupDatabase() {
 }
 
 function providerReturning(value: unknown): ModelProvider {
+  const generateJson = vi.fn(async <T,>(_prompt: string, validate: JsonValidator<T>): Promise<T> => {
+    if (!validate(value)) throw new ModelProviderError("invalid_output", "Mock response failed validation.");
+    return value as T;
+  });
   return {
     modelName: "test-model",
     generateText: vi.fn(async () => "unused"),
-    generateJson: vi.fn(async <T,>(_prompt: string, validate: JsonValidator<T>): Promise<T> => {
-      if (!validate(value)) throw new ModelProviderError("invalid_output", "Mock response failed validation.");
-      return value;
-    }),
+    generateJson: generateJson as unknown as ModelProvider["generateJson"],
   };
 }
 
