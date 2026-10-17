@@ -69,7 +69,7 @@ describe("ConversationCoach", () => {
     render(<ConversationCoach />);
     fireEvent.click(screen.getByRole("button", { name: /start conversation/i }));
     await waitFor(() => expect(spoken).toHaveLength(1));
-    spoken[0].onend?.();
+    spoken[0].onend?.(new Event("end") as SpeechSynthesisEvent);
     await waitFor(() => expect(startRecognition).toHaveBeenCalledTimes(1));
     expect(screen.getByRole("button", { name: /stop recording/i })).toBeTruthy();
   });
