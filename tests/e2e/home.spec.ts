@@ -460,8 +460,8 @@ test("floating English partner opens, configures a topic, and loads saved-histor
   await page.getByRole("button", { name: "Open AI English Partner" }).click();
   await expect(page.getByRole("dialog", { name: "AI English Partner" })).toBeVisible();
   await page.getByLabel("Topic").selectOption("Custom Topic");
-  await expect(page.getByLabel("Custom topic")).toBeVisible();
-  await page.getByLabel("Custom topic").fill("Explaining a software release");
+  await expect(page.getByRole("textbox", { name: "Custom topic" })).toBeVisible();
+  await page.getByRole("textbox", { name: "Custom topic" }).fill("Explaining a software release");
   await page.getByLabel("English level").selectOption("Advanced");
   await expect(page.getByLabel("English level")).toHaveValue("Advanced");
 
