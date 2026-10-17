@@ -28,9 +28,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     || typeof input.startedAt !== "string"
     || !input.message || typeof input.message !== "object") return respond({ error: "Invalid session or message details." }, request, ownerId, 400);
   const message = input.message as Record<string, unknown>;
+  const messageContent = message.content;
   if (typeof message.id !== "string" || message.id.length > 100
     || !["user", "assistant"].includes(String(message.role))
-    || typeof message.content !== "string" || !message.content.trim() || message.content.length > 4000
+    || typeof messageContent !== "string" || !messageContent.trim() || messageContent.length > 4000
     || typeof message.createdAt !== "string" || typeof input.sequenceNumber !== "number"
     || !Number.isInteger(input.sequenceNumber) || input.sequenceNumber < 0) {
     return respond({ error: "Invalid transcript message." }, request, ownerId, 400);
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(session_id, id) DO UPDATE SET content=excluded.content
         WHERE voice_conversation_messages.owner_id=excluded.owner_id`)
-        .run(message.id, input.sessionId, ownerId, input.sequenceNumber, message.role, message.content.trim(), message.createdAt);
+        .run(message.id, input.sessionId, ownerId, input.sequenceNumber, message.role, messageContent.trim(), message.createdAt);
     });
     save();
     return respond({ saved: true }, request, ownerId);
