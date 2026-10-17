@@ -1017,3 +1017,14 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .floating-english-composer input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--ink);font-size:12px}
 .floating-english-composer button{min-width:65px;border:0;border-radius:9px;padding:0 14px;background:var(--green);color:#fff;font-weight:700;cursor:pointer}
 .floating-english-composer button:disabled{opacity:.5;cursor:not-allowed}
+
+
+.floating-english-preference-toggles{display:grid;gap:7px;padding:0 14px 11px;border-bottom:1px solid var(--line);background:#fff}
+.floating-english-preference-toggles label{display:flex;align-items:center;gap:7px;color:var(--ink);font-size:10px;font-weight:600;cursor:pointer}
+.floating-english-preference-toggles input{accent-color:var(--green);width:14px;height:14px;margin:0}
+.floating-english-preference-toggles small{color:var(--muted);font-size:10px}
+.floating-english-inline-feedback{margin:-7px 0 14px auto;width:91%;padding:10px 12px;border:1px solid #dbe4d4;border-radius:12px;background:#f7faf4;font-size:11px;line-height:1.6}
+.floating-english-inline-feedback>strong{color:var(--green-dark);font-size:12px}
+.floating-english-inline-feedback p{margin:6px 0;overflow-wrap:anywhere}
+.floating-english-inline-feedback button{margin-top:5px;padding:8px 10px;border:1px solid var(--green);border-radius:8px;background:#fff;color:var(--green-dark);font-size:10px;font-weight:700;cursor:pointer}
+.floating-english-inline-feedback button:disabled{opacity:.5;cursor:not-allowed}
