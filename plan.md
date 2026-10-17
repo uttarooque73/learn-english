@@ -508,7 +508,7 @@ This plan is the active source of truth for implementation. Work is delivered in
 - Merged the authenticated operations endpoint, privacy-safe aggregate metrics, and automation pause flag in PR #48; PR CI and post-merge `main` CI/Playwright passed.
 - Added regression tests for repeated competing worker claims and SQLite backup/restore integrity, including restored learner data, migration ledger, and `integrity_check`. PR #49 is merged and its post-merge CI passed.
 - Clarified operator instructions and distinguished automated regression coverage from required multi-process/load testing.
-- Remaining before phase completion: pass CI for the recovery-validation PR, then perform deployment-specific multi-process contention/load tests and representative migration/backup-restore checks.
+- Recovery-validation PR #49 is merged and its post-merge CI passed. An early PR validation attempt failed at type-check, but the corrected follow-up commit passed both CI jobs and the post-merge `main` run passed. Remaining before phase completion: run deployment-specific multi-process contention/load tests and representative migration/backup-restore checks against a deployment-like environment. These checks are not considered complete based on unit tests alone.
 
 ### Required execution rules
 
