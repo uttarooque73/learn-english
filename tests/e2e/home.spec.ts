@@ -484,6 +484,23 @@ test("floating English partner opens, configures a topic, and loads saved-histor
 });
 
 
+
+test("Jarvis popup can switch to full screen and return to floating mode", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
+  const dialog = page.getByRole("dialog", { name: "Jarvis" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).not.toHaveClass(/is-fullscreen/);
+
+  await page.getByRole("button", { name: "Make conversation full screen" }).click();
+  await expect(dialog).toHaveClass(/is-fullscreen/);
+  await expect(page.getByRole("button", { name: "Exit full screen" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Exit full screen" }).click();
+  await expect(dialog).not.toHaveClass(/is-fullscreen/);
+  await expect(page.getByRole("button", { name: "Make conversation full screen" })).toBeVisible();
+});
+
 test("floating English partner sends typed turns and renders plain-text AI replies and feedback", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: undefined });
