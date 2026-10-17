@@ -70,6 +70,7 @@ export function FloatingEnglishPartner() {
   const stopSessionRef = useRef<(() => void) | null>(null);
   const startListeningRef = useRef<(() => void) | null>(null);
   const requestAbortRef = useRef<AbortController | null>(null);
+  const practiceCorrectedSentenceRef = useRef<((messageId: string, target: string) => Promise<void>) | null>(null);
 
   useEffect(() => { messagesRef.current = messages; scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
   useEffect(() => {
@@ -151,6 +152,7 @@ export function FloatingEnglishPartner() {
     busyRef.current = true; setBusy(true); setStatus("Thinking");
     const controller = new AbortController();
     requestAbortRef.current = controller;
+    let correctedPractice: { messageId: string; target: string } | null = null;
     try {
       const learnerMessage = append("user", learnerText);
       if (!learnerMessage) return;
@@ -167,7 +169,12 @@ export function FloatingEnglishPartner() {
           });
           const feedbackData = await feedbackResponse.json() as { feedback?: Record<string, unknown>; error?: string };
           if (feedbackResponse.ok && feedbackData.feedback) {
-            setSentenceFeedbackByMessage((current) => ({ ...current, [learnerMessage.id]: feedbackData.feedback! }));
+            const item = feedbackData.feedback;
+            setSentenceFeedbackByMessage((current) => ({ ...current, [learnerMessage.id]: item }));
+            const corrected = String(item.correctedSentence ?? learnerMessage.content).trim();
+            if (repeatAfterFeedbackEnabled && corrected && (item.isCorrect === false || corrected.toLowerCase() !== learnerMessage.content.trim().toLowerCase())) {
+              correctedPractice = { messageId: learnerMessage.id, target: corrected };
+            }
             setStatus("Sentence feedback ready");
           } else {
             setStatus(feedbackData.error || "Sentence feedback is unavailable; continuing conversation.");
@@ -203,6 +210,11 @@ export function FloatingEnglishPartner() {
       append("assistant", reply.trim());
       setStatus("Speaking");
       await speak(reply.trim());
+      // After Jarvis responds, speak the corrected version automatically and invite the learner to repeat it.
+      if (correctedPractice && activeRef.current) {
+        shouldListenRef.current = false;
+        await practiceCorrectedSentenceRef.current?.(correctedPractice.messageId, correctedPractice.target);
+      }
     } catch (error) {
       if (!(error instanceof Error && error.name === "AbortError")) setStatus(error instanceof Error ? error.message : "Conversation failed. Please try again.");
     } finally {
@@ -210,7 +222,7 @@ export function FloatingEnglishPartner() {
       busyRef.current = false; setBusy(false);
       if (shouldListenRef.current) window.setTimeout(() => startListeningRef.current?.(), 180);
     }
-  }, [append, customTopic, level, sentenceFeedbackEnabled, speak, topic]);
+  }, [append, customTopic, level, repeatAfterFeedbackEnabled, sentenceFeedbackEnabled, speak, topic]);
 
   const startListening = useCallback(() => {
     if (!shouldListenRef.current || busyRef.current || recognitionRef.current) return;
@@ -399,6 +411,10 @@ export function FloatingEnglishPartner() {
     }
   }, [speak]);
 
+  useEffect(() => {
+    practiceCorrectedSentenceRef.current = practiceCorrectedSentence;
+  }, [practiceCorrectedSentence]);
+
   const interruptSpeech = useCallback(() => {
     stopSpeaking();
     setStatus("Speech interrupted");
@@ -457,7 +473,7 @@ export function FloatingEnglishPartner() {
                 <p><b>Corrected:</b> {String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content)}</p>
                 {typeof sentenceFeedbackByMessage[message.id].naturalSentence === "string" && String(sentenceFeedbackByMessage[message.id].naturalSentence).length > 0 && <p><b>More natural:</b> {String(sentenceFeedbackByMessage[message.id].naturalSentence)}</p>}
                 <p><b>Why:</b> {String(sentenceFeedbackByMessage[message.id].explanation ?? "")}</p>
-                {repeatAfterFeedbackEnabled && <button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Practice corrected sentence</button>}
+                {repeatAfterFeedbackEnabled && (!practicePhase[message.id] || practicePhase[message.id] === "done") && <button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Practice corrected sentence</button>}
                 {practiceResult[message.id] && <p role="status">{practiceResult[message.id]}</p>}
                 {practicePhase[message.id] === "result" && <div className="floating-english-practice-actions"><button type="button" onClick={() => void practiceCorrectedSentence(message.id, String(sentenceFeedbackByMessage[message.id].correctedSentence ?? message.content))}>Repeat sentence</button><button type="button" onClick={() => { setPracticePhase((current) => ({ ...current, [message.id]: "done" })); if (activeRef.current) { shouldListenRef.current = true; if (!busyRef.current) window.setTimeout(() => startListeningRef.current?.(), 100); } }}>Continue conversation</button></div>}
               </section>}

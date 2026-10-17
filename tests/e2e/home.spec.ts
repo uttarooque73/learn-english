@@ -571,9 +571,9 @@ test("floating English partner sends typed turns and renders plain-text AI repli
   await expect(page.getByText("That sounds interesting. What did you learn?")).toBeVisible();
   await expect(page.getByText("Sentence feedback")).toBeVisible();
   await expect(page.getByText("I work as a software engineer.", { exact: false })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Practice corrected sentence" })).toBeVisible();
-  await page.getByRole("button", { name: "Practice corrected sentence" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Speech recognition is not supported" })).toBeVisible();
+  // Jarvis should speak the corrected sentence and enter repetition practice automatically.
+  await expect(page.getByRole("status").filter({ hasText: "Speech recognition is not supported" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Practice corrected sentence" })).toBeHidden();
   await expect(page.getByRole("button", { name: "Repeat sentence" })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: "Continue conversation" })).toBeVisible();
   await page.getByRole("button", { name: "Continue conversation" }).click();
