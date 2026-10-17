@@ -98,3 +98,7 @@ The adaptive planner uses a SQLite-backed job queue. Jobs have idempotency keys,
 5. Check worker health at `GET /api/learning/worker` and trigger the scheduler at `POST /api/learning/scheduler`. Both endpoints require `Authorization: Bearer <LEARNING_WORKER_SECRET>`.
 
 For a local cron entry, run the scheduler at a quiet hour (for example, 00:05 server time) and keep the worker loop managed by systemd, Docker, or another process supervisor. SQLite must live on persistent storage shared by the app and worker; do not run this queue on an ephemeral or multi-host filesystem without a supported SQLite locking model.
+
+## Adaptive policy controls
+
+Evidence-based skill weighting and spaced-repetition intervals are versioned and recorded with each generated plan. Learners can inspect/update their per-owner policy through `GET/PATCH /api/learning/adaptation` and pause daily scheduling through `PATCH /api/learning/schedule`. Set `LEARNING_ADAPTATION_ENABLED=false` on the server to disable evidence-based ranking globally and fall back to neutral skill weights; saved evidence remains intact.
