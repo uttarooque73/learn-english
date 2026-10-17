@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ListenButton } from "@/components/listen-button";
 import { useCallback, useEffect, useState } from "react";
 import { getVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 type Example = { sentence: string; context: string; tip: string };
 type VocabularyStory = { title: string; paragraph: string; takeaway: string };
@@ -82,7 +83,9 @@ export function VocabularyDetail({ id }: { id: string }) {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    let active = true;
+    void initializeDatabasePersistence().then(() => {
+      if (!active) return;
       const item = getVocabulary().find((saved) => saved.id === id);
       setWord(item ?? null);
       setReady(true);
@@ -90,8 +93,12 @@ export function VocabularyDetail({ id }: { id: string }) {
         void loadExamples(item);
         void loadDetails(item);
       }
-    }, 0);
-    return () => window.clearTimeout(timer);
+    }).catch((caught) => {
+      if (!active) return;
+      setError(caught instanceof Error ? caught.message : "Could not load saved vocabulary from the database.");
+      setReady(true);
+    });
+    return () => { active = false; };
   }, [id, loadExamples, loadDetails]);
 
   function changeStatus(status: VocabularyStatus) {
@@ -111,7 +118,7 @@ export function VocabularyDetail({ id }: { id: string }) {
   }
 
   if (!ready) return <div className="notebook-empty" aria-live="polite">Opening your word…</div>;
-  if (!word) return <section className="vocabulary-detail-missing"><span className="eyebrow">WORD NOT FOUND</span><h2>This word isn’t in this browser’s word bank.</h2><p>Saved vocabulary is stored locally on the browser where you added it.</p><Link className="button button-dark" href="/vocabulary">Back to vocabulary</Link></section>;
+  if (!word) return <section className="vocabulary-detail-missing"><span className="eyebrow">WORD NOT FOUND</span><h2>This word isn’t in your saved vocabulary.</h2><p>{error || "Your saved vocabulary is loaded from your SpeakUp database. If this word is missing, it may have been removed or saved under a different browser profile."}</p><Link className="button button-dark" href="/vocabulary">Back to vocabulary</Link></section>;
 
   return (
     <div className="vocabulary-detail-page">
