@@ -84,6 +84,73 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const row = db.prepare("SELECT id,title,text,proficiency_level,created_at,updated_at,writing_feedback_json FROM aius_paragraphs WHERE id=? AND owner_id=?").get(paragraphId, ownerId) as Record<string, unknown>;
       return respond({ paragraph: readParagraph(row) }, request, ownerId);
     }
+    if (input.kind === "feedback") {
+      const paragraphId = typeof input.paragraphId === "string" ? input.paragraphId : "";
+      if (!paragraphId || paragraphId.length > 100) return respond({ error: "A valid paragraph ID is required." }, request, ownerId, 400);
+      const paragraph = db.prepare("SELECT id,text,proficiency_level FROM aius_paragraphs WHERE id=? AND owner_id=?")
+        .get(paragraphId, ownerId) as { id: string; text: string; proficiency_level: Level } | undefined;
+      if (!paragraph) return respond({ error: "Paragraph not found." }, request, ownerId, 404);
+
+      const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\\/+$/, "");
+      const model = process.env.OLLAMA_MODEL || "qwen3:4b";
+      const prompt = [
+        "You are a careful, encouraging English writing coach.",
+        "Analyze the learner's saved paragraph and produce actionable feedback without inventing errors.",
+        "Preserve intended meaning. Distinguish actual grammar errors from optional stylistic improvements.",
+        "If the text is already correct, say so in overallSummary and return empty corrections and vocabularySuggestions when no meaningful improvement is needed.",
+        "Return JSON only using this exact shape: { overallSummary: string, corrections: [{ originalSentence: string, correctedSentence: string, naturalAlternative: string|null, category: string, explanation: string }], vocabularySuggestions: [{ original: string, suggested: string, reason: string }], practiceSuggestions: string[] }.",
+        "Keep feedback learner-friendly. Limit corrections to 30, vocabulary suggestions to 15, practice suggestions to 8. Do not return Markdown fences.",
+        "Learner level: " + paragraph.proficiency_level,
+        "Paragraph: " + JSON.stringify(paragraph.text),
+      ].join("\\n\\n");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 90000);
+      let feedback: ParagraphFeedback;
+      try {
+        const upstream = await fetch(baseUrl + "/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({ model, prompt, stream: false, format: "json" }),
+        });
+        if (!upstream.ok) throw new Error("The writing-feedback provider is unavailable.");
+        const payload = await upstream.json() as { response?: unknown };
+        if (typeof payload.response !== "string") throw new Error("The writing-feedback provider returned invalid output.");
+        const parsed = JSON.parse(payload.response) as Record<string, unknown>;
+        const corrections = parsed.corrections;
+        const vocabularySuggestions = parsed.vocabularySuggestions;
+        const practiceSuggestions = parsed.practiceSuggestions;
+        const validCorrections = Array.isArray(corrections) && corrections.length <= 30 && corrections.every((item) => {
+          if (!item || typeof item !== "object") return false;
+          const value = item as Record<string, unknown>;
+          return typeof value.originalSentence === "string" && value.originalSentence.length <= 2000
+            && typeof value.correctedSentence === "string" && value.correctedSentence.length <= 2000
+            && (typeof value.naturalAlternative === "string" || value.naturalAlternative === null)
+            && (value.naturalAlternative === null || value.naturalAlternative.length <= 2000)
+            && typeof value.category === "string" && value.category.length <= 80
+            && typeof value.explanation === "string" && value.explanation.length <= 1500;
+        });
+        const validVocabulary = Array.isArray(vocabularySuggestions) && vocabularySuggestions.length <= 15 && vocabularySuggestions.every((item) => {
+          if (!item || typeof item !== "object") return false;
+          const value = item as Record<string, unknown>;
+          return typeof value.original === "string" && value.original.length <= 200
+            && typeof value.suggested === "string" && value.suggested.length <= 200
+            && typeof value.reason === "string" && value.reason.length <= 1000;
+        });
+        if (typeof parsed.overallSummary !== "string" || !parsed.overallSummary.trim() || parsed.overallSummary.length > 2000
+          || !validCorrections || !validVocabulary
+          || !Array.isArray(practiceSuggestions) || practiceSuggestions.length > 8
+          || !practiceSuggestions.every((item) => typeof item === "string" && item.length <= 600)) {
+          throw new Error("The writing-feedback response did not match the required schema.");
+        }
+        feedback = { overallSummary: parsed.overallSummary, corrections: corrections as ParagraphFeedback["corrections"], vocabularySuggestions: vocabularySuggestions as ParagraphFeedback["vocabularySuggestions"], practiceSuggestions: practiceSuggestions as string[] };
+      } finally {
+        clearTimeout(timeout);
+      }
+      db.prepare("UPDATE aius_paragraphs SET writing_feedback_json=?,updated_at=? WHERE id=? AND owner_id=?")
+        .run(JSON.stringify(feedback), new Date().toISOString(), paragraphId, ownerId);
+      return respond({ feedback, paragraphId }, request, ownerId);
+    }
     if (input.kind === "attempt") {
       const target = typeof input.target === "string" ? input.target.trim() : "";
       const transcript = typeof input.transcript === "string" ? input.transcript.trim() : "";
