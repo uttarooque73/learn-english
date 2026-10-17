@@ -181,7 +181,7 @@ export function FluencyExercises() {
     setResponse("");
     setSpeakingSeconds(0);
     speakingStartedAt.current = Date.now();
-    setHistoryNotice("Listening to your voice… speak naturally, then select Stop speaking.");
+    setHistoryNotice("Listening to your voice… speak naturally, then select Stop speaking & save.");
     try {
       recognition.start();
       setIsSpeaking(true);
@@ -237,7 +237,7 @@ export function FluencyExercises() {
         {exercise === "fillers" && <div className="filler-note">Filler-word analysis runs on the speech transcript captured from your microphone, rather than requiring you to type your answer.</div>}
         {exercise === "minute" && <div className="fluency-timer-actions"><button type="button" className="button button-primary" onClick={timerRunning && secondsRemaining > 0 ? () => setTimerRunning(false) : startTimer}>{timerRunning && secondsRemaining > 0 ? "Pause timer" : secondsRemaining === 0 ? "Restart timer" : timerStarted ? "Resume timer" : "Start 1-minute timer"}</button><button type="button" className="notebook-secondary" onClick={() => { setTimerRunning(false); setTimerStarted(false); setSecondsRemaining(60); }}>Reset timer</button></div>}
         <div className="fluency-actions"><button type="button" className="notebook-secondary" onClick={nextPrompt}>Try another prompt</button><button type="button" className="button button-primary" onClick={finishExercise} disabled={!response.trim()}>Finish exercise</button></div>
-        {showReflection && <div className="fluency-reflection" role="status"><strong>Nice work showing up.</strong><p>You wrote {wordCount} words. Read your answer aloud once more, then try to make one sentence clearer or more specific. {exercise === "fillers" ? `Review the ${fillerMatches.length} possible filler word(s) and decide which ones are needed.` : "Focus on communicating your idea, not on being perfect."}</p></div>}
+        {showReflection && <div className="fluency-reflection" role="status"><strong>Nice work showing up.</strong><p>Your transcript contains {wordCount} words. Say your answer aloud once more, then try to make one sentence clearer or more specific. {exercise === "fillers" ? `Review the ${fillerMatches.length} possible filler word(s) and decide which ones are needed.` : "Focus on communicating your idea, not on being perfect."}</p></div>}
       </section>
       <p className="fluency-disclaimer">Speaking practice uses browser speech recognition to create a transcript. Word counts and filler-word matches are simple transcript-based coaching signals, not a validated fluency or speaking-proficiency score. Speech recognition support varies by browser.</p>
       </> : <section className="fluency-speaking-history" aria-label="Saved speaking history"><div className="fluency-history-header"><div><p className="eyebrow">YOUR SPEAKING LOG</p><h2>Speaking history</h2><p>Responses are stored in the application database so you can review your progress.</p></div><button type="button" className="notebook-secondary" disabled={!history.length} onClick={async () => { if (!window.confirm("Delete all saved speaking history?")) return; const response = await fetch("/api/fluency-history?id=all", { method: "DELETE" }); if (response.ok) { setHistory([]); setHistoryNotice("Speaking history cleared."); } else setHistoryNotice("Could not clear speaking history."); }}>Clear history</button></div>
