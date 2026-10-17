@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDatabase } from "@/lib/database";
+import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import {
   AdaptiveLearningError,
   evaluatePracticeAttempt,
@@ -283,6 +283,7 @@ describe("scheduled plan idempotency", () => {
 describe("evidence-based adaptation policy", () => {
   it("raises priorities for weak skills, recurring mistakes, and due reviews", () => {
     setupDatabase();
+    ensurePersistenceSchema();
     const database = getDatabase();
     database.prepare(`
       INSERT INTO learner_skill_scores (owner_id, skill_key, mastery, confidence, evidence_count)
@@ -308,6 +309,7 @@ describe("evidence-based adaptation policy", () => {
 
   it("supports a global rollback switch that restores neutral weights", () => {
     setupDatabase();
+    ensurePersistenceSchema();
     vi.stubEnv("LEARNING_ADAPTATION_ENABLED", "false");
     getDatabase().prepare(`
       INSERT INTO learner_skill_scores (owner_id, skill_key, mastery, confidence, evidence_count)
@@ -323,6 +325,7 @@ describe("evidence-based adaptation policy", () => {
 
   it("uses the configured review interval scale and records the policy version", () => {
     setupDatabase();
+    ensurePersistenceSchema();
     const database = getDatabase();
     database.prepare("INSERT INTO learner_profiles (owner_id) VALUES ('owner-a')").run();
     database.prepare("INSERT INTO learner_adaptation_settings (owner_id, review_interval_scale) VALUES ('owner-a', 2)").run();
@@ -343,6 +346,7 @@ describe("evidence-based adaptation policy", () => {
 
   it("prioritizes several due reviews deterministically and audits the decision", async () => {
     setupDatabase();
+    ensurePersistenceSchema();
     const database = getDatabase();
     const dueAt = new Date(Date.now() - 86_400_000).toISOString();
     for (const word of ["word-a", "word-b", "word-c"]) {
