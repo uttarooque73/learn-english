@@ -81,9 +81,9 @@ describe("LearningPlan", () => {
       commonCorrections: [],
     } as unknown as ReturnType<typeof getLearningAnalytics>);
     vi.mocked(getVocabulary).mockReturnValue([
-      { id: "newer", phrase: "newer overdue", meaning: "second", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2026-10-16T00:00:00.000Z" },
-      { id: "future", phrase: "future word", meaning: "not due", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2099-01-01T00:00:00.000Z" },
-      { id: "older", phrase: "oldest overdue", meaning: "first", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2026-10-01T00:00:00.000Z" },
+      { id: "newer", phrase: "newer overdue", meaning: "second", example: "An example", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2026-10-16T00:00:00.000Z" },
+      { id: "future", phrase: "future word", meaning: "not due", example: "An example", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2099-01-01T00:00:00.000Z" },
+      { id: "older", phrase: "oldest overdue", meaning: "first", example: "An example", savedAt: "2026-10-01T00:00:00.000Z", status: "learning", nextReviewAt: "2026-10-01T00:00:00.000Z" },
     ]);
 
     render(<LearningPlan />);
