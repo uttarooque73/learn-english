@@ -55,6 +55,8 @@ export function AiAndUsPractice() {
   const [autoPlay, setAutoPlay] = useState(true);
   const [rate, setRate] = useState(0.85);
   const [paragraphSaving, setParagraphSaving] = useState(false);
+  const [discussionTurns, setDiscussionTurns] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [generatingDiscussion, setGeneratingDiscussion] = useState(false);
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const listeningRef = useRef(false);
   const currentLineRef = useRef<string | null>(null);
@@ -155,21 +157,57 @@ export function AiAndUsPractice() {
     }
   };
 
-  const beginDiscussion = () => {
+  const beginDiscussion = async () => {
     const chosen = topic === "Random Topic" ? ["Daily Life", "Technology", "Software Development", "Work and Meetings", "Travel", "Food and Cooking", "Business", "Science"][Math.floor(Math.random() * 8)] : topic;
     const name = chosen === "Custom Topic" ? customTopic.trim() || "daily life" : chosen;
-    const levelLine = level === "Beginner" ? "Use simple, short English sentences." : level === "Advanced" ? "Use thoughtful, nuanced, natural English." : "Use natural everyday English.";
-    const seed: PracticeLine[] = [
-      { id: id(), text: `Today, let's talk about ${name.toLowerCase()}.`, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" },
-      { id: id(), text: level === "Beginner" ? "Why do you like this topic?" : `What interests you most about ${name.toLowerCase()}, and why?`, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" },
-      { id: id(), text: level === "Advanced" ? "How has your perspective on this subject changed over time?" : "Can you share an example from your own life?", transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" },
-      { id: id(), text: level === "Beginner" ? "What would you like to learn next?" : `What advice would you give someone who wants to learn more about ${name.toLowerCase()}?`, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" },
-    ];
-    setLines(seed);
+    setLines([]);
     setLineIndex(0);
-    setMessage(`Topic: ${name}. ${levelLine} Read each sentence aloud, then continue to the next one.`);
-    setStatus("Discussion ready");
-    if (autoPlay) window.setTimeout(() => speak(seed[0].text), 100);
+    setDiscussionTurns([]);
+    setGeneratingDiscussion(true);
+    setStatus("Generating a discussion");
+    setMessage(`Preparing a ${level.toLowerCase()}-level reading discussion about ${name}…`);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "conversation",
+          scenario: "Free conversation",
+          difficulty: level,
+          feedbackStyle: "gentle",
+          messages: [{ role: "user", content: `Create a short English reading discussion about ${name}. Generate exactly 4 short, natural sentences for a learner to read aloud, each on a separate line. Use a coherent topic progression, level-appropriate English, and end with a question that invites the learner to share an opinion. Return only those 4 sentences, with no numbering or preamble.` }],
+        }),
+      });
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || "The AI could not generate this discussion.");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let generated = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        generated += decoder.decode(value, { stream: true });
+      }
+      generated += decoder.decode();
+      const parsedLines = splitSentences(generated.replace(/^\s*\d+[.)]\s*/gm, "").replace(/^[-*]\s*/gm, ""));
+      if (parsedLines.length < 2) throw new Error("The AI returned too few sentences. Please try another topic.");
+      const selected = parsedLines.slice(0, 6).map((text) => ({
+        id: id(), text, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" as const,
+      }));
+      setDiscussionTurns([{ role: "assistant", content: selected.map((line) => line.text).join("\n") }]);
+      setLines(selected);
+      setLineIndex(0);
+      setMessage(`AI-generated reading discussion: ${name}. Read each sentence aloud, review the transcript comparison, then continue.`);
+      setStatus("Discussion ready");
+      if (autoPlay) window.setTimeout(() => speak(selected[0].text), 100);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not generate the discussion. You can retry.");
+      setStatus("Discussion generation failed");
+    } finally {
+      setGeneratingDiscussion(false);
+    }
   };
 
   const saveAttempt = async (target: string, transcript: string, score: number, missingWords: string[], extraWords: string[]) => {
@@ -275,7 +313,7 @@ export function AiAndUsPractice() {
           <label>English level<select value={level} onChange={(event) => setLevel(event.target.value as Level)}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
           <label className="aius-toggle"><input type="checkbox" checked={autoPlay} onChange={(event) => setAutoPlay(event.target.checked)} /> Automatically play AI sentence</label>
           <label>AI reading speed<input type="range" min="0.6" max="1.15" step="0.05" value={rate} onChange={(event) => setRate(Number(event.target.value))} /><small>{rate.toFixed(2)}× speed</small></label>
-          <button className="button button-dark" onClick={beginDiscussion}>Start a discussion <span>→</span></button>
+          <button className="button button-dark" disabled={generatingDiscussion} onClick={() => void beginDiscussion()}>{generatingDiscussion ? "Generating…" : "Start a discussion"} <span>→</span></button>
         </div>
         {lines.length > 0 && current && <div className="aius-reading-card">
           <div className="aius-reading-meta"><span>AI SENTENCE {lineIndex + 1} OF {lines.length}</span><span>{current.status === "complete" ? "✓ Reviewed" : current.status === "listening" || listening ? "● Listening" : "Read this sentence aloud"}</span></div>
