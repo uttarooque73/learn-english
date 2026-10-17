@@ -46,12 +46,21 @@ describe("SQLite schema migrations", () => {
       "001_app_user_data.sql",
       "002_daily_vocabulary.sql",
       "003_conversation_coach.sql",
+      "004_learning_domain.sql",
     ]);
     expect(tableNames).toContain("app_user_data");
     expect(tableNames).toContain("daily_vocabulary_topics");
     expect(tableNames).toContain("daily_vocabulary_entries");
     expect(tableNames).toContain("conversation_coach_sessions");
     expect(tableNames).toContain("conversation_coach_turns");
+    expect(tableNames).toContain("learner_profiles");
+    expect(tableNames).toContain("learner_skill_scores");
+    expect(tableNames).toContain("skill_assessments");
+    expect(tableNames).toContain("learning_plans");
+    expect(tableNames).toContain("learning_plan_items");
+    expect(tableNames).toContain("practice_attempts");
+    expect(tableNames).toContain("learning_mistakes");
+    expect(tableNames).toContain("vocabulary_review_events");
   });
 
   it("is safe to run repeatedly and preserves existing learner data", () => {
@@ -72,6 +81,50 @@ describe("SQLite schema migrations", () => {
       .get() as { count: number };
 
     expect(saved?.data_value).toBe('{"dailyTarget":15}');
-    expect(migrationCount.count).toBe(3);
+    expect(migrationCount.count).toBe(4);
   });
+  it("enforces learner ownership across plan items and practice attempts", () => {
+    useTemporaryDatabase();
+
+    ensurePersistenceSchema();
+    const database = getDatabase();
+    database.prepare(
+      "INSERT INTO learning_plans (id, owner_id, local_date) VALUES (?, ?, ?)",
+    ).run("plan-a", "owner-a", "2026-10-17");
+    database.prepare(
+      "INSERT INTO learning_plan_items (id, plan_id, owner_id, position, activity_type, estimated_minutes) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("item-a", "plan-a", "owner-a", 0, "vocabulary", 5);
+
+    expect(() => database.prepare(
+      "INSERT INTO practice_attempts (id, owner_id, plan_item_id, activity_type) VALUES (?, ?, ?, ?)",
+    ).run("attempt-wrong-owner", "owner-b", "item-a", "vocabulary")).toThrow();
+
+    database.prepare(
+      "INSERT INTO practice_attempts (id, owner_id, plan_item_id, activity_type) VALUES (?, ?, ?, ?)",
+    ).run("attempt-a", "owner-a", "item-a", "vocabulary");
+    const ownerA = database.prepare(
+      "SELECT id FROM practice_attempts WHERE owner_id = ?",
+    ).all("owner-a") as Array<{ id: string }>;
+    const ownerB = database.prepare(
+      "SELECT id FROM practice_attempts WHERE owner_id = ?",
+    ).all("owner-b") as Array<{ id: string }>;
+
+    expect(ownerA.map(({ id }) => id)).toEqual(["attempt-a"]);
+    expect(ownerB).toEqual([]);
+  });
+
+  it("rejects invalid skill scores and orphaned plan items", () => {
+    useTemporaryDatabase();
+
+    ensurePersistenceSchema();
+    const database = getDatabase();
+
+    expect(() => database.prepare(
+      "INSERT INTO learner_skill_scores (owner_id, skill_key, mastery) VALUES (?, ?, ?)",
+    ).run("owner-a", "speaking", 1.5)).toThrow();
+    expect(() => database.prepare(
+      "INSERT INTO learning_plan_items (id, plan_id, owner_id, position, activity_type, estimated_minutes) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run("item-no-plan", "missing-plan", "owner-a", 0, "speaking", 10)).toThrow();
+  });
+
 });
