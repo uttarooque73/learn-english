@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { assessTranscript } from "@/lib/pronunciation-assessment";
 import { speakText, stopSpeaking } from "@/lib/speech-playback";
 
@@ -54,7 +54,6 @@ export function AiAndUsPractice() {
   const [listening, setListening] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
   const [rate, setRate] = useState(0.85);
-  const [busy, setBusy] = useState(false);
   const [paragraphSaving, setParagraphSaving] = useState(false);
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const listeningRef = useRef(false);
@@ -78,10 +77,9 @@ export function AiAndUsPractice() {
     }
   }, []);
 
-  useEffect(() => { void loadHistory(); return () => { listeningRef.current = false; try { recognitionRef.current?.stop(); } catch { /* no-op */ } stopSpeaking(); }; }, [loadHistory]);
+  useEffect(() => { const timer = window.setTimeout(() => { void loadHistory(); }, 0); return () => { window.clearTimeout(timer); listeningRef.current = false; try { recognitionRef.current?.stop(); } catch { /* no-op */ } stopSpeaking(); }; }, [loadHistory]);
 
   const current = lines[lineIndex];
-  const paragraphLines = useMemo(() => splitSentences(paragraph), [paragraph]);
 
 
   const speak = (text: string, done?: () => void) => {
