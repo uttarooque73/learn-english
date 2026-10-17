@@ -156,7 +156,7 @@ export function AiAndUsPractice() {
   };
 
   const beginDiscussion = () => {
-    const chosen = topic === "Random Topic" ? topics[Math.floor(Math.random() * (topics.length - 1)) + 1] : topic;
+    const chosen = topic === "Random Topic" ? ["Daily Life", "Technology", "Software Development", "Work and Meetings", "Travel", "Food and Cooking", "Business", "Science"][Math.floor(Math.random() * 8)] : topic;
     const name = chosen === "Custom Topic" ? customTopic.trim() || "daily life" : chosen;
     const levelLine = level === "Beginner" ? "Use simple, short English sentences." : level === "Advanced" ? "Use thoughtful, nuanced, natural English." : "Use natural everyday English.";
     const seed: PracticeLine[] = [
@@ -221,10 +221,13 @@ export function AiAndUsPractice() {
   const startParagraphPractice = async () => {
     const split = splitSentences(paragraph);
     if (!split.length) { setMessage("Enter a paragraph to begin practising."); return; }
-    if (!activeParagraphId) {
+    let paragraphIdForAttempt = activeParagraphId;
+    if (!paragraphIdForAttempt) {
       const saved = await saveParagraph();
       if (!saved) return;
+      paragraphIdForAttempt = saved.id;
     }
+    setActiveParagraphId(paragraphIdForAttempt);
     const practiceLines: PracticeLine[] = split.map((text) => ({ id: id(), text, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" }));
     setLines(practiceLines);
     setLineIndex(0);
