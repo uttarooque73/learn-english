@@ -86,7 +86,10 @@ export function VocabularyDetail({ id }: { id: string }) {
       const item = getVocabulary().find((saved) => saved.id === id);
       setWord(item ?? null);
       setReady(true);
-      if (item) void loadExamples(item);
+      if (item) {
+        void loadExamples(item);
+        void loadDetails(item);
+      }
     }, 0);
     return () => window.clearTimeout(timer);
   }, [id, loadExamples]);
@@ -126,11 +129,11 @@ export function VocabularyDetail({ id }: { id: string }) {
       <section className="vocabulary-word-guide" aria-labelledby="vocabulary-word-guide-heading">
         <div className="vocabulary-word-guide-header">
           <div><p className="eyebrow">GO BEYOND THE MEANING</p><h3 id="vocabulary-word-guide-heading">Word guide</h3><p>Explore pronunciation, word type, similar words, common phrases, and mistakes.</p></div>
-          <button type="button" className="notebook-secondary" onClick={() => void loadDetails(word)} disabled={detailsLoading}>{detailsLoading ? "Generating details…" : details ? "Refresh word guide ↻" : "Generate word details ↗"}</button>
+          <button type="button" className="notebook-secondary" onClick={() => void loadDetails(word)} disabled={detailsLoading}>{detailsLoading ? "Generating word guide…" : "Regenerate word guide ↻"}</button>
         </div>
         {detailsLoading && <div className="vocabulary-examples-loading" role="status"><span className="vocabulary-loading-dot" /><div><strong>Building your word guide</strong><p>Finding useful ways to understand and use “{word.phrase}”.</p></div></div>}
         {detailsError && <div className="vocabulary-detail-error" role="alert"><p>{detailsError}</p><button type="button" className="notebook-secondary" onClick={() => void loadDetails(word)} disabled={detailsLoading}>Try again</button></div>}
-        {!details && !detailsLoading && !detailsError && <p className="vocabulary-story-empty">Generate a word guide for a clearer definition, pronunciation, synonyms, collocations, and practical usage tips.</p>}
+        {!details && !detailsLoading && !detailsError && <p className="vocabulary-story-empty">Your word guide will be generated automatically when this page opens.</p>}
         {details && !detailsLoading && <div className="vocabulary-word-guide-content">
           <div className="vocabulary-word-guide-definition"><div><span className="vocabulary-guide-label">PRONUNCIATION</span><p>{details.pronunciation || "Not available"}</p></div><div><span className="vocabulary-guide-label">PART OF SPEECH</span><p>{details.partOfSpeech || "Not specified"}</p></div><div className="vocabulary-word-guide-definition-main"><span className="vocabulary-guide-label">IN SIMPLE ENGLISH</span><p>{details.simpleDefinition}</p></div></div>
           {details.nuance && <div className="vocabulary-guide-note"><strong>Meaning and nuance</strong><p>{details.nuance}</p></div>}
