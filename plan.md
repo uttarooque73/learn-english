@@ -553,7 +553,7 @@ Feature branch: `feat/ai-and-us-paragraph-practice`
 ### Scope
 - Add a dedicated `/ai-and-us` page with **AI and Us Discussion** and **Paragraph Practice** tabs.
 - Discussion generates topic- and level-appropriate reading scripts through the existing Ollama-backed `/api/chat` service, supports browser text-to-speech playback and reading aloud, compares transcripts against target text, and stores generated scripts and completed attempts in learner history.
-- Paragraph practice supports editing and saving learner-owned paragraphs, listening to the complete paragraph or sentence-level playback, repeated sentence reading, transcript matching, and saved attempt history.
+- Paragraph practice supports writing or AI-generating a topic-based paragraph, saving/editing learner-owned text, listening to the complete paragraph or sentence-level playback, repeated sentence reading, transcript matching, structured AI writing corrections, vocabulary alternatives, practice suggestions, and saved attempt history.
 - Reuse the existing `speakText` utility and `assessTranscript` comparator. Transcript similarity is explicitly not described as definitive phoneme-level pronunciation scoring.
 - Persist paragraphs, AI writing feedback, and reading attempts in SQLite, with owner-scoped reads/writes, length/level validation, additive migration `010_ai_and_us_paragraph_practice.sql`, and feedback column migration `011_aius_paragraph_feedback.sql`.
 - Add the page to primary app navigation and follow the existing responsive application styling.
@@ -565,7 +565,8 @@ Feature branch: `feat/ai-and-us-paragraph-practice`
 - [x] Additive SQL migration added.
 - [x] Navigation and styles added.
 - [x] Added API/unit tests for owner-scoped paragraph/attempt persistence, persisted AI writing feedback, migration registration, and the AI reading-discussion output contract.
-- [x] Added Playwright coverage for the two tabs, generated discussion flow, and writing-feedback display.
+- [x] Added Playwright coverage for the two tabs, AI-generated discussion, paragraph generation, and writing-feedback display.
+- [x] Added pause/resume/stop controls for speech playback and persisted learner reading attempts for generated discussions.
 - [ ] CI validation on the latest branch commit.
 - [ ] Final code review and PR readiness.
 
