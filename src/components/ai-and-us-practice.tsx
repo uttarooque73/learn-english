@@ -174,7 +174,6 @@ export function AiAndUsPractice() {
 
   const saveAttempt = async (target: string, transcript: string, score: number, missingWords: string[], extraWords: string[]) => {
     setStatus("Saving reading attempt");
-    setStatus("Saving reading attempt");
     try {
       const response = await fetch("/api/ai-and-us", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -295,7 +294,7 @@ export function AiAndUsPractice() {
           <label>Paragraph title<input value={paragraphTitle} onChange={(event) => { setParagraphTitle(event.target.value); setActiveParagraphId(""); }} maxLength={120} /></label>
           <label>English level<select value={level} onChange={(event) => setLevel(event.target.value as Level)}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
           <label>Paragraph<textarea value={paragraph} onChange={(event) => { setParagraph(event.target.value); setActiveParagraphId(""); }} rows={7} maxLength={12000} placeholder="Paste or write a paragraph here…" /></label>
-          <div className="aius-editor-actions"><button className="button button-light" onClick={() => setParagraph(samples[level]); setActiveParagraphId("")}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
+          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); }}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
         </div>
         {paragraphs.length > 0 && <div className="aius-history"><h4>Saved paragraphs</h4>{paragraphs.map((saved) => <button key={saved.id} className={activeParagraphId === saved.id ? "aius-history-item selected" : "aius-history-item"} onClick={() => loadParagraph(saved)}><span><strong>{saved.title}</strong><small>{saved.level} · {splitSentences(saved.text).length} sentences</small></span><span>Open →</span></button>)}</div>}
         {activeAttempts.length > 0 && <div className="aius-history"><h4>Reading attempts ({activeAttempts.length})</h4>{activeAttempts.map((attempt) => <article className="aius-attempt" key={attempt.id}><div><strong>{attempt.target}</strong><small>{new Date(attempt.createdAt).toLocaleString()}</small></div><span>{attempt.score === null ? "—" : `${attempt.score}% match`}</span><button className="text-link" onClick={() => retrySavedFeedback(attempt)}>Review</button></article>)}</div>}
