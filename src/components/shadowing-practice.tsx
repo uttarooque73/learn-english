@@ -175,7 +175,7 @@ export function ShadowingPractice() {
         setFeedback("This word or phrase is already saved in your vocabulary.");
         return;
       }
-      saveVocabulary({ phrase, meaning: definition.meaning, example: definition.example || "", category: definition.category || (/\\s/.test(phrase) ? "expression" : "word") });
+      saveVocabulary({ phrase, meaning: definition.meaning, example: definition.example || "", category: definition.category || (/\s/.test(phrase) ? "expression" : "word") });
       setVocabularySaved(true);
       setFeedback("Saved this word or phrase to your vocabulary.");
     } catch (error) {
