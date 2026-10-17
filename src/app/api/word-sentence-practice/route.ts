@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import { createOllamaProvider, ModelProviderError } from "@/lib/ai/model-provider";
@@ -19,7 +19,7 @@ export async function POST(request:NextRequest){
  try{body=await request.json()}catch{return respond({error:"Request body must be valid JSON."},request,owner,400)}
  if(!isRecord(body)||(body.kind!=="word"&&body.kind!=="sentence")||typeof body.exerciseId!=="string"||!body.exerciseId.trim()||body.exerciseId.length>160||typeof body.topic!=="string"||!body.topic.trim()||body.topic.length>100||typeof body.prompt!=="string"||!body.prompt.trim()||body.prompt.length>500||typeof body.targetAnswer!=="string"||!body.targetAnswer.trim()||body.targetAnswer.length>1000||typeof body.answer!=="string"||!body.answer.trim()||body.answer.length>1500||typeof body.difficulty!=="string"||!["beginner","intermediate","advanced"].includes(body.difficulty))return respond({error:"Provide a valid exercise, level, and answer under 1,500 characters."},request,owner,400);
  try{
-  ensurePersistenceSchema();const db=getDatabase(),key="word-sentence-practice:"+body.exerciseId+":"+body.answer.trim().slice(0,300);
+  ensurePersistenceSchema();const db=getDatabase(),answerHash=createHash("sha256").update(String(body.answer).trim()).digest("hex"),key="word-sentence-practice:"+String(body.exerciseId)+":"+answerHash;
   const prior=db.prepare("SELECT result_json FROM practice_attempts WHERE owner_id=? AND idempotency_key=?").get(owner,key) as {result_json:string}|undefined;
   if(prior){try{const value=JSON.parse(prior.result_json) as Feedback;if(isFeedback(value))return respond({feedback:value,duplicate:true},request,owner)}catch{/* malformed record is re-evaluated */}}
   const prompt=[
@@ -35,16 +35,19 @@ export async function POST(request:NextRequest){
   const result={...f,confidence};
   const savedId=db.transaction(()=>{
    const inserted=db.prepare("INSERT OR IGNORE INTO practice_attempts (id,owner_id,activity_type,activity_ref,response_json,result_json,duration_seconds,idempotency_key,submitted_at,completed_at) VALUES (?,?,?,?,?,?,0,?,?,?)").run(attemptId,owner,skill,String(body.exerciseId).slice(0,160),JSON.stringify({text:body.answer.trim(),prompt:body.prompt}),JSON.stringify(result),key,now,now);
-   if(!inserted.changes){const row=db.prepare("SELECT id FROM practice_attempts WHERE owner_id=? AND idempotency_key=?").get(owner,key) as {id:string}|undefined;return row?.id??attemptId}
-   db.prepare("INSERT INTO skill_assessments (id,owner_id,skill_key,score,confidence,rubric_version,evidence_json) VALUES (?,?,?,?,?,'word-sentence-practice-v1',?)").run(randomUUID(),owner,skill,f.score,confidence,JSON.stringify([attemptId]));
-   db.prepare("INSERT INTO learner_skill_scores (owner_id,skill_key,mastery,confidence,evidence_count,updated_at) VALUES (?,?,?,?,1,?) ON CONFLICT(owner_id,skill_key) DO UPDATE SET mastery=((learner_skill_scores.mastery*learner_skill_scores.evidence_count+excluded.mastery)/(learner_skill_scores.evidence_count+1)),confidence=((learner_skill_scores.confidence*learner_skill_scores.evidence_count+excluded.confidence)/(learner_skill_scores.evidence_count+1)),evidence_count=learner_skill_scores.evidence_count+1,updated_at=excluded.updated_at").run(owner,skill,f.score,confidence,now);
-   for(const c of f.corrections){const normalized=c.original.toLowerCase().replace(/\s+/g," ").trim().slice(0,240);if(!normalized)continue;const old=db.prepare("SELECT id,occurrence_count AS count,evidence_json AS evidence FROM learning_mistakes WHERE owner_id=? AND normalized_key=? AND status='active'").get(owner,normalized) as {id:string;count:number;evidence:string}|undefined;
-    if(old){let evidence:string[]=[];try{evidence=JSON.parse(old.evidence) as string[]}catch{/* repair malformed evidence */}if(!evidence.includes(attemptId))evidence.push(attemptId);db.prepare("UPDATE learning_mistakes SET occurrence_count=?,last_seen_at=?,evidence_json=? WHERE owner_id=? AND id=?").run(old.count+1,now,JSON.stringify(evidence.slice(-100)),owner,old.id)}
-    else db.prepare("INSERT INTO learning_mistakes (id,owner_id,category,normalized_key,evidence_json,first_seen_at,last_seen_at) VALUES (?,?,?,?,?,?,?)").run(randomUUID(),owner,skill,normalized,JSON.stringify([attemptId]),now,now)
+   let canonicalId=attemptId;
+   if(!inserted.changes){const row=db.prepare("SELECT id FROM practice_attempts WHERE owner_id=? AND idempotency_key=?").get(owner,key) as {id:string}|undefined;canonicalId=row?.id??attemptId}
+   if(inserted.changes){
+    db.prepare("INSERT INTO skill_assessments (id,owner_id,skill_key,score,confidence,rubric_version,evidence_json) VALUES (?,?,?,?,?,'word-sentence-practice-v1',?)").run(randomUUID(),owner,skill,f.score,confidence,JSON.stringify([attemptId]));
+    db.prepare("INSERT INTO learner_skill_scores (owner_id,skill_key,mastery,confidence,evidence_count,updated_at) VALUES (?,?,?,?,1,?) ON CONFLICT(owner_id,skill_key) DO UPDATE SET mastery=((learner_skill_scores.mastery*learner_skill_scores.evidence_count+excluded.mastery)/(learner_skill_scores.evidence_count+1)),confidence=((learner_skill_scores.confidence*learner_skill_scores.evidence_count+excluded.confidence)/(learner_skill_scores.evidence_count+1)),evidence_count=learner_skill_scores.evidence_count+1,updated_at=excluded.updated_at").run(owner,skill,f.score,confidence,now);
+    for(const c of f.corrections){const normalized=c.original.toLowerCase().replace(/\\s+/g," ").trim().slice(0,240);if(!normalized)continue;const old=db.prepare("SELECT id,occurrence_count AS count,evidence_json AS evidence FROM learning_mistakes WHERE owner_id=? AND normalized_key=? AND status='active'").get(owner,normalized) as {id:string;count:number;evidence:string}|undefined;
+     if(old){let evidence:string[]=[];try{evidence=JSON.parse(old.evidence) as string[]}catch{/* repair malformed evidence */}if(!evidence.includes(attemptId))evidence.push(attemptId);db.prepare("UPDATE learning_mistakes SET occurrence_count=?,last_seen_at=?,evidence_json=? WHERE owner_id=? AND id=?").run(old.count+1,now,JSON.stringify(evidence.slice(-100)),owner,old.id)}
+     else db.prepare("INSERT INTO learning_mistakes (id,owner_id,category,normalized_key,evidence_json,first_seen_at,last_seen_at) VALUES (?,?,?,?,?,?,?)").run(randomUUID(),owner,skill,normalized,JSON.stringify([attemptId]),now,now)
+    }
    }
-   return attemptId;
+   db.prepare("INSERT OR IGNORE INTO word_sentence_practice_attempts (id,owner_id,attempt_id,exercise_id,exercise_kind,topic,prompt,response_text,score,feedback_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").run(randomUUID(),owner,canonicalId,String(body.exerciseId).slice(0,160),body.kind,String(body.topic).slice(0,100),String(body.prompt).slice(0,500),String(body.answer).trim().slice(0,1500),f.score,JSON.stringify(result),now);
+   return canonicalId;
   })();
-  db.prepare("INSERT OR IGNORE INTO word_sentence_practice_attempts (id,owner_id,attempt_id,exercise_id,exercise_kind,topic,prompt,response_text,score,feedback_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").run(randomUUID(),owner,savedId,String(body.exerciseId).slice(0,160),body.kind,String(body.topic).slice(0,100),String(body.prompt).slice(0,500),String(body.answer).trim().slice(0,1500),f.score,JSON.stringify(result),now);
-  return respond({feedback:result},request,owner,201)
+  return respond({feedback:result,attemptId:savedId},request,owner,201)
  }catch(error){if(error instanceof ModelProviderError)return respond({error:error.message,code:error.code,retryable:error.code==="timeout"||error.code==="provider_unavailable"},request,owner,error.code==="invalid_request"?400:503);console.error("Word/sentence practice evaluation failed:",error);return respond({error:"Could not evaluate this answer. Your text remains on screen; please try again."},request,owner,500)}
 }
