@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ConversationCoach } from "@/components/conversation-coach";
 
 afterEach(() => {
+  vi.useRealTimers();
   cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -91,5 +92,38 @@ describe("ConversationCoach", () => {
     fireEvent.click(screen.getByRole("tab", { name: /progress/i }));
     expect(screen.getByRole("heading", { name: /progress, not perfection/i })).toBeTruthy();
     expect(screen.getByText(/not an automated proficiency score/i)).toBeTruthy();
+  });
+
+  it("resumes the elapsed timer when reopening an active saved session", async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    const session = {
+      id: "session-active", title: "Everyday life", scenario: "Everyday life",
+      difficulty: "Intermediate", status: "active", startedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(), durationSeconds: 120, turns: [],
+    };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url === "/api/conversation-coach/sessions?id=session-active") {
+        return new Response(JSON.stringify({ session }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ sessions: [session] }), { status: 200 });
+    }));
+
+    render(<ConversationCoach />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/conversation-coach/sessions", { cache: "no-store" }));
+    fireEvent.click(screen.getByRole("tab", { name: /history/i }));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-17T12:00:00.000Z"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /in progress.*everyday life/i }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    fireEvent.click(screen.getByRole("tab", { name: /practice/i }));
+    expect(screen.getByText(/2m 0s/)).toBeTruthy();
+
+    await act(async () => { vi.advanceTimersByTime(1000); });
+    expect(screen.getByText(/2m 1s/)).toBeTruthy();
+    vi.useRealTimers();
   });
 });
