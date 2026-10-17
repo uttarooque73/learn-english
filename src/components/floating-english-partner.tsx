@@ -337,6 +337,7 @@ export function FloatingEnglishPartner() {
     await speak(target);
     const recognitionConstructor = (window as RecognitionWindow).SpeechRecognition ?? (window as RecognitionWindow).webkitSpeechRecognition;
     if (!recognitionConstructor) {
+      shouldListenRef.current = active;
       setPracticeResult((current) => ({ ...current, [messageId]: "Repeat the sentence aloud. Speech recognition is not supported in this browser." }));
       return;
     }
