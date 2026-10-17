@@ -20,7 +20,8 @@ type Recognition = {
 };
 type SpeechWindow = Window & { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
 type AcousticMetrics = { durationSeconds: number; speechRateWpm: number; pauseCount: number; pitchRangeHz: number | null; intonation: string };
-type ShadowingHistoryEntry = { id: string; target: string; transcript: string; score: number | null; createdAt: string; favorite: boolean };
+type ShadowingHistoryEntry = { id: string; target: string; transcript: string; score: number | null; createdAt: string; favorite: boolean; activity: "listen" | "attempt" };
+type ShadowingTab = "current" | "history";
 
 async function analyzeRecording(blob: Blob, wordCount: number): Promise<AcousticMetrics | null> {
   const AudioContextCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -92,6 +93,7 @@ export function ShadowingPractice() {
   const [phonemeResult, setPhonemeResult] = useState<{ score: number; errors: { word: string; expected: string; actual: string | null; phones: { expected: string; heard: string | null }[] }[] } | null>(null);
   const [phonemeMessage, setPhonemeMessage] = useState("");
   const [history, setHistory] = useState<ShadowingHistoryEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<ShadowingTab>("current");
   const [historyQuery, setHistoryQuery] = useState("");
   const [historyFilter, setHistoryFilter] = useState<"all" | "favorites">("all");
   const [historyNotice, setHistoryNotice] = useState("");
@@ -128,10 +130,28 @@ export function ShadowingPractice() {
   const sentence = lines[index] ?? lines[0];
   const comparison: TranscriptAssessment | null = transcript ? assessTranscript(sentence, transcript) : null;
 
+  async function saveListenHistory(target: string) {
+    try {
+      const response = await fetch("/api/shadowing-history", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, transcript: "", score: null, activity: "listen" }),
+      });
+      const payload = await response.json() as { entry?: ShadowingHistoryEntry; error?: string };
+      if (!response.ok || !payload.entry) throw new Error(payload.error || "Could not save listen history.");
+      setHistory((current) => [payload.entry!, ...current].slice(0, 100));
+      setHistoryNotice("Listened word or sentence saved to database history.");
+    } catch {
+      setHistoryNotice("Audio played, but its history could not be saved to the database.");
+    }
+  }
+
   function speakSentence() {
     if (!sentence || !speakText(sentence, undefined, rate)) {
       setFeedback("Text-to-speech is not supported in this browser.");
+      return;
     }
+    void saveListenHistory(sentence);
+    setFeedback("Playing target audio. Saved to your history.");
   }
 
   async function startRepeat() {
@@ -263,7 +283,7 @@ export function ShadowingPractice() {
 
   const filteredHistory = history.filter((entry) => (historyFilter === "all" || entry.favorite) && (!historyQuery.trim() || (entry.target + " " + entry.transcript).toLocaleLowerCase().includes(historyQuery.trim().toLocaleLowerCase())));
 
-  return <div className="shadowing-page-layout"><section className="learning-feature-panel shadowing-panel" aria-labelledby="shadowing-heading">
+  return <div className="shadowing-page-layout"><div className="shadowing-tabs" role="tablist" aria-label="Shadowing practice views"><button type="button" role="tab" id="shadowing-current-tab" aria-selected={activeTab === "current"} aria-controls="shadowing-current-panel" className={activeTab === "current" ? "active" : ""} onClick={() => setActiveTab("current")}>Current practice</button><button type="button" role="tab" id="shadowing-history-tab" aria-selected={activeTab === "history"} aria-controls="shadowing-history-panel" className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")}>History <span>{history.length}</span></button></div><section id="shadowing-current-panel" role="tabpanel" aria-labelledby="shadowing-current-tab" hidden={activeTab !== "current"} className="learning-feature-panel shadowing-panel" aria-labelledby="shadowing-heading">
     <div className="learning-feature-heading"><div><p className="eyebrow">PRONUNCIATION DRILL</p><h2 id="shadowing-heading">Shadowing practice</h2><p>Listen, repeat, then review word accuracy, speaking pace, pauses, pitch variation, and optional phoneme-level feedback.</p></div><span className="feature-symbol" aria-hidden="true">◖♪</span></div>
     <label className="feature-field">Practice sentence or word<select value={index} onChange={(event) => { setIndex(Number(event.target.value)); setTranscript(""); transcriptRef.current = ""; setFeedback(""); setAcoustic(null); setPhonemeResult(null); }}>
       {lines.map((line, i) => <option key={i + "-" + line} value={i}>{line}</option>)}
@@ -279,7 +299,7 @@ export function ShadowingPractice() {
     {!recordingSupported && <p className="feature-note">Audio recording is not supported here. Browser speech recognition can still provide word feedback where available.</p>}
     <form className="shadowing-custom-line" onSubmit={(event) => { event.preventDefault(); const line = customLine.trim(); if (!line || line.length > 240) return; setLines((current) => [...current, line]); setIndex(lines.length); setCustomLine(""); setTranscript(""); transcriptRef.current = ""; setFeedback(""); }}><label className="feature-field">Add a word or sentence to practise<input value={customLine} maxLength={240} onChange={(event) => setCustomLine(event.target.value)} placeholder="e.g. comfortable / I would appreciate your help." /></label><button type="submit" className="button button-outline" disabled={!customLine.trim()}>Add to practice list</button></form>
   </section>
-  <section className="learning-feature-panel shadowing-history-panel" aria-labelledby="shadowing-history-heading">
+  <section id="shadowing-history-panel" role="tabpanel" aria-labelledby="shadowing-history-tab" hidden={activeTab !== "history"} className="learning-feature-panel shadowing-history-panel" aria-labelledby="shadowing-history-heading">
     <div className="learning-feature-heading"><div><p className="eyebrow">YOUR PRACTICE LOG</p><h2 id="shadowing-history-heading">Sentence & word history</h2><p>Review previous attempts, replay a target, and practise tricky phrases again. History is saved in the application database.</p></div><span className="feature-symbol" aria-hidden="true">↺</span></div>
     <div className="shadowing-history-summary">
       <div><strong>{history.length}</strong><span>Saved attempts</span></div>
@@ -292,14 +312,14 @@ export function ShadowingPractice() {
       <button type="button" className="button button-outline" disabled={!history.length} onClick={() => { if (window.confirm("Delete all shadowing history from your account?")) { void clearHistory(); } }}>Clear history</button>
     </div>
     {historyNotice && <p className="feature-note" role="status">{historyNotice}</p>}
-    {filteredHistory.length === 0 ? <div className="shadowing-history-empty"><strong>{history.length ? "No matching attempts" : "Your practice history will appear here"}</strong><p>Listen to a target, record yourself, and select Stop and assess. Each attempt will be saved so you can revisit it later.</p></div> :
+    {filteredHistory.length === 0 ? <div className="shadowing-history-empty"><strong>{history.length ? "No matching attempts" : "Your practice history will appear here"}</strong><p>Every target you listen to is saved here automatically. Record and assess yourself to save speaking attempts too.</p></div> :
       <div className="shadowing-history-list">{filteredHistory.map((entry) => <article className="shadowing-history-entry" key={entry.id}>
         <div className="shadowing-history-entry-top"><time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString()}</time><span>{entry.score === null ? "No transcript captured" : entry.score + "% word match"}</span></div>
-        <p className="shadowing-history-target">{entry.target}</p>
+        <p className="shadowing-history-target">{entry.target}</p><p className="shadowing-history-kind">{entry.activity === "listen" ? "🔊 Listened · audio history" : "🎙 Speaking attempt"}</p>
         {entry.transcript ? <p className="shadowing-history-transcript"><strong>You said:</strong> {entry.transcript}</p> : <p className="shadowing-history-transcript">No transcript was captured for this attempt.</p>}
         <div className="shadowing-history-actions">
           <button type="button" className="text-link" onClick={() => { const existing = lines.indexOf(entry.target); if (existing >= 0) setIndex(existing); else { setLines((current) => [entry.target, ...current]); setIndex(0); } setTranscript(""); transcriptRef.current = ""; setFeedback("Ready to practise this saved target again."); setHistoryNotice("Target loaded into the practice area."); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Practise again ↗</button>
-          <button type="button" className="text-link" onClick={() => speakText(entry.target)}>▶ Listen</button>
+          <button type="button" className="text-link" onClick={() => { if (speakText(entry.target)) { void saveListenHistory(entry.target); } }}>▶ Listen</button>
           <button type="button" className="text-link" aria-pressed={entry.favorite} onClick={() => { void toggleFavorite(entry); }}>{entry.favorite ? "★ Favourited" : "☆ Favourite"}</button>
           <button type="button" className="text-link shadowing-history-delete" onClick={() => { void deleteAttempt(entry.id); }}>Delete</button>
         </div>
