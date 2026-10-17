@@ -65,7 +65,7 @@ describe("ConversationCoach", () => {
       updatedAt: new Date().toISOString(), durationSeconds: 0, turns: [],
     };
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === "/api/chat") return new Response("That sounds good. What did you do today?", { status: 200 });
+      if (url === "/api/conversation-coach/turn") return new Response(JSON.stringify({ reply: "That sounds good. What did you do today?", corrections: [], vocabulary: [] }), { status: 200 });
       if (init?.method === "POST") return new Response(JSON.stringify({ session }), { status: 200 });
       if (init?.method === "PATCH") return new Response(JSON.stringify({ session }), { status: 200 });
       return new Response(JSON.stringify({ sessions: [] }), { status: 200 });

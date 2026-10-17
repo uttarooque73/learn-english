@@ -7,7 +7,8 @@ import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { getLearningPreferences, saveLearningPreferences, type SpeechRate, type SpeechVoiceGender } from "@/lib/learning-preferences";
 
 type Correction = { original: string; improved: string; reason: string };
-type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[] };
+type VocabularyItem = { phrase: string; meaning: string; example: string };
+type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[]; vocabulary?: VocabularyItem[] };
 type Session = { id: string; title: string; scenario: string; difficulty: string; status: string; startedAt: string; updatedAt: string; durationSeconds: number; turnCount?: number; correctionCount?: number; summary?: Record<string, unknown>; turns?: Turn[] };
 type RecognitionResult = { results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }>; resultIndex: number };
 type Recognition = { lang: string; interimResults: boolean; continuous: boolean; onresult: ((event: RecognitionResult) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null; start(): void; stop(): void; abort(): void };
@@ -189,28 +190,22 @@ export function ConversationCoach() {
     const next = [...turnsRef.current, userTurn];
     setTurns(next); turnsRef.current = next;
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/conversation-coach/turn", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.slice(-40).map(({ role, content: text }) => ({ role, content: text })), scenario, difficulty, feedbackStyle: correctionMode }),
+        body: JSON.stringify({
+          messages: next.slice(-20).map(({ role, content: text }) => ({ role, content: text })),
+          scenario, difficulty, feedbackStyle: correctionMode,
+        }),
       });
-      if (!response.ok) { const data = await response.json(); throw new Error(data.error || "The tutor could not reply."); }
-      if (!response.body) throw new Error("Streaming responses are not supported by this browser.");
-      const reader = response.body.getReader(), decoder = new TextDecoder();
-      let reply = "";
-      const assistantId = crypto.randomUUID();
-      const placeholder: Turn = { id: assistantId, role: "assistant", content: "", corrections: EMPTY_FEEDBACK, createdAt: new Date().toISOString() };
-      setTurns([...next, placeholder]); turnsRef.current = [...next, placeholder];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        reply += decoder.decode(value, { stream: true });
-        const partial = [...next, { ...placeholder, content: reply }];
-        setTurns(partial); turnsRef.current = partial;
-      }
-      reply += decoder.decode();
-      if (!reply.trim()) throw new Error("The tutor returned an empty response.");
-      const assistant = { ...placeholder, content: reply.trim() };
-      const finalTurns = [...next, assistant];
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "The tutor could not reply.");
+      if (typeof data.reply !== "string" || !data.reply.trim()) throw new Error("The tutor returned an empty response.");
+
+      const feedback = Array.isArray(data.corrections) ? data.corrections as Correction[] : [];
+      const vocabulary = Array.isArray(data.vocabulary) ? data.vocabulary as VocabularyItem[] : [];
+      const correctedUser = { ...userTurn, corrections: feedback };
+      const assistant = { ...newTurn("assistant", data.reply.trim()), vocabulary };
+      const finalTurns = [...turnsRef.current.slice(0, -1), correctedUser, assistant];
       setTurns(finalTurns); turnsRef.current = finalTurns;
       await persistSession("active", finalTurns);
       play(assistant.content, true);
@@ -219,7 +214,6 @@ export function ConversationCoach() {
       try { await persistSession("active", turnsRef.current); } catch { /* Keep the original request error visible. */ }
     } finally { setBusy(false); }
   }, [input, busy, sessionId, scenario, difficulty, correctionMode, persistSession, play]);
-
   const startListening = (preserveError = false) => {
     if (!preserveError) setError("");
     const ctor = (window as RecognitionWindow).SpeechRecognition || (window as RecognitionWindow).webkitSpeechRecognition;
@@ -332,7 +326,7 @@ export function ConversationCoach() {
       <section className="coach-chat" aria-label="AI conversation">
         <header className="coach-chat-head"><div className="coach-avatar">✦</div><div><strong>SpeakUp conversation coach</strong><p><span className="status-dot"/> {sessionId ? "Session in progress" : "Ready when you are"}</p></div><span className="coach-duration">◷ {formatDuration(elapsed)}</span></header>
         {!sessionId && turns.length === 0 ? <div className="coach-empty"><div className="coach-orb">✦</div><h2>Your English, your moment.</h2><p>Choose a topic and start speaking. I&apos;ll listen, respond naturally, and help you improve without interrupting every sentence.</p><button className="button button-primary" onClick={() => void startSession()}>Let&apos;s talk <span>→</span></button><div className="coach-prompt-chips"><span>Daily conversation</span><span>Work English</span><span>Build confidence</span></div></div> :
-          <div className="coach-messages">{turns.map(turn => <article key={turn.id} className={`coach-message ${turn.role}`}><div className="coach-message-label">{turn.role === "assistant" ? "✦ Your tutor" : "You"}</div><p>{turn.content || (busy ? "Thinking…" : "")}</p>{turn.content && <div className="coach-message-actions"><ListenButton text={turn.content} label="Play sentence" className="coach-mini-button"/>{turn.role === "user" && <button className="coach-mini-button" onClick={() => play(turn.content)}>Repeat your answer</button>}</div>}{turn.corrections?.map((c, i) => <div key={i} className="coach-correction"><span>Try this instead</span><del>{c.original}</del><strong>{c.improved}</strong><small>{c.reason}</small></div>)}</article>)}<div ref={bottomRef}/></div>}
+          <div className="coach-messages">{turns.map(turn => <article key={turn.id} className={`coach-message ${turn.role}`}><div className="coach-message-label">{turn.role === "assistant" ? "✦ Your tutor" : "You"}</div><p>{turn.content || (busy ? "Thinking…" : "")}</p>{turn.content && <div className="coach-message-actions"><ListenButton text={turn.content} label="Play sentence" className="coach-mini-button"/>{turn.role === "user" && <button className="coach-mini-button" onClick={() => play(turn.content)}>Repeat your answer</button>}</div>}{turn.corrections?.map((c, i) => <div key={i} className="coach-correction"><span>Try this instead</span><del>{c.original}</del><strong>{c.improved}</strong><small>{c.reason}</small></div>)}{turn.vocabulary?.map((v, i) => <div key={"vocab-" + i} className="coach-correction"><span>Useful expression</span><strong>{v.phrase}</strong><small>{v.meaning}</small><small>Example: {v.example}</small></div>)}</article>)}<div ref={bottomRef}/></div>}
         {sessionId && <div className="coach-composer"><textarea aria-label="Your answer" placeholder={listening ? "Listening… speak naturally" : "Type your answer or use the microphone…"} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} rows={2} disabled={busy}/><div className="coach-composer-actions"><span>Enter to send · Shift + Enter for a new line</span><div><button className={listening ? "coach-mic-button listening" : "coach-mic-button"} onClick={() => listening ? stopListening() : startListening()} disabled={busy} aria-label={listening ? "Stop recording" : "Start voice input"}>{listening ? "■ Stop" : "🎙 Speak"}</button><button className="button button-primary" onClick={() => void send()} disabled={busy || !input.trim()}>{busy ? "Thinking…" : "Send ↑"}</button></div></div></div>}
         {sessionId && <p className="coach-disclaimer">Speech recognition and voice playback depend on your browser and device. You can always type instead.</p>}
       </section>
