@@ -86,7 +86,7 @@ describe("ConversationCoach", () => {
     spoken[1].onerror?.();
     await waitFor(() => expect(startRecognition).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("button", { name: /stop recording/i })).toBeTruthy();
-    expect(screen.getByRole("alert")).toHaveTextContent(/tutor audio could not play/i);
+    expect(screen.getByRole("alert").textContent).toMatch(/tutor audio could not play/i);
   });
 
   it("shows saved-history and progress sections", async () => {
