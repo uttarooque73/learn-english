@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { assessTranscript, type TranscriptAssessment } from "@/lib/pronunciation-assessment";
 import { speakText } from "@/lib/speech-playback";
+import { submitLearningEvidence } from "@/lib/learning-evidence-client";
 
 const DEFAULT_LINES = [
   "Could you give me a moment to think about that?",
@@ -155,6 +156,13 @@ export function ShadowingPractice() {
       const payload = await response.json() as { entry?: ShadowingHistoryEntry; error?: string };
       if (!response.ok || !payload.entry) throw new Error(payload.error || "Could not save listen history.");
       setHistory((current) => [payload.entry!, ...current].slice(0, 100));
+      void submitLearningEvidence({
+        source: "listening",
+        activityType: "listening",
+        activityRef: target,
+        durationSeconds: 0,
+        idempotencyKey: `shadowing-listen:${payload.entry.id}`,
+      }).catch(() => undefined);
       setHistoryNotice("Listened word or sentence saved to database history.");
     } catch {
       setHistoryNotice("Audio played, but its history could not be saved to the database.");
@@ -244,6 +252,17 @@ export function ShadowingPractice() {
       const payload = await response.json() as { entry?: ShadowingHistoryEntry; error?: string };
       if (!response.ok || !payload.entry) throw new Error(payload.error || "Could not save this attempt.");
       setHistory((current) => [payload.entry!, ...current].slice(0, 100));
+      void submitLearningEvidence({
+        source: "shadowing",
+        activityType: "shadowing",
+        activityRef: sentence,
+        skillKey: "pronunciation",
+        responseText: spoken,
+        durationSeconds: acoustic?.durationSeconds ?? 0,
+        ...(assessment ? { score: assessment.score / 100, confidence: 0.45 } : {}),
+        feedback: assessment ? `Transcript similarity: ${assessment.score}% (not an acoustic pronunciation score).` : undefined,
+        idempotencyKey: `shadowing-attempt:${payload.entry.id}`,
+      }).catch(() => undefined);
       setHistoryNotice("Attempt saved to the database.");
     } catch {
       setHistoryNotice("Could not save this attempt to the database. Check your connection and try again.");
