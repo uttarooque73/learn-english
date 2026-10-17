@@ -51,6 +51,7 @@ export function AiAndUsPractice() {
   const [lines, setLines] = useState<PracticeLine[]>([]);
   const [lineIndex, setLineIndex] = useState(0);
   const [paragraphTitle, setParagraphTitle] = useState("My practice paragraph");
+  const [paragraphTopic, setParagraphTopic] = useState("Everyday life");
   const [paragraph, setParagraph] = useState(samples.Intermediate);
   const [paragraphs, setParagraphs] = useState<SavedParagraph[]>([]);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -64,6 +65,7 @@ export function AiAndUsPractice() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [writingFeedback, setWritingFeedback] = useState<ParagraphFeedback | null>(null);
   const [generatingDiscussion, setGeneratingDiscussion] = useState(false);
+  const [generatingParagraph, setGeneratingParagraph] = useState(false);
   const [discussionParagraphId, setDiscussionParagraphId] = useState("");
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const listeningRef = useRef(false);
@@ -270,6 +272,55 @@ export function AiAndUsPractice() {
     finally { setParagraphSaving(false); }
   };
 
+  const generateParagraph = async () => {
+    const requestedTopic = paragraphTopic.trim();
+    if (!requestedTopic) { setMessage("Enter a topic before generating a paragraph."); return; }
+    setGeneratingParagraph(true);
+    setStatus("Generating a paragraph");
+    setMessage(`Writing a ${level.toLowerCase()}-level practice paragraph about ${requestedTopic}…`);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "paragraph-generation",
+          scenario: "Free conversation",
+          difficulty: level,
+          feedbackStyle: "gentle",
+          messages: [{ role: "user", content: `Write one coherent English practice paragraph about ${requestedTopic}. Use 4 to 7 sentences suitable for reading aloud at the selected level. Use practical, natural English and avoid headings or bullet points.` }],
+        }),
+      });
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || "The AI could not generate the paragraph.");
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let generated = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        generated += decoder.decode(value, { stream: true });
+      }
+      generated += decoder.decode();
+      const text = generated.trim();
+      if (splitSentences(text).length < 2) throw new Error("The AI returned too little text. Try another topic.");
+      setParagraph(text);
+      setParagraphTitle(`Practice: ${requestedTopic}`.slice(0, 120));
+      setActiveParagraphId("");
+      setWritingFeedback(null);
+      setLines([]);
+      setLineIndex(0);
+      setStatus("Paragraph generated");
+      setMessage("Your paragraph is ready. Review it, save it, or get writing feedback before reading aloud.");
+    } catch (error) {
+      setStatus("Paragraph generation failed");
+      setMessage(error instanceof Error ? error.message : "Could not generate a paragraph. Try again.");
+    } finally {
+      setGeneratingParagraph(false);
+    }
+  };
+
   const nextDiscussionLine = () => {
     stopListening(); stopSpeaking();
     if (lineIndex >= lines.length - 1) { setStatus("Discussion complete"); setMessage("Nice work. Review each sentence's transcript comparison below, or start another topic."); return; }
@@ -376,10 +427,11 @@ export function AiAndUsPractice() {
       </section> : <section className="aius-panel">
         <div className="aius-section-heading"><div><span className="eyebrow">YOUR OWN TEXT</span><h3>Paragraph Practice</h3><p>Paste any paragraph, save it, and practise reading it sentence by sentence.</p></div><span className="aius-status">{status}</span></div>
         <div className="aius-editor">
+          <label>Paragraph topic<input value={paragraphTopic} onChange={(event) => setParagraphTopic(event.target.value)} maxLength={120} placeholder="For example, technology at work" /></label>
           <label>Paragraph title<input value={paragraphTitle} onChange={(event) => { setParagraphTitle(event.target.value); setWritingFeedback(null); }} maxLength={120} /></label>
           <label>English level<select value={level} onChange={(event) => { setLevel(event.target.value as Level); setWritingFeedback(null); }}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
           <label>Paragraph<textarea value={paragraph} onChange={(event) => { setParagraph(event.target.value); setWritingFeedback(null); }} rows={7} maxLength={12000} placeholder="Paste or write a paragraph here…" /></label>
-          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); setWritingFeedback(null); }}>Load sample</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-light" disabled={feedbackLoading || paragraphSaving} onClick={() => void analyzeParagraphWriting()}>{feedbackLoading ? "Analyzing…" : "Get writing feedback"}</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
+          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); setWritingFeedback(null); }}>Load sample</button><button className="button button-light" disabled={generatingParagraph} onClick={() => void generateParagraph()}>{generatingParagraph ? "Generating…" : "Generate paragraph"}</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-light" disabled={feedbackLoading || paragraphSaving} onClick={() => void analyzeParagraphWriting()}>{feedbackLoading ? "Analyzing…" : "Get writing feedback"}</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
         </div>
         {writingFeedback && <section className="aius-writing-feedback">
           <div className="aius-section-heading"><div><span className="eyebrow">AI WRITING COACH</span><h3>Paragraph feedback</h3></div></div>
