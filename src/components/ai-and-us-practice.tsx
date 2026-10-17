@@ -55,7 +55,6 @@ export function AiAndUsPractice() {
   const [autoPlay, setAutoPlay] = useState(true);
   const [rate, setRate] = useState(0.85);
   const [paragraphSaving, setParagraphSaving] = useState(false);
-  const [discussionTurns, setDiscussionTurns] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [generatingDiscussion, setGeneratingDiscussion] = useState(false);
   const recognitionRef = useRef<BrowserRecognition | null>(null);
   const listeningRef = useRef(false);
@@ -162,7 +161,6 @@ export function AiAndUsPractice() {
     const name = chosen === "Custom Topic" ? customTopic.trim() || "daily life" : chosen;
     setLines([]);
     setLineIndex(0);
-    setDiscussionTurns([]);
     setGeneratingDiscussion(true);
     setStatus("Generating a discussion");
     setMessage(`Preparing a ${level.toLowerCase()}-level reading discussion about ${name}…`);
@@ -171,7 +169,7 @@ export function AiAndUsPractice() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: "conversation",
+          mode: "reading-discussion",
           scenario: "Free conversation",
           difficulty: level,
           feedbackStyle: "gentle",
@@ -196,7 +194,6 @@ export function AiAndUsPractice() {
       const selected = parsedLines.slice(0, 6).map((text) => ({
         id: id(), text, transcript: "", score: null, missingWords: [], extraWords: [], status: "pending" as const,
       }));
-      setDiscussionTurns([{ role: "assistant", content: selected.map((line) => line.text).join("\n") }]);
       setLines(selected);
       setLineIndex(0);
       setMessage(`AI-generated reading discussion: ${name}. Read each sentence aloud, review the transcript comparison, then continue.`);
