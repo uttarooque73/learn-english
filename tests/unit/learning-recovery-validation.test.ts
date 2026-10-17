@@ -84,7 +84,7 @@ describe("learning recovery and worker contention validation", () => {
         daily_target_minutes: 25,
         goals_json: '["Workplace conversations"]',
       });
-      expect(migrationCount.count).toBe(8);
+      expect(migrationCount.count).toBe(9);
       expect(restored.pragma("integrity_check")).toEqual([{ integrity_check: "ok" }]);
     } finally {
       restored.close();
