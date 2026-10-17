@@ -69,8 +69,8 @@ export function writePersistedValue(key: string, value: string): void {
   values.set(key, value);
   dirtyKeys.add(key);
   void requestPersistence("/api/persistence", { method: "POST", body: JSON.stringify({ key, value }) })
-    .then((response) => { if (response.ok) dirtyKeys.delete(key); else if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; })
-    .catch(() => { if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; });
+    .then((response) => { if (response.ok) dirtyKeys.delete(key); else { initialization = undefined; if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; } })
+    .catch(() => { initialization = undefined; if (typeof window !== "undefined") delete (window as PersistenceWindow).__speakupDatabaseInitialized; });
 }
 
 export function deletePersistedValue(key: string): void {
