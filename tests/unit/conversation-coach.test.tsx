@@ -83,7 +83,7 @@ describe("ConversationCoach", () => {
     await waitFor(() => expect(spoken).toHaveLength(2));
 
     // A playback error must not strand the hands-free conversation.
-    spoken[1].onerror?.();
+    spoken[1].onerror?.(new Event("error") as SpeechSynthesisErrorEvent);
     await waitFor(() => expect(startRecognition).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("button", { name: /stop recording/i })).toBeTruthy();
     expect(screen.getByRole("alert").textContent).toMatch(/tutor audio could not play/i);
