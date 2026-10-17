@@ -129,6 +129,7 @@ export function VocabularyDetail({ id }: { id: string }) {
           <p className="eyebrow">YOUR WORD, IN CONTEXT</p>
           <h2>{word.phrase}</h2>
           <p>{word.meaning || "Keep exploring how this word is used in natural English."}</p><ListenButton text={`${word.phrase}. ${word.meaning}`} label={`Listen to ${word.phrase}`} />
+          <div className="vocabulary-detail-actions"><Link className="button button-primary" href={`/shadowing?text=${encodeURIComponent(word.phrase)}`}>🎙 Practice this word or phrase</Link><span>Practise it now without changing your saved vocabulary.</span></div>
           <div className="vocabulary-detail-meta"><span className="vocabulary-detail-category">{word.category || "vocabulary"}</span><span className={`vocab-status status-${word.status ?? "learning"}`}>{statusLabels[word.status ?? "learning"]}</span></div>
         </div>
       </section>
