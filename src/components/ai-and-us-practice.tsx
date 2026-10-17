@@ -59,6 +59,8 @@ export function AiAndUsPractice() {
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState("Ready to practise");
   const [listening, setListening] = useState(false);
+  const [audioActive, setAudioActive] = useState(false);
+  const [speechPaused, setSpeechPaused] = useState(false);
   const [autoPlay, setAutoPlay] = useState(true);
   const [rate, setRate] = useState(0.85);
   const [paragraphSaving, setParagraphSaving] = useState(false);
@@ -97,12 +99,54 @@ export function AiAndUsPractice() {
   const speak = (text: string, done?: () => void) => {
     stopListening();
     stopSpeaking();
-    const started = speakText(text, done, rate);
+    setAudioActive(false);
+    setSpeechPaused(false);
+    const started = speakText(text, () => {
+      setAudioActive(false);
+      setSpeechPaused(false);
+      done?.();
+    }, rate);
+    setAudioActive(started);
     setStatus(started ? "AI reading aloud" : "Text-to-speech is not supported in this browser.");
     return started;
   };
 
+  const pauseAudio = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window && window.speechSynthesis.speaking) {
+      window.speechSynthesis.pause();
+      setSpeechPaused(true);
+      setStatus("AI audio paused");
+    }
+  };
+
+  const resumeAudio = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window && window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setSpeechPaused(false);
+      setStatus("AI reading aloud");
+    }
+  };
+
+  const stopPractice = () => {
+    stopListening();
+    stopSpeaking();
+    setAudioActive(false);
+    setSpeechPaused(false);
+    setStatus("Reading stopped");
+  };
+
+  const audioControls = () => (
+    <>
+      {audioActive && !speechPaused && <button className="button button-light" onClick={pauseAudio}>Ⅱ Pause audio</button>}
+      {audioActive && speechPaused && <button className="button button-light" onClick={resumeAudio}>▶ Resume audio</button>}
+      <button className="button button-light" disabled={!audioActive && !listening} onClick={stopPractice}>■ Stop</button>
+    </>
+  );
+
   const startRecognition = (lineText: string, mode: Tab) => {
+    stopSpeaking();
+    setAudioActive(false);
+    setSpeechPaused(false);
     const speechWindow = window as SpeechWindow;
     const Constructor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!Constructor) {
@@ -322,7 +366,7 @@ export function AiAndUsPractice() {
   };
 
   const nextDiscussionLine = () => {
-    stopListening(); stopSpeaking();
+    stopListening(); stopSpeaking(); setAudioActive(false); setSpeechPaused(false);
     if (lineIndex >= lines.length - 1) { setStatus("Discussion complete"); setMessage("Nice work. Review each sentence's transcript comparison below, or start another topic."); return; }
     const nextIndex = lineIndex + 1;
     setLineIndex(nextIndex);
@@ -399,8 +443,8 @@ export function AiAndUsPractice() {
         <div className="aius-hero-mark" aria-hidden="true"><span>Ab</span><small>your voice, your pace</small></div>
       </section>
       <div className="aius-tabs" role="tablist" aria-label="AI and Us practice modes">
-        <button role="tab" aria-selected={tab === "discussion"} className={tab === "discussion" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("discussion"); setLines([]); setLineIndex(0); }}>AI and Us Discussion</button>
-        <button role="tab" aria-selected={tab === "paragraph"} className={tab === "paragraph" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("paragraph"); setLines([]); setLineIndex(0); }}>Paragraph Practice</button>
+        <button role="tab" aria-selected={tab === "discussion"} className={tab === "discussion" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("discussion"); setLines([]); setLineIndex(0); setAudioActive(false); setSpeechPaused(false); }}>AI and Us Discussion</button>
+        <button role="tab" aria-selected={tab === "paragraph"} className={tab === "paragraph" ? "active" : ""} onClick={() => { stopListening(); stopSpeaking(); setTab("paragraph"); setLines([]); setLineIndex(0); setAudioActive(false); setSpeechPaused(false); }}>Paragraph Practice</button>
       </div>
 
       {tab === "discussion" ? <section className="aius-panel">
@@ -418,6 +462,7 @@ export function AiAndUsPractice() {
           <p className="aius-target-sentence">{current.text}</p>
           <div className="aius-reading-actions">
             <button className="button button-light" onClick={() => speak(current.text)}>▶ Play sentence</button>
+            {audioControls()}
             <button className="button button-light" onClick={practiceCurrentParagraphLine} disabled={listening}>{listening ? "Listening…" : "🎙 Read aloud"}</button>
             <button className="button button-light" onClick={() => { stopListening(); startRecognition(current.text, tab); }}>Retry reading</button>
             <button className="button button-dark" onClick={nextDiscussionLine}>Next sentence <span>→</span></button>
@@ -431,7 +476,7 @@ export function AiAndUsPractice() {
           <label>Paragraph title<input value={paragraphTitle} onChange={(event) => { setParagraphTitle(event.target.value); setWritingFeedback(null); }} maxLength={120} /></label>
           <label>English level<select value={level} onChange={(event) => { setLevel(event.target.value as Level); setWritingFeedback(null); }}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
           <label>Paragraph<textarea value={paragraph} onChange={(event) => { setParagraph(event.target.value); setWritingFeedback(null); }} rows={7} maxLength={12000} placeholder="Paste or write a paragraph here…" /></label>
-          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); setWritingFeedback(null); }}>Load sample</button><button className="button button-light" disabled={generatingParagraph} onClick={() => void generateParagraph()}>{generatingParagraph ? "Generating…" : "Generate paragraph"}</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button><button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-light" disabled={feedbackLoading || paragraphSaving} onClick={() => void analyzeParagraphWriting()}>{feedbackLoading ? "Analyzing…" : "Get writing feedback"}</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
+          <div className="aius-editor-actions"><button className="button button-light" onClick={() => { setParagraph(samples[level]); setActiveParagraphId(""); setWritingFeedback(null); }}>Load sample</button><button className="button button-light" disabled={generatingParagraph} onClick={() => void generateParagraph()}>{generatingParagraph ? "Generating…" : "Generate paragraph"}</button><button className="button button-light" onClick={() => speak(paragraph)}>▶ Listen to paragraph</button>{audioControls()}<button className="button button-dark" disabled={paragraphSaving} onClick={() => void saveParagraph()}>Save paragraph</button><button className="button button-light" disabled={feedbackLoading || paragraphSaving} onClick={() => void analyzeParagraphWriting()}>{feedbackLoading ? "Analyzing…" : "Get writing feedback"}</button><button className="button button-dark" onClick={() => void startParagraphPractice()}>Start reading practice <span>→</span></button></div>
         </div>
         {writingFeedback && <section className="aius-writing-feedback">
           <div className="aius-section-heading"><div><span className="eyebrow">AI WRITING COACH</span><h3>Paragraph feedback</h3></div></div>
@@ -454,7 +499,7 @@ export function AiAndUsPractice() {
       </section>}
 
       {message && <div className="aius-notice" role="status"><span>{message}</span><button aria-label="Dismiss message" onClick={() => setMessage("")}>×</button></div>}
-      {tab === "paragraph" && lines.length > 0 && current && <section className="aius-panel aius-active-practice"><div className="aius-section-heading"><div><span className="eyebrow">CURRENT SENTENCE</span><h3>Sentence {lineIndex + 1} of {lines.length}</h3></div><span className="aius-status">{current.status}</span></div><p className="aius-target-sentence">{current.text}</p><div className="aius-reading-actions"><button className="button button-light" onClick={() => speak(current.text)}>▶ Listen</button><button className="button button-dark" onClick={practiceCurrentParagraphLine} disabled={listening}>🎙 {listening ? "Listening…" : "Read aloud"}</button><button className="button button-dark" onClick={nextDiscussionLine}>Next sentence →</button></div>{current.transcript && <div className="aius-comparison"><p><strong>Your reading</strong>{current.transcript}</p>{current.score !== null && <p><strong>Transcript similarity</strong>{current.score}%</p>}{current.missingWords.length > 0 && <p><strong>Words not recognized</strong>{current.missingWords.join(", ")}</p>}{current.extraWords.length > 0 && <p><strong>Extra or substituted words</strong>{current.extraWords.join(", ")}</p>}</div>}</section>}
+      {tab === "paragraph" && lines.length > 0 && current && <section className="aius-panel aius-active-practice"><div className="aius-section-heading"><div><span className="eyebrow">CURRENT SENTENCE</span><h3>Sentence {lineIndex + 1} of {lines.length}</h3></div><span className="aius-status">{current.status}</span></div><p className="aius-target-sentence">{current.text}</p><div className="aius-reading-actions"><button className="button button-light" onClick={() => speak(current.text)}>▶ Listen</button>{audioControls()}<button className="button button-dark" onClick={practiceCurrentParagraphLine} disabled={listening}>🎙 {listening ? "Listening…" : "Read aloud"}</button><button className="button button-dark" onClick={nextDiscussionLine}>Next sentence →</button></div>{current.transcript && <div className="aius-comparison"><p><strong>Your reading</strong>{current.transcript}</p>{current.score !== null && <p><strong>Transcript similarity</strong>{current.score}%</p>}{current.missingWords.length > 0 && <p><strong>Words not recognized</strong>{current.missingWords.join(", ")}</p>}{current.extraWords.length > 0 && <p><strong>Extra or substituted words</strong>{current.extraWords.join(", ")}</p>}</div>}</section>}
       <p className="aius-disclaimer">Reading-match scores compare browser speech transcripts with the target text. They are not a definitive phoneme-level pronunciation assessment. Microphone speech recognition availability varies by browser.</p>
     </div>
   );
