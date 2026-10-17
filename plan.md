@@ -1,7 +1,7 @@
 # SpeakUp AI — Adaptive Multi-Agent Learning System Plan
 
 **Repository:** `uttarooque73/learn-english`  
-**Status:** Proposal for review — no application code changes are authorized until this plan is approved.  
+**Status:** Approved and in active implementation. Completed phases are recorded in the implementation status section at the end of this document.  
 **Implementation approach:** Incremental, test-first, backward-compatible, and feature-flagged.  
 **Primary objective:** Turn SpeakUp AI into an adaptive English-learning application that uses a LangGraph.js workflow to plan practice, evaluate evidence from completed exercises, and adjust future learning.
 
@@ -483,3 +483,29 @@ The initiative is complete when:
 ## 15. Approval and implementation rule
 
 This file is the single planning source of truth for the initiative. Review and approve the scope, phases, and data strategy before application-code changes begin. After approval, implement Phase 0 first and update this file only when an explicit decision changes the agreed plan.
+
+
+## 14. Implementation status — 2026-10-17
+
+This plan is the active source of truth for implementation. Work is delivered in small pull requests; each phase must pass the repository's required CI checks before merge.
+
+| Phase | Scope | Status |
+| --- | --- | --- |
+| 0 | Baseline audit and stability fixes | Merged (including PR #41) |
+| 1 | Ordered, versioned database migrations and learning-domain schema | Merged (PR #42) |
+| 2 | LangGraph.js, checkpointing, and model-provider foundation | Merged (PR #43) |
+| 3 | Adaptive planner and evaluator | Merged (PR #44) |
+| 4 | Connect existing activities to persisted learning evidence | Merged (PR #45) |
+| 5–6 | Durable scheduler, worker, and evidence-based adaptation | Merged (PR #46) |
+| 7 | Learner routine controls and adaptive progress UI/API | Merged (PR #47) |
+| 8 | Security hardening, reliability/operational monitoring, end-to-end validation, and staged rollout | Next; do not mark complete until implemented and CI passes |
+
+### Required execution rules
+
+- Before each phase, inspect the current `main` branch and the latest CI results; do not rely on stale branch snapshots.
+- Implement one phase at a time and keep database migrations additive and reversible where feasible.
+- After each change, run the complete CI pipeline: lint, shell syntax checks, type-check, unit/integration tests with coverage, production build, and Playwright UI tests.
+- Fix the cause of failures rather than weakening or deleting meaningful assertions. Re-run CI after the fix.
+- Merge only after required checks pass, then verify the merge commit and `main` CI before starting the next phase.
+- Keep local developer configuration and user data safe. Update scripts must never silently discard tracked edits or untracked files.
+- Keep this status table current as phases merge; a phase is not complete merely because code was committed or a PR was opened.
