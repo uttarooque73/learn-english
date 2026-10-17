@@ -499,8 +499,9 @@ This plan is the active source of truth for implementation. Work is delivered in
 | 5–6 | Durable scheduler, worker, and evidence-based adaptation | Merged (PR #46) |
 | 7 | Learner routine controls and adaptive progress UI/API | Merged (PR #47) |
 | 8 | Security hardening, reliability/operational monitoring, end-to-end validation, and staged rollout | Core code and recovery regression tests merged (PRs #48–#49; post-merge CI passed); deployment load/migration checks remain |
+| 10 | Graph-level integration tests, failure-path validation, and operator readiness | In progress (PR for validation tests being prepared) |
 
-| 9 | Full LangGraph multi-agent orchestration, conditional routing, and agent-level tests | In progress (PR #50) |
+| 9 | Full LangGraph multi-agent orchestration, conditional routing, and agent-level tests | Core planning/evaluation graphs merged (PR #50; PR and post-merge CI passed); integration validation underway |
 
 ### Phase 8 implementation progress
 
