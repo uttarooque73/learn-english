@@ -127,4 +127,29 @@ describe("SQLite schema migrations", () => {
     ).run("item-no-plan", "missing-plan", "owner-a", 0, "speaking", 10)).toThrow();
   });
 
+  it("adopts legacy inline-created tables without deleting their rows", () => {
+    useTemporaryDatabase();
+
+    const database = getDatabase();
+    database.exec(`
+      CREATE TABLE daily_vocabulary_topics (
+        id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT 'Custom',
+        instructions TEXT NOT NULL DEFAULT '', difficulty TEXT NOT NULL DEFAULT 'intermediate',
+        daily_allocation INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      );
+    `);
+    database.prepare(
+      "INSERT INTO daily_vocabulary_topics (id, owner_id, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("legacy-topic", "owner-a", "Kitchen", "2026-10-01T00:00:00.000Z", "2026-10-01T00:00:00.000Z");
+
+    expect(() => ensurePersistenceSchema()).not.toThrow();
+
+    const saved = database.prepare(
+      "SELECT name FROM daily_vocabulary_topics WHERE id = ? AND owner_id = ?",
+    ).get("legacy-topic", "owner-a") as { name: string } | undefined;
+    expect(saved?.name).toBe("Kitchen");
+  });
+
 });
