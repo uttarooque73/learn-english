@@ -27,6 +27,7 @@ export function LearningPlan() {
   const [words, setWords] = useState<SavedVocabulary[]>([]);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [ready, setReady] = useState(false);
+  const [reviewTimestamp, setReviewTimestamp] = useState(0);
   const [target, setTarget] = useState(25);
   const [completed, setCompleted] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -56,6 +57,7 @@ export function LearningPlan() {
         }
       }
       refresh();
+      setReviewTimestamp(Date.now());
       setReady(true);
     }).catch(() => {
       if (!active) return;
@@ -70,10 +72,7 @@ export function LearningPlan() {
     writePersistedValue(PLAN_KEY, JSON.stringify({ target, date: localDateKey(), completed }));
   }, [ready, target, completed, error]);
 
-  const dueWords = useMemo(() => {
-    const now = Date.now();
-    return words.filter(word => !word.nextReviewAt || Date.parse(word.nextReviewAt) <= now).slice(0, 8);
-  }, [words]);
+  const dueWords = useMemo(() => words.filter(word => !word.nextReviewAt || Date.parse(word.nextReviewAt) <= reviewTimestamp).slice(0, 8), [words, reviewTimestamp]);
   const analytics = useMemo(() => getLearningAnalytics(sessions, words), [sessions, words]);
   const plannedActivities = useMemo(() => {
     let minutes = 0;
@@ -111,7 +110,7 @@ export function LearningPlan() {
       </section>
 
       <section className="section-block">
-        <div className="section-heading"><div><p className="eyebrow">TODAY'S ROUTINE</p><h2>{completedCount} of {plannedActivities.length} activities completed</h2></div><span className="section-note">{plannedMinutes} minute target</span></div>
+        <div className="section-heading"><div><p className="eyebrow">TODAY&apos;S ROUTINE</p><h2>{completedCount} of {plannedActivities.length} activities completed</h2></div><span className="section-note">{plannedMinutes} minute target</span></div>
         <div className="stats-grid">
           {plannedActivities.map(activity => (
             <article className="stat-card" key={activity.title}>
@@ -128,7 +127,7 @@ export function LearningPlan() {
 
       <section className="section-block">
         <div className="section-heading"><div><p className="eyebrow">SPACED REPETITION</p><h2>Words due for review</h2></div><Link className="text-link" href="/vocabulary">Open word bank →</Link></div>
-        {dueWords.length === 0 ? <div className="next-step-card"><div><strong>You're all caught up.</strong><p>Save new words during practice and they will appear here when they are due for review.</p></div></div> :
+        {dueWords.length === 0 ? <div className="next-step-card"><div><strong>You&apos;re all caught up.</strong><p>Save new words during practice and they will appear here when they are due for review.</p></div></div> :
           <div className="stats-grid">{dueWords.map(word => (
             <article className="stat-card" key={word.id}>
               <div className="stat-top"><span className="stat-tag">{word.category ?? "VOCABULARY"}</span><span className="stat-tag">{word.reviewCount ?? 0} reviews</span></div>
