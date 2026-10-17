@@ -110,24 +110,41 @@ export function ConversationCoach() {
   }, [voices, voiceGender, voiceURI]);
 
   const play = useCallback((text: string, resumeListening = false) => {
-    if (!("speechSynthesis" in window)) { setError("Speech playback is not supported in this browser."); return; }
-    stopSpeaking();
-    const utterance = new SpeechSynthesisUtterance(text);
-    if (availableVoice) { utterance.voice = availableVoice; utterance.lang = availableVoice.lang; }
-    else utterance.lang = "en-US";
-    utterance.rate = speed;
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => {
-      setSpeaking(false);
-      // Resume the microphone after the tutor finishes so the learner can answer hands-free.
-      if (resumeListening && sessionIdRef.current) {
-        window.setTimeout(() => {
-          if (sessionIdRef.current) startListeningRef.current?.();
-        }, 300);
-      }
+    const resumeMicrophone = () => {
+      if (!resumeListening || !sessionIdRef.current) return;
+      window.setTimeout(() => {
+        if (sessionIdRef.current) startListeningRef.current?.();
+      }, 300);
     };
-    utterance.onerror = () => setSpeaking(false);
-    window.speechSynthesis.speak(utterance);
+    if (!("speechSynthesis" in window)) {
+      setSpeaking(false);
+      setError("Speech playback is not supported in this browser. You can still answer using the microphone or text.");
+      resumeMicrophone();
+      return;
+    }
+    try {
+      stopSpeaking();
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (availableVoice) { utterance.voice = availableVoice; utterance.lang = availableVoice.lang; }
+      else utterance.lang = "en-US";
+      utterance.rate = speed;
+      utterance.onstart = () => setSpeaking(true);
+      utterance.onend = () => {
+        setSpeaking(false);
+        // Resume the microphone after the tutor finishes so the learner can answer hands-free.
+        resumeMicrophone();
+      };
+      utterance.onerror = () => {
+        setSpeaking(false);
+        if (resumeListening) setError("Tutor audio could not play. You can continue the conversation by speaking or typing.");
+        resumeMicrophone();
+      };
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setSpeaking(false);
+      setError("Tutor audio could not play. You can continue the conversation by speaking or typing.");
+      resumeMicrophone();
+    }
   }, [availableVoice, speed]);
 
   const persistSession = useCallback(async (status: "active" | "completed" = "active", allTurns = turnsRef.current, targetId = sessionId) => {
