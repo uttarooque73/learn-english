@@ -411,7 +411,9 @@ export function FloatingEnglishPartner() {
     }
   }, [speak]);
 
-  practiceCorrectedSentenceRef.current = practiceCorrectedSentence;
+  useEffect(() => {
+    practiceCorrectedSentenceRef.current = practiceCorrectedSentence;
+  }, [practiceCorrectedSentence]);
 
   const interruptSpeech = useCallback(() => {
     stopSpeaking();
