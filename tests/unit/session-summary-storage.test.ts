@@ -50,7 +50,7 @@ describe("session summary persistence", () => {
 
 
 describe("practice data deletion", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => resetPersistenceCacheForTests());
 
   it("deletes only the selected saved session", () => {
     upsertSession({ id: "delete-me", scenario: "Everyday life", startedAt: "2026-10-16T10:00:00.000Z", updatedAt: "2026-10-16T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["Hello"] });
@@ -72,7 +72,7 @@ describe("practice data deletion", () => {
 
 
 describe("session goals and time limits", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => resetPersistenceCacheForTests());
 
   it("persists the chosen goal and optional time limit with the saved conversation", () => {
     upsertSession({
