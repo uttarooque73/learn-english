@@ -17,7 +17,9 @@
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "better-sqlite3": "^12.2.0"
+    "better-sqlite3": "^12.2.0",
+    "@langchain/langgraph": "^1.5.0",
+    "@langchain/langgraph-checkpoint-sqlite": "^1.1.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
