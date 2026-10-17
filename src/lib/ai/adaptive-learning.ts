@@ -52,7 +52,7 @@ export class AdaptiveLearningError extends Error {
   }
 }
 
-type PlanRequest = { dailyTargetMinutes?: number; goal?: string };
+type PlanRequest = { dailyTargetMinutes?: number; goal?: string; localDate?: string; generationSource?: "ai" | "manual" | "scheduled" };
 type AttemptRequest = {
   planItemId: string;
   responseText: string;
@@ -283,6 +283,22 @@ export async function generateDailyLearningPlan(
   const database = getDatabase();
   const currentProfile = readProfile(ownerId);
   const targetMinutes = request.dailyTargetMinutes ?? currentProfile.daily_target_minutes;
+  if (request.localDate !== undefined && !/^\\d{4}-\\d{2}-\\d{2}$/.test(request.localDate)) {
+    throw new AdaptiveLearningError("invalid_input", "localDate must use YYYY-MM-DD format.");
+  }
+  const localDate = request.localDate ?? localDateForZone(currentProfile.timezone);
+  const generationSource = request.generationSource ?? "ai";
+  if (generationSource === "scheduled") {
+    const existing = database.prepare(`
+      SELECT id FROM learning_plans WHERE owner_id = ? AND local_date = ?
+        AND generation_source = 'scheduled' AND status IN ('published', 'completed')
+      ORDER BY version DESC LIMIT 1
+    `).get(ownerId, localDate) as { id: string } | undefined;
+    if (existing) {
+      const existingPlan = getPlanById(ownerId, existing.id);
+      if (existingPlan) return existingPlan;
+    }
+  }
   if (!Number.isInteger(targetMinutes) || targetMinutes < 5 || targetMinutes > 240) {
     throw new AdaptiveLearningError("invalid_input", "Daily target must be an integer between 5 and 240 minutes.");
   }
@@ -330,7 +346,6 @@ export async function generateDailyLearningPlan(
   }
 
   const planId = randomUUID();
-  const localDate = localDateForZone(currentProfile.timezone);
   const createdAt = new Date().toISOString();
 
   const savePlan = database.transaction(() => {
@@ -341,8 +356,8 @@ export async function generateDailyLearningPlan(
     database.prepare(`
       INSERT INTO learning_plans (
         id, owner_id, local_date, status, version, generation_source, total_minutes, created_at, updated_at
-      ) VALUES (?, ?, ?, 'published', ?, 'ai', ?, ?, ?)
-    `).run(planId, ownerId, localDate, nextVersion, totalMinutes, createdAt, createdAt);
+      ) VALUES (?, ?, ?, 'published', ?, ?, ?, ?, ?)
+    `).run(planId, ownerId, localDate, nextVersion, generationSource, totalMinutes, createdAt, createdAt);
 
     const insertItem = database.prepare(`
       INSERT INTO learning_plan_items (
