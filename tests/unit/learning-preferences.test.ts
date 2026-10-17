@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { readPersistedValue, resetPersistenceCacheForTests, writePersistedValue } from "@/lib/client-persistence";
 import {
   applyAccessibilityPreferences,
   DEFAULT_LEARNING_PREFERENCES,
@@ -6,8 +7,8 @@ import {
   saveLearningPreferences,
 } from "@/lib/learning-preferences";
 
+beforeEach(() => resetPersistenceCacheForTests());
 afterEach(() => {
-  window.localStorage.clear();
   document.documentElement.className = "";
 });
 
@@ -45,9 +46,9 @@ describe("learning preferences", () => {
   });
 
   it("falls back safely for malformed or invalid stored preferences", () => {
-    window.localStorage.setItem("speakup:preferences:v1", "{broken");
+    writePersistedValue("speakup:preferences:v1", "{broken");
     expect(getLearningPreferences()).toEqual(DEFAULT_LEARNING_PREFERENCES);
-    window.localStorage.setItem("speakup:preferences:v1", JSON.stringify({
+    writePersistedValue("speakup:preferences:v1", JSON.stringify({
       englishLevel: "Expert",
       dailyGoalMinutes: 999,
       feedbackStyle: "harsh",
