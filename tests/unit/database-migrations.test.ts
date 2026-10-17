@@ -102,7 +102,7 @@ describe("SQLite schema migrations", () => {
       .get() as { count: number };
 
     expect(saved?.data_value).toBe('{"dailyTarget":15}');
-    expect(migrationCount.count).toBe(13);
+    expect(migrationCount.count).toBe(12);
   });
   it("enforces learner ownership across plan items and practice attempts", () => {
     useTemporaryDatabase();
