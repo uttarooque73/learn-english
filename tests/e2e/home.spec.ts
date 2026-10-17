@@ -301,31 +301,33 @@ test("vocabulary expression library explains and saves collocations and phrasal 
 
 
 test("settings can permanently clear saved sessions and vocabulary after confirmation", async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem("speakup:sessions:v1", JSON.stringify([{ id: "saved-session", scenario: "At work", startedAt: "2026-10-16T10:00:00.000Z", updatedAt: "2026-10-16T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["I finished the task."] }]));
-    localStorage.setItem("speakup:vocabulary:v1", JSON.stringify([{ id: "saved-word", phrase: "meet a deadline", meaning: "Finish on time.", example: "We met the deadline.", savedAt: "2026-10-16T10:00:00.000Z" }]));
-  });
+  await page.request.post("/api/persistence", { data: { key: "speakup:sessions:v1", value: JSON.stringify([{ id: "saved-session", scenario: "At work", startedAt: "2026-10-16T10:00:00.000Z", updatedAt: "2026-10-16T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["I finished the task."] }]) } });
+  await page.request.post("/api/persistence", { data: { key: "speakup:vocabulary:v1", value: JSON.stringify([{ id: "saved-word", phrase: "meet a deadline", meaning: "Finish on time.", example: "We met the deadline.", savedAt: "2026-10-16T10:00:00.000Z" }]) } });
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Your saved learning data" })).toBeVisible();
   await expect(page.getByText("Saved conversations").locator("..").getByText("1")).toBeVisible();
   page.on("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete all saved practice data" }).click();
   await expect(page.getByRole("status").filter({ hasText: "All saved conversations, summaries, and vocabulary have been deleted" })).toBeVisible();
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("speakup:sessions:v1") || "[]").length)).toBe(0);
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("speakup:vocabulary:v1") || "[]").length)).toBe(0);
+  const afterDelete = await page.request.get("/api/persistence");
+  const deletedEntries = await afterDelete.json() as { entries: Array<{ key: string; value: string }> };
+  expect(deletedEntries.entries.filter((entry) => ["speakup:sessions:v1", "speakup:vocabulary:v1"].includes(entry.key))).toHaveLength(0);
 });
 
 test("a learner can delete one saved conversation from Practice Room history", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("speakup:sessions:v1", JSON.stringify([
+  await page.request.post("/api/persistence", { data: { key: "speakup:sessions:v1", value: JSON.stringify([
     { id: "session-to-delete", scenario: "At work", startedAt: "2026-10-16T10:00:00.000Z", updatedAt: "2026-10-16T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["I finished the task."], messages: [{ role: "user", content: "I finished the task." }, { role: "assistant", content: "Great work." }] },
     { id: "session-to-keep", scenario: "Everyday life", startedAt: "2026-10-15T10:00:00.000Z", updatedAt: "2026-10-15T10:01:00.000Z", durationSeconds: 60, messageCount: 1, learnerMessages: ["I went shopping."] }
-  ])));
+  ]) } });
   await page.goto("/practice");
   await page.getByLabel("Saved conversations").selectOption("session-to-delete");
   page.on("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete selected" }).click();
   await expect(page.getByLabel("Saved conversations")).toContainText("Recent conversations (1)");
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("speakup:sessions:v1") || "[]").map((session: { id: string }) => session.id))).toEqual(["session-to-keep"]);
+  const persisted = await page.request.get("/api/persistence");
+  const persistedPayload = await persisted.json() as { entries: Array<{ key: string; value: string }> };
+  const savedSessions = JSON.parse(persistedPayload.entries.find((entry) => entry.key === "speakup:sessions:v1")?.value ?? "[]") as Array<{ id: string }>;
+  expect(savedSessions.map((session) => session.id)).toEqual(["session-to-keep"]);
 });
 
 
