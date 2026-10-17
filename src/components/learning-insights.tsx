@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getSessions, getVocabulary, removeVocabulary, type PracticeSession, type SavedVocabulary } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { getLearningAnalytics } from "@/lib/learning-analytics";
 
 export function LearningInsights({ mode }: { mode: "overview" | "progress" | "vocabulary" }) {
@@ -10,12 +11,14 @@ export function LearningInsights({ mode }: { mode: "overview" | "progress" | "vo
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    let active = true;
+    void initializeDatabasePersistence().then(() => {
+      if (!active) return;
       setSessions(getSessions());
       setWords(getVocabulary());
       setReady(true);
-    }, 0);
-    return () => window.clearTimeout(timer);
+    }).catch(() => { if (active) setReady(true); });
+    return () => { active = false; };
   }, []);
 
   const totalSeconds = useMemo(() => sessions.reduce((sum, session) => sum + session.durationSeconds, 0), [sessions]);
