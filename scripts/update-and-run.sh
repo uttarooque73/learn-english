@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Safely update SpeakUp AI and start the local development app without deleting local files.
+# Update SpeakUp AI and start the local development app.
+# Local tracked edits and untracked, non-ignored files are intentionally discarded.
+# Git-ignored files (including .env.local and node_modules) are preserved.
 # Run from any directory: bash scripts/update-and-run.sh
 
 log() { printf '\n[%s] %s\n' "SpeakUp AI" "$*"; }
@@ -17,13 +19,17 @@ cd "$PROJECT_DIR"
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "This script must be inside the SpeakUp AI Git repository."
 
-# Never destroy local work. Refuse to update when tracked edits or untracked files exist.
-if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
-  fail "Local changes or untracked files are present. Commit or stash them manually, then rerun this script. No local files have been deleted."
-fi
-
+# This script is intentionally a reset-and-update workflow. Preserve ignored local
+# configuration and dependencies, but discard tracked edits and untracked files.
 BRANCH="$(git branch --show-current)"
 [[ -n "$BRANCH" ]] || fail "Could not determine the current Git branch."
+
+if [[ -n "$(git status --porcelain --untracked-files=normal)" ]]; then
+  log "Discarding local tracked changes and untracked, non-ignored files..."
+  git reset --hard HEAD || fail "Could not reset tracked changes."
+  git clean -fd || fail "Could not remove untracked files."
+fi
+
 log "Updating branch '$BRANCH' from its configured remote..."
 git pull --ff-only || fail "Git update failed. Check your network, branch, and local Git state."
 
