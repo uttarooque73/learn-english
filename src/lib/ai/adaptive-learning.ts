@@ -283,7 +283,7 @@ export async function generateDailyLearningPlan(
   const database = getDatabase();
   const currentProfile = readProfile(ownerId);
   const targetMinutes = request.dailyTargetMinutes ?? currentProfile.daily_target_minutes;
-  if (request.localDate !== undefined && !/^\\d{4}-\\d{2}-\\d{2}$/.test(request.localDate)) {
+  if (request.localDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(request.localDate)) {
     throw new AdaptiveLearningError("invalid_input", "localDate must use YYYY-MM-DD format.");
   }
   const localDate = request.localDate ?? localDateForZone(currentProfile.timezone);
