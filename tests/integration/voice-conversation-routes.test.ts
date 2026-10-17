@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET as getSessions, POST as saveMessage } from "@/app/api/voice-conversations/session/route";
 import { GET as getFeedback, POST as finalizeFeedback } from "@/app/api/voice-conversations/feedback/route";
 import Database from "better-sqlite3";
+import { getDatabase } from "@/lib/database";
 
 type DatabaseGlobal = typeof globalThis & { speakupDatabase?: Database.Database };
 const databaseGlobal = globalThis as DatabaseGlobal;
@@ -94,6 +95,51 @@ describe("floating voice conversation persistence", () => {
 
     const hiddenSession = await getFeedback(request("http://localhost/api/voice-conversations/feedback?sessionId=private-session", { method: "GET" }, "owner-b"));
     expect(hiddenSession.status).toBe(404);
+  });
+
+  it("records completed feedback as idempotent learning evidence", async () => {
+    const item = {
+      messageId: "learner-message",
+      originalSentence: "I work as software engineer.",
+      correctedSentence: "I work as a software engineer.",
+      naturalSentence: null,
+      isCorrect: false,
+      errorCategories: ["grammar"],
+      severity: "minor",
+      explanation: "Use an article before a singular countable job title.",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({
+      response: JSON.stringify({ items: [item] }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const payload = {
+      sessionId: "learning-evidence-session",
+      topic: "Software Development",
+      proficiency: "Intermediate",
+      durationSeconds: 25,
+      messages: [
+        { id: "learner-message", role: "user", content: item.originalSentence, createdAt: "2026-10-18T00:00:01.000Z" },
+        { id: "assistant-message", role: "assistant", content: "Tell me more about your work.", createdAt: "2026-10-18T00:00:02.000Z" },
+      ],
+    };
+    const invoke = () => finalizeFeedback(request("http://localhost/api/voice-conversations/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    }));
+    const first = await invoke();
+    expect(first.status).toBe(200);
+    await expect(first.json()).resolves.toMatchObject({ feedbackStatus: "complete", overallFeedback: { totalUtterances: 1, analyzedUtterances: 1 } });
+
+    const database = getDatabase();
+    expect((database.prepare("SELECT COUNT(*) AS count FROM practice_attempts WHERE owner_id=?").get("owner-a") as { count: number }).count).toBe(1);
+    expect((database.prepare("SELECT COUNT(*) AS count FROM skill_assessments WHERE owner_id=? AND skill_key='speaking'").get("owner-a") as { count: number }).count).toBe(1);
+    expect((database.prepare("SELECT COUNT(*) AS count FROM learning_mistakes WHERE owner_id=?").get("owner-a") as { count: number }).count).toBe(1);
+
+    const second = await invoke();
+    expect(second.status).toBe(200);
+    expect((database.prepare("SELECT COUNT(*) AS count FROM practice_attempts WHERE owner_id=?").get("owner-a") as { count: number }).count).toBe(1);
+    expect((database.prepare("SELECT COUNT(*) AS count FROM skill_assessments WHERE owner_id=? AND skill_key='speaking'").get("owner-a") as { count: number }).count).toBe(1);
   });
 
   it("validates feedback requests before calling the model provider", async () => {
