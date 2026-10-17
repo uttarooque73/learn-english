@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import { GET, POST } from "@/app/api/ai-and-us/route";
@@ -32,7 +32,7 @@ function request(pathname: string, method = "GET", body?: unknown, owner = "test
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
 }
-afterEach(cleanup);
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); cleanup(); });
 
 describe("AI and Us practice API", () => {
   it("saves a paragraph and returns it only to its owner", async () => {
@@ -70,4 +70,38 @@ describe("AI and Us practice API", () => {
     const database = getDatabase();
     expect((database.prepare("SELECT COUNT(*) AS count FROM aius_reading_attempts WHERE owner_id = ?").get("test-owner") as { count: number }).count).toBe(1);
   });
+  it("generates and persists paragraph writing feedback through Ollama", async () => {
+    setup();
+    const savedParagraph = await POST(request("/api/ai-and-us", "POST", {
+      kind: "paragraph", title: "Work English", text: "I am working here since five years.", level: "Intermediate",
+    }));
+    const paragraphId = ((await savedParagraph.json()) as { paragraph: { id: string } }).paragraph.id;
+    const expectedFeedback = {
+      overallSummary: "The meaning is clear, but the tense and duration phrase need adjustment.",
+      corrections: [{
+        originalSentence: "I am working here since five years.",
+        correctedSentence: "I have been working here for five years.",
+        naturalAlternative: "I've been working here for five years.",
+        category: "grammar",
+        explanation: "Use the present perfect continuous for an activity that started in the past and continues now; use for with a duration.",
+      }],
+      vocabularySuggestions: [],
+      practiceSuggestions: ["Practise present perfect continuous with for and since."],
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ response: JSON.stringify(expectedFeedback) }), {
+      status: 200, headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await POST(request("/api/ai-and-us", "POST", { kind: "feedback", paragraphId }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ feedback: expectedFeedback, paragraphId });
+    const history = await GET(request("/api/ai-and-us"));
+    const data = await history.json() as { paragraphs: Array<{ id: string; feedback?: { overallSummary: string } | null }> };
+    expect(data.paragraphs.find((item) => item.id === paragraphId)?.feedback?.overallSummary).toContain("meaning is clear");
+
+    const wrongOwner = await POST(request("/api/ai-and-us", "POST", { kind: "feedback", paragraphId }, "other-owner"));
+    expect(wrongOwner.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
 });
