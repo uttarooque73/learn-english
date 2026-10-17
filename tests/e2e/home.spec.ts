@@ -445,3 +445,26 @@ test("selected text can be saved to vocabulary from different app pages", async 
     await page.request.delete("/api/persistence?key=speakup%3Avocabulary%3Av1");
   }
 });
+
+
+test("floating English partner opens, configures a topic, and loads saved-history state", async ({ page }) => {
+  await page.route("**/api/voice-conversations/session", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ sessions: [] }) });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open AI English Partner" }).click();
+  await expect(page.getByRole("dialog", { name: "AI English Partner" })).toBeVisible();
+  await page.getByLabel("Topic").selectOption("Custom Topic");
+  await expect(page.getByLabel("Custom topic")).toBeVisible();
+  await page.getByLabel("Custom topic").fill("Explaining a software release");
+  await page.getByLabel("English level").selectOption("Advanced");
+  await expect(page.getByLabel("English level")).toHaveValue("Advanced");
+
+  await page.getByRole("button", { name: "History" }).click();
+  await expect(page.getByText("No saved conversations yet.")).toBeVisible();
+});
