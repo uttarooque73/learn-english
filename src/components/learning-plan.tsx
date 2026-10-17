@@ -50,7 +50,9 @@ export function LearningPlan() {
             setCompleted(saved.completed.filter((title): title is string => typeof title === "string" && validTitles.has(title)));
           }
         } catch {
-          setError("Your saved daily plan could not be read. Refresh to retry.");
+          // Ignore malformed plan data and replace it with a fresh default after hydration.
+          setTarget(25);
+          setCompleted([]);
         }
       }
       refresh();
