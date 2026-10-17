@@ -251,7 +251,7 @@ export function ConversationCoach() {
       setSessionId(""); setActiveSession(null); startedAtRef.current = 0; setTab("history"); await refreshHistory();
     } catch (e) { setError(e instanceof Error ? e.message : "Could not finish the session."); }
   };
-  const openHistory = async (id: string) => {
+  const openHistory = useCallback(async (id: string) => {
     setError("");
     try {
       const response = await fetch(`/api/conversation-coach/sessions?id=${encodeURIComponent(id)}`, { cache: "no-store" });
@@ -265,7 +265,7 @@ export function ConversationCoach() {
       startedAtRef.current = sessionIdRef.current ? Date.now() - savedDuration * 1000 : 0;
       setElapsed(savedDuration); setTab("history");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not open session."); }
-  };
+  }, []);
   const deleteSession = async (id: string) => {
     if (!window.confirm("Delete this conversation and its transcript? This cannot be undone.")) return;
     const response = await fetch(`/api/conversation-coach/sessions?id=${encodeURIComponent(id)}`, { method: "DELETE" });
