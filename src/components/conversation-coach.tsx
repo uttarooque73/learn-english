@@ -138,7 +138,7 @@ export function ConversationCoach() {
     try {
       const response = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.map(({ role, content: text }) => ({ role, content: text })), scenario, difficulty, feedbackStyle: correctionMode }),
+        body: JSON.stringify({ messages: next.slice(-40).map(({ role, content: text }) => ({ role, content: text })), scenario, difficulty, feedbackStyle: correctionMode }),
       });
       if (!response.ok) { const data = await response.json(); throw new Error(data.error || "The tutor could not reply."); }
       if (!response.body) throw new Error("Streaming responses are not supported by this browser.");
