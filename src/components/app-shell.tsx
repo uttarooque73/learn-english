@@ -5,12 +5,13 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "practice" | "custom-scenarios" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "settings";
+type PageKey = "home" | "practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "settings";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
   { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
   { key: "custom-scenarios", label: "Custom scenarios", href: "/custom-scenarios", icon: "✦" },
+  { key: "conversation-coach", label: "AI Conversation Coach", href: "/conversation-coach", icon: "🎙" },
   { key: "vocabulary", label: "Vocabulary", href: "/vocabulary", icon: "Aa" },
   { key: "daily-vocabulary", label: "Daily Vocabulary", href: "/daily-vocabulary", icon: "✦" },
   { key: "progress", label: "My progress", href: "/progress", icon: "↗" },
@@ -75,7 +76,7 @@ export function AppShell({
             <div className="coach-spark">✦</div>
             <strong>Your voice matters.</strong>
             <p>Small conversations build big confidence.</p>
-            <Link href="/practice" className="coach-link">Start practicing <span>↗</span></Link>
+            <Link href="/conversation-coach" className="coach-link">Talk with your AI coach <span>↗</span></Link>
           </div>
           <div className="profile-row">
             <div className="avatar">U</div>

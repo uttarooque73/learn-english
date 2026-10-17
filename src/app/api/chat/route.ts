@@ -164,6 +164,7 @@ export async function POST(request: Request) {
               "Adapt to this learner level: " + difficulty + ". " + DIFFICULTY_GUIDES[difficulty] + " " +
               "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " + sessionGoalGuidance + " " + sessionDurationGuidance + " " +
               "Do not interrupt with unsolicited grammar lessons. If the learner asks for correction, give one natural correction and a brief explanation. " +
+              "For balanced feedback, when the learner makes a meaningful grammar or phrasing error, first respond to the meaning naturally, then add at most one concise, clearly labeled Quick tip with the corrected phrase and a brief reason. Ignore tiny errors that do not affect clarity, and never turn every response into a lesson. For detailed feedback, explain up to two useful corrections. If the learner asks for correction, answer directly and supportively. " +
               "Do not claim to score proficiency. Selected scenario: " + scenario + ". " + turnGuidance,
           },
           ...messages,
