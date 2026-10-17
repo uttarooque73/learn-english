@@ -31,6 +31,12 @@ export default function PracticePage() {
 
       <PracticeExperience prompts={prompts} />
 
+      <section className="next-step-card">
+        <div className="next-step-icon">✦</div>
+        <div><strong>Have a specific conversation coming up?</strong><p>Build a role-play for your exact situation with local Ollama, then save it and rehearse again whenever you need.</p></div>
+        <Link href="/custom-scenarios" className="text-link">Create a scenario <span>→</span></Link>
+      </section>
+
       <section className="practice-tools-section" aria-labelledby="practice-tools-heading">
         <div className="section-heading practice-tools-heading">
           <div><p className="eyebrow">OPTIONAL EXTRAS</p><h2 id="practice-tools-heading">More ways to improve</h2></div>
