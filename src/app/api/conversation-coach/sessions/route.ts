@@ -66,7 +66,8 @@ export async function GET(req: NextRequest) {
       return session ? respond({ session }, req, owner) : respond({ error: "Conversation session not found." }, req, owner, 404);
     }
     const sessions = getDatabase().prepare(`SELECT s.id,s.title,s.scenario,s.difficulty,s.status,s.started_at AS startedAt,s.updated_at AS updatedAt,s.duration_seconds AS durationSeconds,
-      (SELECT COUNT(*) FROM conversation_coach_turns t WHERE t.session_id=s.id AND t.owner_id=s.owner_id) AS turnCount
+      (SELECT COUNT(*) FROM conversation_coach_turns t WHERE t.session_id=s.id AND t.owner_id=s.owner_id) AS turnCount,
+      (SELECT COALESCE(SUM(json_array_length(t.correction_json)),0) FROM conversation_coach_turns t WHERE t.session_id=s.id AND t.owner_id=s.owner_id) AS correctionCount
       FROM conversation_coach_sessions s WHERE s.owner_id=? ORDER BY s.updated_at DESC LIMIT 100`).all(owner);
     return respond({ sessions }, req, owner);
   } catch (error) {
