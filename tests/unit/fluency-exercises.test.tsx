@@ -11,8 +11,8 @@ describe("FluencyExercises", () => {
     fireEvent.click(screen.getByRole("button", { name: /Quick response/ }));
     expect(screen.getByText("What is one skill you would like to learn, and why?")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Your response"), { target: { value: "I want to learn English." } });
-    expect(screen.getByText("5 words")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Transcript of your spoken answer"), { target: { value: "I want to learn English." } });
+    expect(screen.getByText("5 words detected")).toBeInTheDocument();
   });
 
   it("counts possible filler words and shows a supportive reflection", () => {
