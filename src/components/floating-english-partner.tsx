@@ -59,6 +59,7 @@ export function FloatingEnglishPartner() {
   const startedAtRef = useRef<number>(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stopSessionRef = useRef<(() => void) | null>(null);
+  const startListeningRef = useRef<(() => void) | null>(null);
   const requestAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => { messagesRef.current = messages; scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
@@ -142,10 +143,8 @@ export function FloatingEnglishPartner() {
     } finally {
       requestAbortRef.current = null;
       busyRef.current = false; setBusy(false);
-      if (shouldListenRef.current) window.setTimeout(() => startListening(), 180);
+      if (shouldListenRef.current) window.setTimeout(() => startListeningRef.current?.(), 180);
     }
-  // startListening is intentionally declared below and referenced through a stable function.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [append, customTopic, level, speak, topic]);
 
   const startListening = useCallback(() => {
@@ -186,13 +185,15 @@ export function FloatingEnglishPartner() {
       };
       recognition.onend = () => {
         if (recognitionRef.current === recognition) recognitionRef.current = null;
-        if (shouldListenRef.current && !busyRef.current) window.setTimeout(() => startListening(), 300);
+        if (shouldListenRef.current && !busyRef.current) window.setTimeout(() => startListeningRef.current?.(), 300);
       };
       recognitionRef.current = recognition;
       setStatus("Listening");
       recognition.start();
     } catch { recognitionRef.current = null; setStatus("Could not start the microphone. Check browser permissions."); }
   }, [requestReply]);
+
+  useEffect(() => { startListeningRef.current = startListening; }, [startListening]);
 
   const stopSession = useCallback(async () => {
     shouldListenRef.current = false;
@@ -268,18 +269,14 @@ export function FloatingEnglishPartner() {
     }
   }, []);
 
-  useEffect(() => {
-    if (open && tab === "history") void loadHistory();
-  }, [loadHistory, open, tab]);
-
   const interruptSpeech = useCallback(() => {
     window.speechSynthesis?.cancel();
     setStatus("Speech interrupted");
     if (active) {
       shouldListenRef.current = true;
-      if (!busyRef.current) window.setTimeout(() => { if (!busyRef.current && shouldListenRef.current) startListening(); }, 150);
+      if (!busyRef.current) window.setTimeout(() => { if (!busyRef.current && shouldListenRef.current) startListeningRef.current?.(); }, 150);
     }
-  }, [active, startListening]);
+  }, [active]);
 
   const startSession = useCallback(async () => {
     setMessages([]); messagesRef.current = []; setFeedback([]); setOverallFeedback(null); setFeedbackStatus("idle"); setElapsed(0); setTab("conversation");
@@ -316,7 +313,7 @@ export function FloatingEnglishPartner() {
           </div>
           <div className="floating-english-status"><span className={active ? "live-dot" : ""} />{active ? status : status}<span className="floating-english-timer">{time}</span></div>
           {tab === "conversation" ? <div className="floating-english-transcript" ref={scrollRef} aria-live="polite">
-            {messages.length === 0 && <div className="floating-english-empty"><span>✦</span><strong>Let's build confidence together.</strong><p>Start a conversation and speak naturally. You can interrupt, pause, or stop whenever you like.</p></div>}
+            {messages.length === 0 && <div className="floating-english-empty"><span>✦</span><strong>Let&apos;s build confidence together.</strong><p>Start a conversation and speak naturally. You can interrupt, pause, or stop whenever you like.</p></div>}
             {messages.map((message) => <article key={message.id} className={`floating-english-message ${message.role}`}><small>{message.role === "user" ? "You" : "AI Partner"} · {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small><p>{message.content}</p></article>)}
           </div> : tab === "feedback" ? <div className="floating-english-feedback" aria-live="polite">
             {overallFeedback && <section className="floating-english-overall-feedback"><strong>Overall feedback</strong><p>Analyzed {String(overallFeedback.analyzedUtterances ?? 0)} of {String(overallFeedback.totalUtterances ?? 0)} learner utterances; {String(overallFeedback.correctUtterances ?? 0)} were marked correct.</p>{Array.isArray(overallFeedback.frequentErrors) && overallFeedback.frequentErrors.length > 0 && <p><strong>Frequent patterns:</strong> {(overallFeedback.frequentErrors as Array<Record<string, unknown>>).map((item) => `${String(item.category)} (${String(item.count)})`).join(", ")}</p>}{Array.isArray(overallFeedback.recommendations) && overallFeedback.recommendations.length > 0 && <p><strong>Practice next:</strong> {(overallFeedback.recommendations as string[]).join(" ")}</p>}</section>}
@@ -346,7 +343,7 @@ export function FloatingEnglishPartner() {
           <footer className="floating-english-controls">
             {!active ? <button className="floating-english-start" type="button" onClick={() => void startSession()} disabled={busy}>Start Conversation</button> : <><button type="button" onClick={interruptSpeech}>Interrupt speech</button><button className="floating-english-stop" type="button" onClick={() => void stopSession()}>Stop Conversation</button></>}
             {!active && (feedbackStatus === "failed" || feedbackStatus === "partial") && <button type="button" onClick={() => void stopSession()}>Retry feedback</button>}
-            <button type="button" onClick={() => setTab("history")} disabled={active}>History</button>
+            <button type="button" onClick={() => { setTab("history"); void loadHistory(); }} disabled={active}>History</button>
             {tab !== "conversation" && <button type="button" onClick={() => setTab("conversation")}>Conversation</button>}
             {tab !== "feedback" && feedbackStatus !== "idle" && <button type="button" onClick={() => setTab("feedback")}>Review feedback</button>}
           </footer>
