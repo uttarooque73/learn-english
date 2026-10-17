@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { addLearningScenario, getLearningScenarios, removeLearningScenario, type LearningScenario } from "@/lib/learning-scenarios";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 export function LearningOptionsManager() {
   const [items, setItems] = useState<LearningScenario[]>([]);
@@ -11,7 +12,7 @@ export function LearningOptionsManager() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
 
-  useEffect(() => { const timer = window.setTimeout(() => setItems(getLearningScenarios()), 0); return () => window.clearTimeout(timer); }, []);
+  useEffect(() => { let active = true; void initializeDatabasePersistence().then(() => { if (active) setItems(getLearningScenarios()); }).catch(() => { if (active) setError("Could not load your options from the database."); }); return () => { active = false; }; }, []);
 
   function submit() {
     setError(""); setStatus("");
@@ -27,7 +28,7 @@ export function LearningOptionsManager() {
   }
 
   return <section className="settings-card dynamic-options-manager" aria-labelledby="dynamic-options-heading">
-    <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">＋</span><div><h2 id="dynamic-options-heading">Customize your practice options</h2><p>Add your own situations, topics, and role-plays. They will appear alongside the built-in options throughout the practice experience. Your options are saved in this browser.</p></div></div>
+    <div className="settings-card-heading"><span className="settings-symbol" aria-hidden="true">＋</span><div><h2 id="dynamic-options-heading">Customize your practice options</h2><p>Add your own situations, topics, and role-plays. They will appear alongside the built-in options throughout the practice experience. Your options are saved in the application database.</p></div></div>
     <div className="dynamic-option-form">
       <label className="settings-field">Option title<input maxLength={60} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Explain my project to a client" /></label>
       <label className="settings-field">What should you practice?<textarea maxLength={180} rows={2} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="e.g. Describe the project clearly, explain trade-offs, and answer questions." /></label>
