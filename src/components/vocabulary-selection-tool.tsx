@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { getVocabulary, saveVocabulary } from "@/lib/learning-storage";
 import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 type SelectionAnchor = { phrase: string; top: number; left: number };
-type SelectionAction = "save" | "practice";
 
 function normalizeSelection(value: string) {
   return value.replace(/\s+/g, " ").trim().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
@@ -15,7 +13,6 @@ function normalizeSelection(value: string) {
 export function VocabularySelectionTool() {
   const [selection, setSelection] = useState<SelectionAnchor | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [action, setAction] = useState<SelectionAction>("save");
   const [meaning, setMeaning] = useState("");
   const [example, setExample] = useState("");
   const [status, setStatus] = useState("");
@@ -41,7 +38,6 @@ export function VocabularySelectionTool() {
         left: Math.max(12, Math.min(rect.left, window.innerWidth - panelWidth - 12)),
       });
       setFormOpen(false);
-      setAction("save");
       setMeaning("");
       setExample("");
       setStatus("");
