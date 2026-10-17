@@ -425,10 +425,10 @@ export function FloatingEnglishPartner() {
 
   return (
     <>
-      <button className="floating-english-trigger" type="button" aria-label="Open AI English Partner" aria-expanded={open} onClick={() => { setOpen(true); setMinimized(false); }}>
+      <button className="floating-english-trigger" type="button" aria-label="Open Jarvis assistant" aria-expanded={open} onClick={() => { setOpen(true); setMinimized(false); }}>
         <span aria-hidden="true">✦</span><span className="floating-english-trigger-label">Speak English</span>
       </button>
-      {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""}`} role="dialog" aria-label="AI English Partner" aria-modal="false">
+      {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""}`} role="dialog" aria-label="Jarvis" aria-modal="false">
         <header className="floating-english-header">
           <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>Jarvis</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
           <div className="floating-english-header-actions">
