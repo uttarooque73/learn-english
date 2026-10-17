@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDatabase } from "@/lib/database";
+import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import {
   resetLearningWorkflowForTests,
   runLearningWorkflow,
@@ -73,6 +73,7 @@ describe("learning workflow foundation", () => {
 
   it("rejects an invalid owner before creating a run", async () => {
     setupDatabase();
+    ensurePersistenceSchema();
 
     await expect(runLearningWorkflow("", "Practice speaking")).rejects.toBeInstanceOf(LearningWorkflowError);
     expect(getDatabase().prepare("SELECT COUNT(*) AS count FROM agent_runs").get()).toEqual({ count: 0 });
