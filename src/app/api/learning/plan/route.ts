@@ -123,6 +123,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
               : item.activityType === "fluency" ? "fluency"
                 : item.activityType === "grammar" ? "micro_lesson" : "conversation";
         recordPracticeEvidence(ownerId, {
+          planItemId: item.id,
           source,
           activityType: item.activityType,
           activityRef: item.activityRef ?? item.activityType,
