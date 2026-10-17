@@ -28,7 +28,7 @@ test("AI and Us provides discussion and paragraph practice tabs", async ({ page 
     await route.continue();
   });
   await page.goto("/ai-and-us");
-  await expect(page.getByRole("heading", { name: "AI and Us" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "AI and Us", exact: true })).toBeVisible();
   await expect(page.getByRole("tab", { name: "AI and Us Discussion" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Paragraph Practice" })).toBeVisible();
   await page.getByRole("tab", { name: "Paragraph Practice" }).click();
