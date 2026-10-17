@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { getVocabulary, saveVocabulary } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 type SelectionAnchor = { phrase: string; top: number; left: number };
 
@@ -60,6 +61,7 @@ export function VocabularySelectionTool() {
   async function saveSelectedText(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selection) return;
+    try { await initializeDatabasePersistence(); } catch { setStatus("Could not load your vocabulary from the database. Please retry."); return; }
     const existing = getVocabulary().find((item) => item.phrase.trim().toLocaleLowerCase() === selection.phrase.toLocaleLowerCase());
     if (existing) {
       setStatus("“" + selection.phrase + "” is already in your vocabulary.");
