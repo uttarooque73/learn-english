@@ -48,6 +48,8 @@ export function ConversationCoach() {
   const [elapsed, setElapsed] = useState(0);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const recognitionRef = useRef<Recognition | null>(null);
+  const startListeningRef = useRef<(() => void) | null>(null);
+  const sessionIdRef = useRef("");
   const turnsRef = useRef<Turn[]>([]);
   const startedAtRef = useRef<number>(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -83,7 +85,7 @@ export function ConversationCoach() {
     return preferred.find(v => v.voiceURI === voiceURI) || preferred[0] || voices.find(v => v.voiceURI === voiceURI) || voices.find(v => v.lang.toLowerCase() === "en-us") || voices[0];
   }, [voices, voiceGender, voiceURI]);
 
-  const play = useCallback((text: string) => {
+  const play = useCallback((text: string, resumeListening = false) => {
     if (!("speechSynthesis" in window)) { setError("Speech playback is not supported in this browser."); return; }
     stopSpeaking();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -91,7 +93,15 @@ export function ConversationCoach() {
     else utterance.lang = "en-US";
     utterance.rate = speed;
     utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => setSpeaking(false);
+    utterance.onend = () => {
+      setSpeaking(false);
+      // Resume the microphone after the tutor finishes so the learner can answer hands-free.
+      if (resumeListening && sessionIdRef.current) {
+        window.setTimeout(() => {
+          if (sessionIdRef.current) startListeningRef.current?.();
+        }, 300);
+      }
+    };
     utterance.onerror = () => setSpeaking(false);
     window.speechSynthesis.speak(utterance);
   }, [availableVoice, speed]);
@@ -116,6 +126,7 @@ export function ConversationCoach() {
     });
     const data = await response.json();
     if (!response.ok) { setError(data.error || "Could not start a session."); return; }
+    sessionIdRef.current = data.session.id;
     setSessionId(data.session.id); setActiveSession(data.session); setTab("practice");
     startedAtRef.current = Date.now(); setElapsed(0);
     const greeting = newTurn("assistant", `Hi! I'm your English conversation coach. Let's practise ${scenario.toLowerCase()}. How are you today?`);
@@ -124,7 +135,7 @@ export function ConversationCoach() {
       const saved = await fetch("/api/conversation-coach/sessions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: data.session.id, status: "active", durationSeconds: 0, turns: [greeting] }) });
       if (!saved.ok) throw new Error("The session started, but the greeting could not be saved.");
       await refreshHistory();
-      play(greeting.content);
+      play(greeting.content, true);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save the greeting."); }
   }, [scenario, difficulty, play, refreshHistory]);
 
@@ -160,7 +171,7 @@ export function ConversationCoach() {
       const finalTurns = [...next, assistant];
       setTurns(finalTurns); turnsRef.current = finalTurns;
       await persistSession("active", finalTurns);
-      play(assistant.content);
+      play(assistant.content, true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
       try { await persistSession("active", turnsRef.current); } catch { /* Keep the original request error visible. */ }
@@ -183,11 +194,14 @@ export function ConversationCoach() {
       recognitionRef.current = recognition; recognition.start(); setListening(true);
     } catch { setListening(false); setError("Could not start the microphone. Please type your answer instead."); }
   };
+  startListeningRef.current = startListening;
   const stopListening = () => { recognitionRef.current?.stop(); setListening(false); };
   const endSession = async () => {
+    sessionIdRef.current = "";
     stopListening(); stopSpeaking();
     try {
       await persistSession("completed");
+      sessionIdRef.current = "";
       setSessionId(""); setActiveSession(null); startedAtRef.current = 0; setTab("history"); await refreshHistory();
     } catch (e) { setError(e instanceof Error ? e.message : "Could not finish the session."); }
   };
@@ -197,7 +211,9 @@ export function ConversationCoach() {
       const response = await fetch(`/api/conversation-coach/sessions?id=${encodeURIComponent(id)}`, { cache: "no-store" });
       const data = await response.json(); if (!response.ok) throw new Error(data.error || "Could not open session.");
       setActiveSession(data.session); setTurns(data.session.turns || []); turnsRef.current = data.session.turns || [];
-      setSummary(data.session.summary || null); setScenario(data.session.scenario); setDifficulty(data.session.difficulty); setSessionId(data.session.status === "active" ? data.session.id : "");
+      setSummary(data.session.summary || null); setScenario(data.session.scenario); setDifficulty(data.session.difficulty);
+      sessionIdRef.current = data.session.status === "active" ? data.session.id : "";
+      setSessionId(sessionIdRef.current);
       startedAtRef.current = 0; setElapsed(data.session.durationSeconds || 0); setTab("history");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not open session."); }
   };
@@ -206,7 +222,7 @@ export function ConversationCoach() {
     const response = await fetch(`/api/conversation-coach/sessions?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     const data = await response.json();
     if (!response.ok) { setError(data.error || "Could not delete session."); return; }
-    if (activeSession?.id === id) { setActiveSession(null); setTurns([]); setSessionId(""); }
+    if (activeSession?.id === id) { sessionIdRef.current = ""; setActiveSession(null); setTurns([]); setSessionId(""); }
     await refreshHistory();
   };
   const createSummary = async () => {
