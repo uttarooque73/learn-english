@@ -6,6 +6,17 @@ import { initializeDatabasePersistence, readPersistedValue, writePersistedValue 
 import { getSessions, getVocabulary, reviewVocabulary, type SavedVocabulary, type PracticeSession } from "@/lib/learning-storage";
 import { getLearningAnalytics } from "@/lib/learning-analytics";
 
+type AdaptivePlanItem = { id: string; position: number; activityType: string; title: string; skillKey: string; durationMinutes: number; priority: number; reason: string; status: "pending" | "in_progress" | "completed" | "skipped" };
+type AdaptivePlan = { id: string; localDate: string; status: string; version: number; totalMinutes: number; items: AdaptivePlanItem[] };
+
+function activityHref(activityType: string) {
+  if (activityType === "vocabulary") return "/vocabulary";
+  if (activityType === "shadowing" || activityType === "listening") return "/shadowing";
+  if (activityType === "grammar") return "/micro-lessons";
+  if (activityType === "fluency") return "/fluency";
+  return "/conversation-coach";
+}
+
 const PLAN_KEY = "speakup:daily-learning-plan:v1";
 const DAILY_TARGETS = [10, 15, 25, 30];
 type SavedPlan = { target?: number; date?: string; completed?: string[] };
@@ -32,6 +43,10 @@ export function LearningPlan() {
   const [target, setTarget] = useState(25);
   const [completed, setCompleted] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [adaptivePlan, setAdaptivePlan] = useState<AdaptivePlan | null>(null);
+  const [adaptiveGoal, setAdaptiveGoal] = useState("Improve everyday English communication");
+  const [adaptiveLoading, setAdaptiveLoading] = useState(false);
+  const [adaptiveError, setAdaptiveError] = useState("");
 
   const refresh = useCallback(() => {
     setWords(getVocabulary());
@@ -59,6 +74,13 @@ export function LearningPlan() {
       }
       refresh();
       setReviewTimestamp(Date.now());
+      void fetch("/api/learning/plan", { cache: "no-store" }).then(async (response) => {
+        const payload = await response.json() as { plan?: AdaptivePlan | null; error?: string };
+        if (!response.ok) throw new Error(payload.error || "Could not load your adaptive plan.");
+        if (active) setAdaptivePlan(payload.plan ?? null);
+      }).catch((cause) => {
+        if (active) setAdaptiveError(cause instanceof Error ? cause.message : "Could not load your adaptive plan.");
+      });
       setReady(true);
     }).catch(() => {
       if (!active) return;
@@ -97,6 +119,42 @@ export function LearningPlan() {
     refresh();
   }
 
+  async function generateAdaptivePlan() {
+    setAdaptiveLoading(true);
+    setAdaptiveError("");
+    try {
+      const response = await fetch("/api/learning/plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dailyTargetMinutes: target, goal: adaptiveGoal }),
+      });
+      const payload = await response.json() as { plan?: AdaptivePlan; error?: string };
+      if (!response.ok || !payload.plan) throw new Error(payload.error || "Could not generate your personalized plan.");
+      setAdaptivePlan(payload.plan);
+    } catch (cause) {
+      setAdaptiveError(cause instanceof Error ? cause.message : "Could not generate your personalized plan.");
+    } finally {
+      setAdaptiveLoading(false);
+    }
+  }
+
+  async function updateAdaptiveItem(item: AdaptivePlanItem, status: AdaptivePlanItem["status"]) {
+    setAdaptiveError("");
+    try {
+      const response = await fetch("/api/learning/plan", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planItemId: item.id, status }),
+      });
+      const payload = await response.json() as { plan?: AdaptivePlan | null; error?: string };
+      if (!response.ok) throw new Error(payload.error || "Could not update the activity.");
+      if (payload.plan) setAdaptivePlan(payload.plan);
+    } catch (cause) {
+      setAdaptiveError(cause instanceof Error ? cause.message : "Could not update the activity.");
+    }
+  }
+
+
   if (!ready) return <section className="section-block"><p>Loading your saved learning data…</p></section>;
   if (error) return <section className="section-block" role="alert"><h2>Learning plan unavailable</h2><p>{error}</p><button type="button" onClick={() => window.location.reload()}>Retry</button></section>;
 
@@ -113,6 +171,38 @@ export function LearningPlan() {
             </select>
           </label>
         </div>
+      </section>
+
+      <section className="section-block">
+        <div className="section-heading"><div><p className="eyebrow">PERSONALIZED ROUTINE</p><h2>Adaptive learning plan</h2></div>{adaptivePlan && <span className="section-note">Version {adaptivePlan.version} · {adaptivePlan.totalMinutes} minutes</span>}</div>
+        <div className="next-step-card">
+          <div>
+            <strong>Build today's plan from your saved evidence</strong>
+            <p>The planner considers your goals, due vocabulary reviews, skill estimates, recurring mistakes, and recent practice.</p>
+            <label>Learning goal{" "}
+              <input aria-label="Adaptive learning goal" value={adaptiveGoal} maxLength={500} onChange={(event) => setAdaptiveGoal(event.target.value)} />
+            </label>
+          </div>
+          <div className="review-actions">
+            <button type="button" disabled={adaptiveLoading || !adaptiveGoal.trim()} onClick={() => void generateAdaptivePlan()}>
+              {adaptiveLoading ? "Generating…" : adaptivePlan ? "Regenerate plan" : "Generate plan"}
+            </button>
+          </div>
+        </div>
+        {adaptiveError && <p className="feature-feedback" role="alert">{adaptiveError}</p>}
+        {!adaptivePlan ? <div className="feature-empty"><strong>No adaptive plan for today yet</strong><p>Generate one when your local Ollama model is available. Your existing manual routine remains available below.</p></div> :
+          <div className="stats-grid">{adaptivePlan.items.map((item) => (
+            <article className="stat-card" key={item.id}>
+              <div className="stat-top">
+                <label><input type="checkbox" checked={item.status === "completed"} onChange={(event) => void updateAdaptiveItem(item, event.target.checked ? "completed" : "pending")} /> Done</label>
+                <span className="stat-tag">{item.durationMinutes} MIN</span>
+              </div>
+              <h3>{item.title}</h3>
+              <p>{item.reason}</p>
+              <p className="section-note">Focus: {item.skillKey} · {item.status.replace("_", " ")}</p>
+              <Link className="text-link" href={activityHref(item.activityType)}>Start activity <span>→</span></Link>
+            </article>
+          ))}</div>}
       </section>
 
       <section className="section-block">
