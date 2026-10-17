@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ListenButton } from "@/components/listen-button";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { getDueVocabulary, getVocabulary, removeVocabulary, reviewVocabulary, saveVocabulary, updateVocabularyStatus, type SavedVocabulary, type VocabularyStatus } from "@/lib/learning-storage";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 const statusLabels: Record<VocabularyStatus, string> = { learning: "Learning", familiar: "Familiar", mastered: "Mastered" };
 
@@ -104,8 +105,14 @@ export function VocabularyNotebook() {
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => { setWords(getVocabulary()); if (new URLSearchParams(window.location.search).get("mode") === "review") setMode("review"); setReady(true); }, 0);
-    return () => window.clearTimeout(timer);
+    let active = true;
+    void initializeDatabasePersistence().then(() => {
+      if (!active) return;
+      setWords(getVocabulary());
+      if (new URLSearchParams(window.location.search).get("mode") === "review") setMode("review");
+      setReady(true);
+    }).catch(() => { if (active) setReady(true); });
+    return () => { active = false; };
   }, []);
 
   const filtered = useMemo(() => words.filter((word) => {
