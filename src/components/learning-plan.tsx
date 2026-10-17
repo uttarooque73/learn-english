@@ -147,6 +147,31 @@ export function LearningPlan() {
           ))}</div>}
       </section>
 
+      <section className="section-block" aria-labelledby="recommended-focus-heading">
+        <div className="section-heading"><div><p className="eyebrow">PERSONALIZED NEXT STEP</p><h2 id="recommended-focus-heading">Recommended focus</h2></div></div>
+        {dueWords.length > 0 ? (
+          <div className="next-step-card">
+            <div><strong>Start with vocabulary recall</strong><p>{dueWords.length} saved {dueWords.length === 1 ? "item is" : "items are"} due. Review the oldest items first before adding new words.</p></div>
+            <Link className="text-link" href="/vocabulary">Review vocabulary →</Link>
+          </div>
+        ) : analytics.commonCorrections.length > 0 ? (
+          <div className="next-step-card">
+            <div><strong>Work on a recurring correction</strong><p>You have repeated a pattern: “{analytics.commonCorrections[0].original}” → “{analytics.commonCorrections[0].improved}”. Practise it in your next conversation.</p></div>
+            <Link className="text-link" href="/conversation-coach">Practise with AI coach →</Link>
+          </div>
+        ) : sessions.length > 0 ? (
+          <div className="next-step-card">
+            <div><strong>Build speaking consistency</strong><p>You have saved practice history. Complete one short conversation today and review its feedback afterward.</p></div>
+            <Link className="text-link" href="/conversation-coach">Start a conversation →</Link>
+          </div>
+        ) : (
+          <div className="next-step-card">
+            <div><strong>Start with one real-life conversation</strong><p>Your plan will become more personalized as you save vocabulary and complete speaking sessions.</p></div>
+            <Link className="text-link" href="/custom-scenarios">Create a role-play →</Link>
+          </div>
+        )}
+      </section>
+
       <section className="section-block">
         <div className="section-heading"><div><p className="eyebrow">YOUR FEEDBACK LOOP</p><h2>Practice, notice, improve</h2></div></div>
         <div className="next-step-card"><div><strong>{analytics.currentStreak} day current streak</strong><p>{analytics.commonCorrections.length ? `One pattern to revisit: “${analytics.commonCorrections[0].original}” → “${analytics.commonCorrections[0].improved}”.` : "Your conversation corrections will appear here as you complete saved practice sessions."}</p><p>Saved sessions: {sessions.length} · Vocabulary bank: {words.length} items</p></div><Link className="text-link" href="/progress">View analytics →</Link></div>
