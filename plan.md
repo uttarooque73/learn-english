@@ -43,19 +43,20 @@ The repository currently contains a Next.js 16, React 19, TypeScript application
 - Learning analytics and progress views.
 - Existing API routes, database helpers, SQL migration files, Vitest tests, and Playwright tests.
 
-### Findings to verify during Phase 0
+### Phase 0 audit findings (initial code inspection)
 
-- Some learner data is stored as serialized records in the generic `app_user_data` table rather than purpose-built relational tables.
-- The client-facing learning-storage layer has a synchronous cache with asynchronous persistence behavior. The database must remain authoritative.
-- Migration SQL files exist, but the actual migration execution/versioning mechanism needs to be traced end-to-end before new migrations are designed.
+- Some learner state is stored as serialized records in the generic `app_user_data` table rather than purpose-built relational tables. The `client-persistence.ts` module maintains a synchronous in-memory cache and asynchronously synchronizes changes through `/api/persistence`; database durability and error visibility need review before expanding this pattern.
+- `src/lib/database.ts` exports `ensurePersistenceSchema()`, which currently creates only `app_user_data` and its owner index. It uses a module-level `schemaReady` boolean and does not itself apply the numbered SQL files.
+- Numbered SQL migration files exist under `db/migrations`, but at least the daily-vocabulary and conversation-coach API routes also define/create their tables inline. This means schema ownership is split between migration files and route-level schema setup. Phase 1 must consolidate schema changes behind one ordered, versioned migration path without breaking existing installations.
+- The conversation-coach and daily-vocabulary tables already include owner-scoped queries and indexes in the inspected code. Phase 1 must preserve and test those boundaries, and audit all other routes rather than assume every feature is equally protected.
 - The application uses an HTTP-only `speakup_owner` cookie for owner scope. Background jobs cannot rely on a browser cookie; each scheduled job must carry a validated owner identifier and enforce the same isolation rules.
 - A durable scheduled-job/worker and LangGraph checkpointing design has not yet been established.
-- The CI run inspected during planning had a failing conversation-coach unit test: `tests/unit/conversation-coach.test.tsx:90`, expecting the “tutor audio could not play” feedback. Playwright, lint, shell syntax, and type-check jobs passed in that run, while the unit/integration job failed and the production build was skipped. Recheck current CI before treating this as the current state. Fix the underlying behavior or test contract; do not weaken an assertion merely to obtain a green build.
+- The existing conversation-coach test already asserts that tutor playback failure remains visible while hands-free microphone recovery continues. The implementation was clearing the error when restarting recognition. PR [#41](https://github.com/uttarooque73/learn-english/pull/41) changes the automatic recovery path to preserve the message while manual microphone starts still clear stale errors. CI is running; the fix is not yet verified green or merged.
 
 **Baseline reference:** [Inspected main commit](https://github.com/uttarooque73/learn-english/commit/f2fa05188be56afb5456e3a4b91bf3bd15cec16a)  
-**CI run inspected:** [GitHub Actions run](https://github.com/uttarooque73/learn-english/actions/runs/38993144048)
+**CI run inspected:** [Previous GitHub Actions run](https://github.com/uttarooque73/learn-english/actions/runs/38993144048)
 
-This section is an initial audit snapshot, not a substitute for rechecking the current branch and live CI at implementation time.
+This is a repository inspection snapshot. Recheck current CI and complete the remaining route/data-flow audit before designing or applying schema migrations.
 
 ## 3. Scope and feature inventory
 
