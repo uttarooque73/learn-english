@@ -100,8 +100,9 @@ export function VocabularySelectionTool() {
       {selection && !formOpen && (
         <div className="vocabulary-selection-action" data-vocabulary-selection-tool style={{ top: selection.top, left: selection.left }}>
           <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => setFormOpen(true)} aria-label="Add selected text to vocabulary">
-            <span aria-hidden="true">＋</span> Add to vocabulary
+            <span aria-hidden="true">＋</span> Save vocabulary
           </button>
+          <button type="button" className="vocabulary-selection-practice" onMouseDown={(event) => event.preventDefault()} onClick={() => { const phrase = selection.phrase; setSelection(null); setFormOpen(false); window.getSelection()?.removeAllRanges(); window.location.assign(`/shadowing?text=${encodeURIComponent(phrase)}`); }} aria-label={`Practice ${selection.phrase}`}>🎙 Practice</button>
           <button type="button" className="vocabulary-selection-dismiss" onMouseDown={(event) => event.preventDefault()} onClick={() => setSelection(null)} aria-label="Dismiss vocabulary action">×</button>
         </div>
       )}
