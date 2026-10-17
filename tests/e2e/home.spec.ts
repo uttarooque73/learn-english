@@ -468,3 +468,70 @@ test("floating English partner opens, configures a topic, and loads saved-histor
   await page.getByRole("button", { name: "History" }).click();
   await expect(page.getByText("No saved conversations yet.")).toBeVisible();
 });
+
+
+test("floating English partner sends typed turns and renders plain-text AI replies and feedback", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: undefined });
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        cancel() {},
+        speak(utterance: SpeechSynthesisUtterance) {
+          window.setTimeout(() => utterance.onend?.(new Event("end") as SpeechSynthesisEvent), 0);
+        },
+      },
+    });
+  });
+  await page.route("**/api/voice-conversations/session", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ sessions: [] }) });
+    } else {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ saved: true }) });
+    }
+  });
+  await page.route("**/api/chat", async (route) => {
+    await route.fulfill({ status: 200, contentType: "text/plain", body: "That sounds interesting. What did you learn?" });
+  });
+  await page.route("**/api/voice-conversations/feedback", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          feedbackStatus: "complete",
+          feedback: [{
+            messageId: "learner-id",
+            originalSentence: "I work as software engineer.",
+            correctedSentence: "I work as a software engineer.",
+            naturalSentence: null,
+            isCorrect: false,
+            errorCategories: ["grammar"],
+            severity: "minor",
+            explanation: "Use an article before a singular countable job title.",
+          }],
+          overallFeedback: {
+            totalUtterances: 1, analyzedUtterances: 1, correctUtterances: 0,
+            frequentErrors: [{ category: "grammar", count: 1 }],
+            recommendations: ["Review articles before job titles."],
+          },
+        }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open AI English Partner" }).click();
+  await page.getByRole("button", { name: "Start Conversation" }).click();
+  const composer = page.getByLabel("Type a message");
+  await expect(composer).toBeVisible();
+  await composer.fill("I work as software engineer.");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.getByText("That sounds interesting. What did you learn?")).toBeVisible();
+  await page.getByRole("button", { name: "Stop Conversation" }).click();
+  await expect(page.getByText("Overall feedback")).toBeVisible();
+  await expect(page.getByText("Use an article before a singular countable job title.")).toBeVisible();
+});
