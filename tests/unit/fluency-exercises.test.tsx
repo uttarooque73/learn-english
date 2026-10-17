@@ -18,7 +18,7 @@ describe("FluencyExercises", () => {
   it("counts possible filler words and shows a supportive reflection", () => {
     render(<FluencyExercises />);
     fireEvent.click(screen.getByRole("button", { name: /Filler-word awareness/ }));
-    fireEvent.change(screen.getByLabelText("Your response"), { target: { value: "Um, I like this, you know." } });
+    fireEvent.change(screen.getByLabelText("Transcript of your spoken answer"), { target: { value: "Um, I like this, you know." } });
 
     expect(screen.getByText("3 possible filler words detected")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Finish exercise" }));
