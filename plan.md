@@ -544,3 +544,30 @@ Feature implementation is complete on branch `feat/floating-ai-conversation-feed
 - When repeat practice is enabled, each sentence feedback card offers **Practice corrected sentence**: the browser speaks the corrected version, listens for the learner's repetition, and provides a lightweight transcript similarity hint. This is not a phoneme-level pronunciation score.
 - Added integration tests for preference persistence, owner isolation, sentence feedback persistence, and invalid settings, plus Playwright coverage for toggles and the per-sentence feedback UI.
 - **Validation gate:** run full CI on the final branch head; merge only after all required checks pass and verify post-merge CI.
+
+
+## AI and Us Discussion + Paragraph Practice — 2026-10-18
+
+Feature branch: `feat/ai-and-us-paragraph-practice`
+
+### Scope
+- Add a dedicated `/ai-and-us` page with **AI and Us Discussion** and **Paragraph Practice** tabs.
+- Discussion presents topic-based, level-appropriate sentences in sequence, supports browser text-to-speech playback and reading aloud, and compares the recognized transcript against target text.
+- Paragraph practice supports editing and saving learner-owned paragraphs, listening to the complete paragraph or sentence-level playback, repeated sentence reading, transcript matching, and saved attempt history.
+- Reuse the existing `speakText` utility and `assessTranscript` comparator. Transcript similarity is explicitly not described as definitive phoneme-level pronunciation scoring.
+- Persist paragraphs and reading attempts in SQLite, with owner-scoped reads/writes, length/level validation, and new additive migration `010_ai_and_us_paragraph_practice.sql`.
+- Add the page to primary app navigation and follow the existing responsive application styling.
+
+### Initial implementation status
+- [x] Feature branch created from `main`.
+- [x] Dedicated page and two-tab practice UI added.
+- [x] Owner-scoped paragraph and reading-attempt API added.
+- [x] Additive SQL migration added.
+- [x] Navigation and styles added.
+- [ ] Automated tests and CI validation.
+- [ ] Final code review and PR readiness.
+
+### Known initial limits to resolve before marking complete
+- Browser speech recognition availability varies by browser; offer a clear error/fallback and avoid overstating pronunciation precision.
+- Current guided discussion uses locally generated prompt sentences; provider-backed dynamic AI discussion should only be added where the existing API can be reused safely.
+- Validate state handling, transcript finalization, and all API/migration paths in tests before merge.
