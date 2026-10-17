@@ -91,7 +91,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         .get(paragraphId, ownerId) as { id: string; text: string; proficiency_level: Level } | undefined;
       if (!paragraph) return respond({ error: "Paragraph not found." }, request, ownerId, 404);
 
-      const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\\/+$/, "");
+      const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
       const model = process.env.OLLAMA_MODEL || "qwen3:4b";
       const prompt = [
         "You are a careful, encouraging English writing coach.",
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         "Keep feedback learner-friendly. Limit corrections to 30, vocabulary suggestions to 15, practice suggestions to 8. Do not return Markdown fences.",
         "Learner level: " + paragraph.proficiency_level,
         "Paragraph: " + JSON.stringify(paragraph.text),
-      ].join("\\n\\n");
+      ].join("\n\n");
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 90000);
       let feedback: ParagraphFeedback;
