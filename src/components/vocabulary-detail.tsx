@@ -92,7 +92,7 @@ export function VocabularyDetail({ id }: { id: string }) {
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [id, loadExamples]);
+  }, [id, loadExamples, loadDetails]);
 
   function changeStatus(status: VocabularyStatus) {
     if (!word) return;
