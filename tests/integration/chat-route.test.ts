@@ -250,4 +250,63 @@ describe("POST /api/chat", () => {
       error: expect.stringContaining("Cannot connect to Ollama"),
     });
   });
+
+  it("supports the AI and Us reading-discussion output contract", async () => {
+    const ollamaBody = [
+      JSON.stringify({ message: { content: "Technology changes how we share ideas.\nIt helps teams work across distances.\nPeople can learn new skills online.\nWhat technology has helped you recently?" }, done: false }),
+      JSON.stringify({ done: true }),
+      "",
+    ].join("\n");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(ollamaBody, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "reading-discussion",
+        scenario: "Free conversation",
+        difficulty: "Intermediate",
+        messages: [{ role: "user", content: "Create four reading sentences about technology." }],
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toContain("Technology changes how we share ideas.");
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(options.body)) as { messages: { role: string; content: string }[] };
+    expect(sent.messages[0]?.content).toContain("READING-DISCUSSION OUTPUT CONTRACT");
+    expect(sent.messages[0]?.content).toContain("do not role-play a single live turn");
+    expect(sent.messages[sent.messages.length - 1]).toMatchObject({ role: "user", content: "Create four reading sentences about technology." });
+  });
+
+  it("supports AI-generated paragraph practice with an output-only writing contract", async () => {
+    const paragraph = "A healthy routine can make each day easier. Planning meals saves time and reduces stress. A short walk can improve energy. Which habit would you like to build first?";
+    const ollamaBody = [
+      JSON.stringify({ message: { content: paragraph }, done: false }),
+      JSON.stringify({ done: true }),
+      "",
+    ].join("\n");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(ollamaBody, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "paragraph-generation",
+        scenario: "Free conversation",
+        difficulty: "Beginner",
+        messages: [{ role: "user", content: "Write a paragraph about everyday life." }],
+      }),
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toContain("A healthy routine can make each day easier.");
+    const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const sent = JSON.parse(String(options.body)) as { messages: { role: string; content: string }[] };
+    expect(sent.messages[0]?.content).toContain("PARAGRAPH-GENERATION OUTPUT CONTRACT");
+    expect(sent.messages[0]?.content).toContain("do not role-play a single live turn");
+  });
+
 });
