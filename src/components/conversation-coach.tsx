@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListenButton } from "@/components/listen-button";
 import { stopSpeaking } from "@/lib/speech-playback";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { getLearningPreferences, saveLearningPreferences, type SpeechRate, type SpeechVoiceGender } from "@/lib/learning-preferences";
 
 type Correction = { original: string; improved: string; reason: string };
 type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[] };
@@ -31,9 +33,10 @@ export function ConversationCoach() {
   const [tab, setTab] = useState<"practice" | "history" | "progress">("practice");
   const [scenario, setScenario] = useState("Everyday life");
   const [difficulty, setDifficulty] = useState("Intermediate");
-  const [voiceGender, setVoiceGender] = useState<"female" | "male">("female");
+  const [voiceGender, setVoiceGender] = useState<SpeechVoiceGender>("automatic");
   const [voiceURI, setVoiceURI] = useState("");
-  const [speed, setSpeed] = useState(0.95);
+  const [speed, setSpeed] = useState<SpeechRate>(1);
+  const [speechPreferencesReady, setSpeechPreferencesReady] = useState(false);
   const [correctionMode, setCorrectionMode] = useState<"balanced" | "detailed">("balanced");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [sessionId, setSessionId] = useState("");
@@ -51,6 +54,22 @@ export function ConversationCoach() {
   const turnsRef = useRef<Turn[]>([]);
   const startedAtRef = useRef<number>(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    void initializeDatabasePersistence().then(() => {
+      if (!active) return;
+      const preferences = getLearningPreferences();
+      setVoiceGender(preferences.speechVoiceGender);
+      setVoiceURI(preferences.speechVoiceURI);
+      setSpeed(preferences.speechRate);
+    }).catch(() => {
+      if (active) setError("Could not load saved speech preferences from the database.");
+    }).finally(() => {
+      if (active) setSpeechPreferencesReady(true);
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => { turnsRef.current = turns; }, [turns]);
   useEffect(() => {
@@ -79,7 +98,11 @@ export function ConversationCoach() {
   useEffect(() => { void Promise.resolve().then(() => refreshHistory()); }, [refreshHistory]);
 
   const availableVoice = useMemo(() => {
-    const preferred = voices.filter(v => voiceGender === "female" ? /samantha|victoria|karen|zira|jenny|aria|ava|susan|hazel|moira|tessa|fiona|allison|female/i.test(v.name) : /alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron|male/i.test(v.name));
+    const preferred = voiceGender === "female"
+      ? voices.filter(v => /samantha|victoria|karen|zira|jenny|aria|ava|susan|hazel|moira|tessa|fiona|allison|female/i.test(v.name))
+      : voiceGender === "male"
+        ? voices.filter(v => /alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron|male/i.test(v.name))
+        : [];
     return preferred.find(v => v.voiceURI === voiceURI) || preferred[0] || voices.find(v => v.voiceURI === voiceURI) || voices.find(v => v.lang.toLowerCase() === "en-us") || voices[0];
   }, [voices, voiceGender, voiceURI]);
 
@@ -237,9 +260,9 @@ export function ConversationCoach() {
         <label>Conversation topic<select value={scenario} onChange={e => setScenario(e.target.value)} disabled={!!sessionId}>{SCENARIOS.map(s => <option key={s.name}>{s.name}</option>)}</select></label>
         <div className="coach-topic-grid">{SCENARIOS.slice(0, 4).map(s => <button key={s.name} className={scenario === s.name ? "selected" : ""} onClick={() => setScenario(s.name)} disabled={!!sessionId}><span>{s.icon}</span><strong>{s.name}</strong><small>{s.description}</small></button>)}</div>
         <label>English level<select value={difficulty} onChange={e => setDifficulty(e.target.value)} disabled={!!sessionId}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
-        <label>Tutor voice<select value={voiceGender} onChange={e => { setVoiceGender(e.target.value as "female" | "male"); setVoiceURI(""); }}><option value="female">Female voice</option><option value="male">Male voice</option></select></label>
-        <label>Specific voice<select value={voiceURI} onChange={e => setVoiceURI(e.target.value)}><option value="">Automatic best match</option>{voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}</select><small>Available voices depend on your device and browser.</small></label>
-        <label>Speaking speed <span className="coach-speed-value">{speed.toFixed(2)}×</span><input type="range" min="0.7" max="1.15" step="0.05" value={speed} onChange={e => setSpeed(Number(e.target.value))}/></label>
+        <label>Tutor voice<select value={voiceGender} disabled={!speechPreferencesReady} onChange={e => { const next = e.target.value as SpeechVoiceGender; setVoiceGender(next); setVoiceURI(""); saveLearningPreferences({ ...getLearningPreferences(), speechVoiceGender: next, speechVoiceURI: "" }); }}><option value="automatic">Automatic</option><option value="female">Female voice</option><option value="male">Male voice</option></select></label>
+        <label>Specific voice<select value={voiceURI} disabled={!speechPreferencesReady} onChange={e => { const next = e.target.value; setVoiceURI(next); saveLearningPreferences({ ...getLearningPreferences(), speechVoiceURI: next }); }}><option value="">Automatic best match</option>{voices.map(v => <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}</select><small>Available voices depend on your device and browser.</small></label>
+        <label>Speaking speed <span className="coach-speed-value">{speed.toFixed(1)}×</span><input type="range" min="0.8" max="1.2" step="0.2" value={speed} disabled={!speechPreferencesReady} onChange={e => { const next = Number(e.target.value) as SpeechRate; setSpeed(next); saveLearningPreferences({ ...getLearningPreferences(), speechRate: next }); }}/></label>
         <label>Feedback style<select value={correctionMode} onChange={e => setCorrectionMode(e.target.value as "balanced" | "detailed")}><option value="balanced">Balanced and encouraging</option><option value="detailed">More detailed explanations</option></select></label>
         {!sessionId ? <button className="button button-primary coach-start" onClick={() => void startSession()}>Start conversation <span>↗</span></button> : <button className="button button-light coach-start" onClick={() => void endSession()}>Finish & save session</button>}
         <p className="coach-privacy">Your transcripts and feedback are saved in your local SQLite database.</p>
