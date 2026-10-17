@@ -37,7 +37,7 @@ describe("LearningPlan", () => {
     vi.mocked(getLearningAnalytics).mockReturnValue({
       currentStreak: 2,
       commonCorrections: [],
-    } as ReturnType<typeof getLearningAnalytics>);
+    } as unknown as ReturnType<typeof getLearningAnalytics>);
 
     render(<LearningPlan />);
 
