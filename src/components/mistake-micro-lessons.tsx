@@ -6,7 +6,8 @@ import { initializeDatabasePersistence, readPersistedValue, writePersistedValue 
 
 type Weakness = { original: string; improved: string; reason: string; count: number; scenario: string };
 type QuizQuestion = { prompt: string; options: string[]; answer: string; explanation: string };
-type LessonResult = { id: string; original: string; improved: string; score: number; total: number; completedAt: string };\nconst RESULTS_KEY = "speakup:micro-lesson-results:v1";
+type LessonResult = { id: string; original: string; improved: string; score: number; total: number; completedAt: string };
+const RESULTS_KEY = "speakup:micro-lesson-results:v1";
 
 function collectWeaknesses(sessions: PracticeSession[]): Weakness[] {
   const map = new Map<string, Weakness>();
