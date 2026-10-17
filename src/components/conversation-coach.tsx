@@ -194,7 +194,9 @@ export function ConversationCoach() {
       recognitionRef.current = recognition; recognition.start(); setListening(true);
     } catch { setListening(false); setError("Could not start the microphone. Please type your answer instead."); }
   };
-  startListeningRef.current = startListening;
+  useEffect(() => {
+    startListeningRef.current = startListening;
+  }, [startListening]);
   const stopListening = () => { recognitionRef.current?.stop(); setListening(false); };
   const endSession = async () => {
     sessionIdRef.current = "";
