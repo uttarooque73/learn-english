@@ -24,8 +24,9 @@ export function speakText(text: string, onEnd?: () => void, rateOverride?: numbe
   const genderMatchedVoice = preferredVoicePattern
     ? englishVoices.find((candidate) => preferredVoicePattern.test(candidate.name))
     : undefined;
-  const voice = genderMatchedVoice
-    ?? (preferences.speechVoiceGender === "automatic" ? savedVoice : undefined)
+  // An explicitly selected voice takes precedence; gender is a fallback when no voice is saved.
+  const voice = savedVoice
+    ?? genderMatchedVoice
     ?? englishVoices.find((candidate) => candidate.lang.toLowerCase() === "en-us")
     ?? englishVoices[0]
     ?? null;
