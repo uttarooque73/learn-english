@@ -402,8 +402,8 @@ export function FloatingEnglishPartner() {
     startedAtRef.current = Date.now();
     activeRef.current = true;
     setActive(true); setOpen(true); setMinimized(false); shouldListenRef.current = true;
-    append("assistant", `Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
-    await speak(`Hello! I'm your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
+    append("assistant", `Hello! I'm Lexi, your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
+    await speak(`Hello! I'm Lexi, your AI English Partner. Let's practice ${topic === "Random Topic" ? "a fun topic" : topic === "Custom Topic" ? (customTopic || "your chosen topic") : topic}. I'll speak at a ${level.toLowerCase()} level. What do you think about it?`);
     startListening();
   }, [append, customTopic, level, speak, startListening, topic]);
 
@@ -417,7 +417,7 @@ export function FloatingEnglishPartner() {
       </button>
       {open && <section className={`floating-english-panel ${minimized ? "is-minimized" : ""}`} role="dialog" aria-label="AI English Partner" aria-modal="false">
         <header className="floating-english-header">
-          <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>AI English Partner</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
+          <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>Lexi · AI English Partner</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
           <div className="floating-english-header-actions">
             <button type="button" aria-label="Minimize conversation" onClick={() => setMinimized((v) => !v)}>{minimized ? "□" : "−"}</button>
             <button type="button" aria-label="Close conversation window" onClick={() => { if (active) void stopSession(); setOpen(false); }}>×</button>
