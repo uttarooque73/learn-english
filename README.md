@@ -80,6 +80,34 @@ Browser UI
 - **Speech:** Browser speech recognition and synthesis APIs, with text input as a fallback.
 
 
+## Adaptive multi-agent learning workflow
+
+The daily-plan and submitted-attempt paths use checkpointed LangGraph workflows. They reuse the existing learning pages and domain services; not every learning feature is a separate autonomous agent.
+
+### Daily plan graph
+
+`POST /api/learning/plan` invokes `runMultiAgentLearningWorkflow` in `src/lib/ai/multi-agent-learning.ts`.
+
+1. **Context loader** reads the learner profile, saved skill estimates, recurring mistakes, due vocabulary reviews, and recent attempt scores from SQLite.
+2. **Diagnostic agent** prioritizes skills only from saved evidence and records its confidence and reasons.
+3. **Conditional vocabulary-review agent** runs when overdue vocabulary reviews exist; otherwise the graph skips that node.
+4. **Practice planner agent** asks the configured Ollama provider for a bounded plan and receives the diagnostic as a prioritization hint. Deterministic policy and validated saved evidence remain authoritative.
+5. **Progress analyst** summarizes the plan and its evidence-backed priorities.
+
+The response keeps the existing `plan` field and adds `workflow.runId`, `workflow.diagnosis`, `workflow.summary`, and `workflow.agents`.
+
+### Attempt evaluation graph
+
+`POST /api/learning/attempts` invokes `runMultiAgentEvaluation` in `src/lib/ai/multi-agent-evaluation.ts`. The evaluation agent delegates to the existing validated evaluator and persists the attempt/evidence; the progress analyst returns a concise score/confidence summary. Repeated submissions continue to use the attempt idempotency key.
+
+### Persistence and operation
+
+- LangGraph checkpoints use the SQLite checkpoint saver configured with `SQLITE_DATABASE_PATH`.
+- Workflow metadata is stored in the owner-scoped `agent_runs` table. Run status and duration are recorded without storing raw answers in workflow metadata.
+- Open `http://localhost:3000/learning-plan`, enter a learning goal, and generate a plan to run the planning graph. Completing a real practice item through the attempts API runs the evaluation graph.
+- Existing conversation, vocabulary, grammar/micro-lesson, shadowing/pronunciation, listening, and fluency pages remain the learner-facing practice experiences. They are activity destinations, not claimed to be independent specialist agents yet.
+- Tests use an injected deterministic model provider, so graph and checkpoint tests do not require a live Ollama server.
+
 ## Durable adaptive-learning worker
 
 The adaptive planner uses a SQLite-backed job queue. Jobs have idempotency keys, bounded retries, per-attempt history, and expiring leases, so a process restart does not silently discard queued work.
