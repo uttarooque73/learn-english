@@ -1117,3 +1117,7 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .inline-practice-dialog .shadowing-page-layout{gap:12px}
 .inline-practice-dialog .shadowing-tabs{position:sticky;top:0;z-index:2;background:#fff}
 @media(max-width:600px){.inline-practice-backdrop{padding:0;align-items:stretch}.inline-practice-dialog{width:100%;max-height:100dvh;border-radius:0;padding:16px}.inline-practice-dialog .shadowing-controls{align-items:stretch;flex-direction:column}.inline-practice-dialog .shadowing-controls>*{width:100%}}
+
+
+.word-practice-speaking-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.word-practice-speaking-controls>span{color:var(--muted);font-size:11px;line-height:1.5}.word-practice-speaking-controls button{min-height:42px}.word-practice-speaking-controls button:focus-visible{outline:3px solid #9ebf8f;outline-offset:3px}
+@media(max-width:600px){.word-practice-speaking-controls{align-items:stretch;flex-direction:column}.word-practice-speaking-controls button{width:100%}}
