@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ListenButton } from "@/components/listen-button";
+import { submitLearningEvidence } from "@/lib/learning-evidence-client";
 
 type Exercise = "quick" | "daily" | "minute" | "fillers";
 type FluencyHistoryEntry = { id: string; exercise: Exercise; prompt: string; transcript: string; createdAt: string; durationSeconds: number };
@@ -141,6 +142,15 @@ export function FluencyExercises() {
       const payload = await response.json() as { entry?: FluencyHistoryEntry; error?: string };
       if (!response.ok || !payload.entry) throw new Error(payload.error || "Could not save speaking history.");
       setHistory((current) => [payload.entry!, ...current].slice(0, 100));
+      void submitLearningEvidence({
+        source: "fluency",
+        activityType: "fluency",
+        activityRef: prompt,
+        skillKey: "fluency",
+        responseText: spoken,
+        durationSeconds,
+        idempotencyKey: `fluency-attempt:${payload.entry.id}`,
+      }).catch(() => undefined);
       setHistoryNotice("Your spoken response was saved to the database.");
     } catch {
       setHistoryNotice("Could not save this speaking session to the database. Try again.");
