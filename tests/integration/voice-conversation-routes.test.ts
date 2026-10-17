@@ -129,7 +129,7 @@ describe("floating voice conversation persistence", () => {
     }));
     const first = await invoke();
     expect(first.status).toBe(200);
-    await expect(first.json()).resolves.toMatchObject({ feedbackStatus: "complete", overallFeedback: { totalUtterances: 1, analyzedUtterances: 1 } });
+    await expect(first.json()).resolves.toMatchObject({ feedbackStatus: "complete", overallFeedback: { totalUtterances: 1, analyzedUtterances: 1, usefulExpressions: ["I work as a software engineer."] } });
 
     const database = getDatabase();
     expect((database.prepare("SELECT COUNT(*) AS count FROM practice_attempts WHERE owner_id=?").get("owner-a") as { count: number }).count).toBe(1);
