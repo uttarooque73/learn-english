@@ -177,7 +177,7 @@ export function LearningPlan() {
         <div className="section-heading"><div><p className="eyebrow">PERSONALIZED ROUTINE</p><h2>Adaptive learning plan</h2></div>{adaptivePlan && <span className="section-note">Version {adaptivePlan.version} · {adaptivePlan.totalMinutes} minutes</span>}</div>
         <div className="next-step-card">
           <div>
-            <strong>Build today's plan from your saved evidence</strong>
+            <strong>Build today&apos;s plan from your saved evidence</strong>
             <p>The planner considers your goals, due vocabulary reviews, skill estimates, recurring mistakes, and recent practice.</p>
             <label>Learning goal{" "}
               <input aria-label="Adaptive learning goal" value={adaptiveGoal} maxLength={500} onChange={(event) => setAdaptiveGoal(event.target.value)} />
