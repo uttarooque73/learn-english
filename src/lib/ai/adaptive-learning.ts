@@ -498,6 +498,7 @@ export type EvidenceSource = "conversation" | "shadowing" | "fluency" | "micro_l
 
 export type LearningEvidenceRequest = {
   source: EvidenceSource;
+  planItemId?: string;
   activityType: ActivityType;
   activityRef?: string;
   skillKey?: string;
@@ -580,6 +581,7 @@ export function recordPracticeEvidence(ownerId: string, request: LearningEvidenc
   assertOwner(ownerId);
   ensurePersistenceSchema();
   if (!request || !EVIDENCE_SOURCES.includes(request.source) || !isActivityType(request.activityType)
+    || (request.planItemId !== undefined && (typeof request.planItemId !== "string" || !request.planItemId.trim() || request.planItemId.length > 100))
     || (request.activityRef !== undefined && (typeof request.activityRef !== "string" || request.activityRef.length > 240))
     || (request.skillKey !== undefined && !(SKILLS as readonly string[]).includes(request.skillKey))
     || (request.responseText !== undefined && (typeof request.responseText !== "string" || request.responseText.length > MAX_RESPONSE_LENGTH))
@@ -594,6 +596,12 @@ export function recordPracticeEvidence(ownerId: string, request: LearningEvidenc
   }
 
   const database = getDatabase();
+  if (request.planItemId) {
+    const ownedItem = database.prepare(
+      "SELECT id FROM learning_plan_items WHERE id = ? AND owner_id = ?",
+    ).get(request.planItemId, ownerId);
+    if (!ownedItem) throw new AdaptiveLearningError("plan_not_found", "The requested learning activity was not found.");
+  }
   const prior = database.prepare(`
     SELECT id FROM practice_attempts WHERE owner_id = ? AND idempotency_key = ?
   `).get(ownerId, request.idempotencyKey) as { id: string } | undefined;
@@ -627,9 +635,9 @@ export function recordPracticeEvidence(ownerId: string, request: LearningEvidenc
       INSERT OR IGNORE INTO practice_attempts (
         id, owner_id, plan_item_id, activity_type, activity_ref, response_json, result_json,
         duration_seconds, idempotency_key, submitted_at, completed_at
-      ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      attemptId, ownerId, request.activityType, activityRef,
+      attemptId, ownerId, request.planItemId ?? null, request.activityType, activityRef,
       JSON.stringify({ text: request.responseText?.slice(0, MAX_RESPONSE_LENGTH) ?? "" }),
       JSON.stringify(evidence), request.durationSeconds, request.idempotencyKey, now, now,
     );
