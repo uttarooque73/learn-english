@@ -9,10 +9,10 @@ Example:
 ```sh
 curl --fail --silent --show-error \
   --header "Authorization: Bearer $LEARNING_WORKER_SECRET" \
-  "$LEARNING_WORKER_URL/../operations"
+  "$LEARNING_OPERATIONS_URL"
 ```
 
-For deployments where the worker base URL is `https://example.com/api/learning/worker`, set the operations URL explicitly to `https://example.com/api/learning/operations`; do not depend on path rewriting in production scripts.
+Set `LEARNING_OPERATIONS_URL` explicitly to the deployed `/api/learning/operations` URL; do not rely on path rewriting from the worker URL.
 
 ## Staged pause / rollback
 
@@ -22,14 +22,23 @@ Before pausing, inspect the queue and current failures with the authenticated op
 
 ## Operational validation
 
+The CI suite includes automated checks for clean migrations, legacy-schema adoption, owner/data preservation, unique job claims across repeated worker claims, and SQLite backup/restore integrity. Run the following commands before rollout:
+
+```sh
+npm run lint
+npm run typecheck
+npm run test:coverage
+npm run build
+npm run test:e2e
+```
+
 Before production rollout:
 
-1. Run the full CI pipeline (lint, shell syntax, type-check, unit/integration coverage, production build, and Playwright).
-2. Exercise a fresh database and an upgrade from a representative existing database.
-3. Run multiple workers against the same SQLite database and verify lease ownership, bounded retries, and no duplicate plan side effects.
-4. Simulate provider timeout/unavailability and verify bounded retries and safe error codes.
-5. Record queue depth, expired leases, workflow failure rate, and p50/p95 workflow duration during a controlled load test.
-6. Verify that the operations endpoint rejects missing/incorrect secrets and never emits learner content.
-7. Back up the SQLite database and verify a restore before enabling scheduled automation.
+1. Exercise a fresh database and an upgrade from a representative existing database.
+2. Run multiple independent worker processes against the same SQLite database and verify lease ownership, bounded retries, and no duplicate plan side effects. The in-process claim test is a regression check, not a substitute for this deployment test.
+3. Simulate provider timeout/unavailability and verify bounded retries and safe error codes.
+4. Record queue depth, expired leases, workflow failure rate, and p50/p95 workflow duration during a controlled load test.
+5. Verify that the operations endpoint rejects missing/incorrect secrets and never emits learner content.
+6. Back up the SQLite database and restore it to a separate file; verify `PRAGMA integrity_check` and expected learner records before enabling scheduled automation.
 
 Do not enable multiple app instances against separate local SQLite files and assume they share a queue. SQLite/WAL is a single-database deployment design; multi-instance deployment requires shared durable storage or a separately reviewed database architecture.
