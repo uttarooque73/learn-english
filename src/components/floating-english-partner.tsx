@@ -305,7 +305,7 @@ export function FloatingEnglishPartner() {
           <div className="floating-english-brand"><span className="floating-english-mark">✦</span><div><strong>AI English Partner</strong><small>{active ? status : "Practice speaking, naturally"}</small></div></div>
           <div className="floating-english-header-actions">
             <button type="button" aria-label="Minimize conversation" onClick={() => setMinimized((v) => !v)}>{minimized ? "□" : "−"}</button>
-            <button type="button" aria-label="Close conversation window" onClick={() => setOpen(false)}>×</button>
+            <button type="button" aria-label="Close conversation window" onClick={() => { if (active) void stopSession(); setOpen(false); }}>×</button>
           </div>
         </header>
         {!minimized && <>
@@ -346,7 +346,7 @@ export function FloatingEnglishPartner() {
           <footer className="floating-english-controls">
             {!active ? <button className="floating-english-start" type="button" onClick={() => void startSession()} disabled={busy}>Start Conversation</button> : <><button type="button" onClick={interruptSpeech}>Interrupt speech</button><button className="floating-english-stop" type="button" onClick={() => void stopSession()}>Stop Conversation</button></>}
             {!active && (feedbackStatus === "failed" || feedbackStatus === "partial") && <button type="button" onClick={() => void stopSession()}>Retry feedback</button>}
-            <button type="button" onClick={() => setTab("history")}>History</button>
+            <button type="button" onClick={() => setTab("history")} disabled={active}>History</button>
             {tab !== "conversation" && <button type="button" onClick={() => setTab("conversation")}>Conversation</button>}
             {tab !== "feedback" && feedbackStatus !== "idle" && <button type="button" onClick={() => setTab("feedback")}>Review feedback</button>}
           </footer>
