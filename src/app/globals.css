@@ -1028,3 +1028,62 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .floating-english-inline-feedback p{margin:6px 0;overflow-wrap:anywhere}
 .floating-english-inline-feedback button{margin-top:5px;padding:8px 10px;border:1px solid var(--green);border-radius:8px;background:#fff;color:var(--green-dark);font-size:10px;font-weight:700;cursor:pointer}
 .floating-english-inline-feedback button:disabled{opacity:.5;cursor:not-allowed}
+
+
+/* AI and Us discussion + paragraph reading practice */
+.aius-page{display:grid;gap:22px}
+.aius-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:220px;padding:28px 34px;border-radius:17px;background:#425c40;color:#fff;overflow:hidden}
+.aius-hero h2{margin:18px 0 10px;font-family:Manrope,sans-serif;font-size:clamp(27px,3vw,38px);letter-spacing:-1.5px;line-height:1.13}
+.aius-hero h2 em{color:#d9e6c7;font-style:normal}
+.aius-hero p{max-width:530px;margin:0;color:#d8dfd2;font-size:12px;line-height:1.8}
+.aius-hero-mark{display:grid;place-items:center;gap:10px;min-width:180px;min-height:150px;border:1px solid #ffffff24;border-radius:18px;background:#ffffff0b}
+.aius-hero-mark span{font-family:Manrope,sans-serif;font-size:68px;font-weight:800;letter-spacing:-5px;color:#dfe8d3}
+.aius-hero-mark small{color:#d6e0d0;font-size:9px;letter-spacing:1.2px;text-transform:uppercase}
+.aius-tabs{display:flex;gap:8px;padding:6px;border:1px solid var(--line);border-radius:12px;background:#f3f4ee;width:fit-content;max-width:100%}
+.aius-tabs button{border:0;border-radius:8px;padding:12px 17px;background:transparent;color:#73776b;font-weight:700;font-size:11px;cursor:pointer}
+.aius-tabs button.active{background:#fff;color:var(--green-dark);box-shadow:0 1px 4px #1d29150f}
+.aius-panel{padding:23px;border:1px solid var(--line);border-radius:14px;background:#fff;min-width:0}
+.aius-section-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:21px}
+.aius-section-heading h3{margin:7px 0;font-family:Manrope,sans-serif;font-size:20px;letter-spacing:-.5px}
+.aius-section-heading p{margin:0;color:#85877d;font-size:11px;line-height:1.7}
+.aius-status{max-width:45%;color:var(--green);font-size:10px;font-weight:700;text-align:right}
+.aius-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-bottom:20px}
+.aius-controls label,.aius-editor label{display:grid;gap:7px;color:#666b5f;font-size:10px;font-weight:700}
+.aius-controls input:not([type=checkbox]):not([type=range]),.aius-controls select,.aius-editor input,.aius-editor select,.aius-editor textarea{width:100%;min-width:0;padding:11px 12px;border:1px solid #e4e6dc;border-radius:8px;background:#fff;color:var(--ink);outline:none;font-size:12px}
+.aius-controls select:focus,.aius-controls input:focus,.aius-editor input:focus,.aius-editor select:focus,.aius-editor textarea:focus{border-color:#8ba183;box-shadow:0 0 0 3px #dce8d65c}
+.aius-toggle{display:flex!important;align-items:center;gap:9px!important}
+.aius-toggle input{accent-color:var(--green)}
+.aius-controls input[type=range]{width:100%;accent-color:var(--green)}
+.aius-controls label small{font-size:9px;font-weight:500;color:#8a8d82}
+.aius-controls>.button{align-self:end;justify-self:start}
+.aius-reading-card{padding:20px;border:1px solid #e5e9df;border-radius:12px;background:#fbfcf8}
+.aius-reading-meta{display:flex;justify-content:space-between;gap:10px;color:#899080;font-size:9px;font-weight:700;letter-spacing:.8px}
+.aius-target-sentence{margin:25px 0;font-family:Manrope,sans-serif;font-weight:600;font-size:clamp(20px,2.3vw,30px);letter-spacing:-.6px;line-height:1.55;overflow-wrap:anywhere}
+.aius-reading-actions,.aius-editor-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.aius-reading-actions .button,.aius-editor-actions .button{min-height:38px}
+.aius-comparison{display:grid;gap:8px;margin-top:17px;padding-top:16px;border-top:1px solid #e8ebe3}
+.aius-comparison p{display:grid;grid-template-columns:minmax(140px,200px) 1fr;gap:14px;margin:0;color:#606657;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+.aius-comparison p strong{color:#888d7f;font-size:10px}
+.aius-comparison small{color:#969a8e;font-size:9px;line-height:1.6}
+.aius-editor{display:grid;gap:15px}
+.aius-editor textarea{resize:vertical;line-height:1.8}
+.aius-editor-actions{padding-top:3px}
+.aius-history{margin-top:25px;padding-top:18px;border-top:1px solid #eee}
+.aius-history h4{margin:0 0 12px;font-family:Manrope,sans-serif;font-size:13px}
+.aius-history-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border:1px solid transparent;border-bottom-color:#eee;background:#fff;text-align:left;cursor:pointer;color:var(--ink)}
+.aius-history-item:hover,.aius-history-item.selected{border-color:#e2e9dc;background:#f7f9f4;border-radius:8px}
+.aius-history-item>span:first-child{display:grid;gap:5px;min-width:0}
+.aius-history-item strong{font-size:11px;overflow-wrap:anywhere}
+.aius-history-item small,.aius-attempt small{color:#96998d;font-size:9px}
+.aius-history-item>span:last-child{color:var(--green);font-size:10px;white-space:nowrap}
+.aius-attempt{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #eee}
+.aius-attempt>div{display:grid;gap:5px;flex:1;min-width:0}
+.aius-attempt strong{font-size:11px;line-height:1.6}
+.aius-attempt>span{white-space:nowrap;color:var(--green);font-size:10px;font-weight:700}
+.aius-attempt button{border:0;background:transparent;cursor:pointer}
+.aius-notice{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:13px 15px;border:1px solid #e3e9dd;border-radius:10px;background:#f7f9f4;color:#53624c;font-size:11px;line-height:1.7}
+.aius-notice button{border:0;background:transparent;color:inherit;font-size:18px;cursor:pointer}
+.aius-disclaimer{margin:0;color:#96998e;font-size:10px;line-height:1.7}
+.aius-active-practice{border-color:#dfe8d8}
+@media(max-width:760px){.aius-hero{padding:23px;min-height:0}.aius-hero-mark{min-width:95px;min-height:110px}.aius-hero-mark span{font-size:45px}.aius-hero-mark small{display:none}.aius-tabs{width:100%}.aius-tabs button{flex:1;padding:11px 8px;font-size:10px}.aius-panel{padding:16px}.aius-controls{grid-template-columns:1fr}.aius-section-heading{display:grid}.aius-status{max-width:none;text-align:left}.aius-comparison p{grid-template-columns:1fr;gap:4px}.aius-reading-actions .button,.aius-editor-actions .button{flex:1}}
+@media(max-width:430px){.aius-hero-mark{display:none}.aius-hero{padding:22px}.aius-reading-actions{display:grid;grid-template-columns:1fr 1fr}.aius-reading-actions .button{width:100%;padding:0 9px}.aius-attempt{flex-wrap:wrap}.aius-attempt>div{flex-basis:100%}}
