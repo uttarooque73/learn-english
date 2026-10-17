@@ -35,7 +35,7 @@ test("AI and Us provides discussion and paragraph practice tabs", async ({ page 
   await expect(page.getByRole("heading", { name: "Paragraph Practice" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Paragraph", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Generate paragraph" }).click();
-  await expect(page.getByLabel("Paragraph")).toHaveValue(/A healthy routine can make each day easier/);
+  await expect(page.getByRole("textbox", { name: "Paragraph", exact: true })).toHaveValue(/A healthy routine can make each day easier/);
   await page.getByRole("button", { name: "Save paragraph" }).click();
   await expect(page.getByText("Paragraph saved to your learning history.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Saved paragraphs" })).toBeVisible();
