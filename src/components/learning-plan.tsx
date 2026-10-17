@@ -20,6 +20,7 @@ const ACTIVITIES = [
   { title: "Speak with your AI coach", minutes: 10, href: "/conversation-coach", detail: "Use complete sentences and learn from corrections." },
   { title: "Shadow a native-style sentence", minutes: 5, href: "/shadowing", detail: "Listen, repeat, and compare your attempt." },
   { title: "Practice a fluency exercise", minutes: 5, href: "/fluency", detail: "Build faster, more natural responses." },
+  { title: "Role-play a real-life situation", minutes: 5, href: "/custom-scenarios", detail: "Practice a situation you expect to face at work or in daily life." },
   { title: "Check your progress", minutes: 5, href: "/progress", detail: "Review your streak and recurring mistakes." },
 ];
 
