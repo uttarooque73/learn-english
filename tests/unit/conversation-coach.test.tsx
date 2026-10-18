@@ -65,7 +65,7 @@ describe("ConversationCoach", () => {
       updatedAt: new Date().toISOString(), durationSeconds: 0, turns: [],
     };
     vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === "/api/chat") return new Response("That sounds good. What did you do today?", { status: 200 });
+      if (url === "/api/conversation-coach/turn") return new Response(JSON.stringify({ reply: "That sounds good. What did you do today?", corrections: [], vocabulary: [] }), { status: 200 });
       if (init?.method === "POST") return new Response(JSON.stringify({ session }), { status: 200 });
       if (init?.method === "PATCH") return new Response(JSON.stringify({ session }), { status: 200 });
       return new Response(JSON.stringify({ sessions: [] }), { status: 200 });
@@ -80,7 +80,7 @@ describe("ConversationCoach", () => {
 
     recognitions[0].onresult?.({ resultIndex: 0, results: [{ 0: { transcript: "I am doing well" } }] } as never);
     recognitions[0].onend?.();
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/chat", expect.objectContaining({ method: "POST" })));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/conversation-coach/turn", expect.objectContaining({ method: "POST" })));
     await waitFor(() => expect(spoken).toHaveLength(2));
 
     // A playback error must not strand the hands-free conversation.
