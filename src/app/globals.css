@@ -1345,3 +1345,6 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .generated-practice summary{cursor:pointer;font-weight:650}
 .generated-practice details p,.generated-practice>p{line-height:1.6}
 @media(max-width:640px){.dynamic-learning-fields{grid-template-columns:1fr}.dynamic-learning-fields button{width:100%}}
+
+/* Daily vocabulary: completed words are collected at the bottom of today's session. */
+.daily-vocab-learned-section{display:grid;gap:16px;margin-top:26px;padding-top:24px;border-top:2px solid #e6ebde}.daily-vocab-learned-section .daily-vocab-section-heading{margin-bottom:0}.daily-vocab-learned-count,.daily-vocab-learned-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:6px 10px;background:#eaf4e4;color:#426b31;font-size:11px;font-weight:800;white-space:nowrap}.daily-vocab-word-card.is-learned{border-color:#d8e5cf;background:#fbfdf8}.daily-vocab-word-card.is-learned .daily-vocab-card-footer{margin-top:auto}
