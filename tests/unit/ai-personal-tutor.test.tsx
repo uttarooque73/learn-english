@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AiPersonalTutor } from "@/components/ai-personal-tutor";\nimport { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { AiPersonalTutor } from "@/components/ai-personal-tutor";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 vi.mock("@/lib/client-persistence", () => ({ initializeDatabasePersistence: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/learning-storage", () => ({
@@ -9,7 +10,10 @@ vi.mock("@/lib/learning-storage", () => ({
 }));
 
 describe("AI personal tutor", () => {
-  beforeEach(() => {\n    vi.unstubAllGlobals();\n    vi.mocked(initializeDatabasePersistence).mockResolvedValue(undefined);\n  });
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    vi.mocked(initializeDatabasePersistence).mockResolvedValue(undefined);
+  });
 
   it("renders personalisation controls and learning context", async () => {
     render(<AiPersonalTutor />);
