@@ -32,7 +32,7 @@ export function AuthStatus() {
   if (session?.authenticated && session.user) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-        <span title={session.user.email} style={{ fontSize: 12, color: "var(--muted, #68716d)", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{session.user.displayName}</span>
+        <Link href="/account" title={session.user.email} style={{ fontSize: 12, color: "var(--muted, #68716d)", maxWidth: 170, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "none" }}>{session.user.displayName}</Link>
         <button type="button" onClick={signOut} disabled={busy} style={{ border: "1px solid var(--line, #d8ded9)", background: "transparent", borderRadius: 9, padding: "7px 10px", fontSize: 12, cursor: "pointer" }}>{busy ? "Signing out…" : "Sign out"}</button>
       </div>
     );
