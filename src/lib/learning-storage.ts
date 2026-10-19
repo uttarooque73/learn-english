@@ -107,10 +107,10 @@ export function updateVocabularyStatus(id: string, status: VocabularyStatus) {
   writeList(VOCABULARY_KEY, items);
 }
 
-export type VocabularyReviewRating = "again" | "good" | "easy";
+export type VocabularyReviewRating = "again" | "hard" | "good" | "easy";
 
 export function reviewVocabulary(id: string, rating: VocabularyReviewRating, reviewedAt = new Date()): SavedVocabulary | undefined {
-  const intervals: Record<VocabularyReviewRating, number> = { again: 1, good: 3, easy: 7 };
+  const intervals: Record<VocabularyReviewRating, number> = { again: 1, hard: 2, good: 3, easy: 7 };
   const items = getVocabulary();
   let reviewed: SavedVocabulary | undefined;
   const updated = items.map((item) => {

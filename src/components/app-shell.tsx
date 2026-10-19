@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures";
+type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
@@ -22,6 +22,7 @@ const navigation: { key: PageKey; label: string; href: string; icon: string }[] 
   { key: "conversation-coach", label: "AI Conversation Coach", href: "/conversation-coach", icon: "🎙" },
   { key: "ai-and-us", label: "AI and Us", href: "/ai-and-us", icon: "Aa" },
   { key: "vocabulary", label: "Vocabulary", href: "/vocabulary", icon: "Aa" },
+  { key: "smart-vocabulary-revision", label: "Smart Vocabulary Revision", href: "/smart-vocabulary-revision", icon: "↻" },
   { key: "daily-vocabulary", label: "Daily Vocabulary", href: "/daily-vocabulary", icon: "✦" },
   { key: "progress", label: "My progress", href: "/progress", icon: "↗" },
   { key: "fluency", label: "Fluency exercises", href: "/fluency", icon: "◷" },
