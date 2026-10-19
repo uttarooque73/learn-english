@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpeakingSprint } from "@/components/speaking-sprint";
 
@@ -29,13 +29,14 @@ describe("SpeakingSprint", () => {
     expect(screen.getByRole("heading", { name: "Explain a skill you want to master." })).toBeInTheDocument();
   });
 
-  it("saves and removes favorite prompts in local storage", () => {
+  it("saves and removes favorite prompts in local storage", async () => {
     render(<SpeakingSprint />);
 
+    await waitFor(() => expect(screen.getByRole("button", { name: /Save prompt/ })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: /Save prompt/ }));
     expect(screen.getByRole("button", { name: /Saved prompt/ })).toHaveAttribute("aria-pressed", "true");
     expect(window.localStorage.getItem("speakup-speaking-sprint-favorites")).toContain("perfect-day");
-    expect(screen.getByText("★ 1 saved prompt")).toBeInTheDocument();
+    expect(await screen.findByText("★ 1 saved prompt")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Saved prompt/ }));
     expect(screen.getByText("★ 0 saved prompts")).toBeInTheDocument();
@@ -50,13 +51,13 @@ describe("SpeakingSprint", () => {
     expect(screen.getByRole("button", { name: /Start speaking/ })).toBeInTheDocument();
   });
 
-  it("restores completed sprints and XP from local storage", () => {
+  it("restores completed sprints and XP from local storage", async () => {
     window.localStorage.setItem("speakup-speaking-sprint-completions", "3");
     window.localStorage.setItem("speakup-speaking-sprint-favorites", JSON.stringify(["perfect-day"]));
     render(<SpeakingSprint />);
 
-    expect(screen.getByText("3", { selector: "strong" })).toBeInTheDocument();
-    expect(screen.getByText("30 XP")).toBeInTheDocument();
+    expect(await screen.findByText("30 XP")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("3", { selector: "strong" })).toBeInTheDocument());
     expect(screen.getByText("★ 1 saved prompt")).toBeInTheDocument();
   });
 });

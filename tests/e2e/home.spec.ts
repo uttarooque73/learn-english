@@ -467,7 +467,7 @@ test("floating English partner opens, configures a topic, and loads saved-histor
   await page.getByRole("button", { name: "Open Jarvis assistant" }).click();
   await expect(page.getByRole("dialog", { name: "Jarvis" })).toBeVisible();
   await expect(page.getByText("Jarvis", { exact: true })).toBeVisible();
-  await page.getByLabel("Topic").selectOption("Custom Topic");
+  await page.getByRole("dialog", { name: "Jarvis" }).getByLabel("Topic").selectOption("Custom Topic");
   await expect(page.getByRole("textbox", { name: "Custom topic" })).toBeVisible();
   await page.getByRole("textbox", { name: "Custom topic" }).fill("Explaining a software release");
   await page.getByLabel("English level").selectOption("Advanced");

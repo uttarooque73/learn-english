@@ -35,35 +35,41 @@ export function SpeakingSprint() {
   const isFavorite = favorites.includes(prompt.id);
 
   useEffect(() => {
-    try {
-      const saved = Number(window.localStorage.getItem(COMPLETIONS_KEY) ?? 0);
-      if (Number.isFinite(saved) && saved >= 0) setCompleted(Math.floor(saved));
-      const savedFavorites: unknown = JSON.parse(window.localStorage.getItem(FAVORITES_KEY) ?? "[]");
-      if (Array.isArray(savedFavorites)) {
-        setFavorites(savedFavorites.filter((id): id is string => typeof id === "string" && PROMPTS.some((item) => item.id === id)));
+    const timeout = window.setTimeout(() => {
+      try {
+        const saved = Number(window.localStorage.getItem(COMPLETIONS_KEY) ?? 0);
+        if (Number.isFinite(saved) && saved >= 0) setCompleted(Math.floor(saved));
+        const savedFavorites: unknown = JSON.parse(window.localStorage.getItem(FAVORITES_KEY) ?? "[]");
+        if (Array.isArray(savedFavorites)) {
+          setFavorites(savedFavorites.filter((id): id is string => typeof id === "string" && PROMPTS.some((item) => item.id === id)));
+        }
+      } catch {
+        // The challenge still works when browser storage is unavailable or malformed.
       }
-    } catch {
-      // The challenge still works when browser storage is unavailable or malformed.
-    }
-    setReady(true);
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
     if (!running) return;
-    if (secondsLeft <= 0) {
-      setRunning(false);
-      setCompleted((previous) => {
-        const next = previous + 1;
-        try {
-          window.localStorage.setItem(COMPLETIONS_KEY, String(next));
-        } catch {
-          // Completion is still counted for this session.
-        }
-        return next;
-      });
-      return;
-    }
-    const timeout = window.setTimeout(() => setSecondsLeft((remaining) => remaining - 1), 1000);
+    const timeout = window.setTimeout(() => {
+      if (secondsLeft <= 1) {
+        setSecondsLeft(0);
+        setRunning(false);
+        setCompleted((previous) => {
+          const next = previous + 1;
+          try {
+            window.localStorage.setItem(COMPLETIONS_KEY, String(next));
+          } catch {
+            // Completion is still counted for this session.
+          }
+          return next;
+        });
+      } else {
+        setSecondsLeft((remaining) => remaining - 1);
+      }
+    }, 1000);
     return () => window.clearTimeout(timeout);
   }, [running, secondsLeft]);
 
