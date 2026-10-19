@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback";
+type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
@@ -13,6 +13,7 @@ const navigation: { key: PageKey; label: string; href: string; icon: string }[] 
   { key: "learning-plan", label: "Daily learning plan", href: "/learning-plan", icon: "✓" },
   { key: "ai-tutor", label: "AI Personal Tutor", href: "/ai-tutor", icon: "✦" },
   { key: "assessment", label: "English assessment", href: "/assessment", icon: "✓" },
+  { key: "weakness-to-lessons", label: "Weakness-to-Lesson Plan", href: "/weakness-to-lessons", icon: "✦" },
   { key: "weekly-report", label: "Weekly AI report", href: "/weekly-report", icon: "↗" },
   { key: "live-speaking-roleplay", label: "Live Speaking Roleplay", href: "/live-speaking-roleplay", icon: "🎙" },
   { key: "listening-lab", label: "Listening Comprehension Lab", href: "/listening-lab", icon: "♫" },
