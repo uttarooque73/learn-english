@@ -56,6 +56,7 @@ describe("SQLite schema migrations", () => {
       "012_ai_and_us_paragraph_practice.sql",
       "013_aius_paragraph_feedback.sql",
       "014_auth_accounts.sql",
+      "015_learning_achievements.sql",
     ]);
     expect(tableNames).toContain("app_user_data");
     expect(tableNames).toContain("daily_vocabulary_topics");
@@ -103,7 +104,7 @@ describe("SQLite schema migrations", () => {
       .get() as { count: number };
 
     expect(saved?.data_value).toBe('{"dailyTarget":15}');
-    expect(migrationCount.count).toBe(13);
+    expect(migrationCount.count).toBe(14);
   });
   it("enforces learner ownership across plan items and practice attempts", () => {
     useTemporaryDatabase();
