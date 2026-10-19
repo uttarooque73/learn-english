@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListenButton } from "@/components/listen-button";
 import { stopSpeaking } from "@/lib/speech-playback";
 import { initializeDatabasePersistence } from "@/lib/client-persistence";
+import { saveVocabulary } from "@/lib/learning-storage";
 import { getLearningPreferences, saveLearningPreferences, type SpeechRate, type SpeechVoiceGender } from "@/lib/learning-preferences";
 
 type Correction = { original: string; improved: string; reason: string };
@@ -203,6 +204,20 @@ export function ConversationCoach() {
 
       const feedback = Array.isArray(data.corrections) ? data.corrections as Correction[] : [];
       const vocabulary = Array.isArray(data.vocabulary) ? data.vocabulary as VocabularyItem[] : [];
+      // Persist useful vocabulary suggestions from each conversation for later review.
+      for (const item of vocabulary) {
+        const phrase = item.phrase.trim();
+        if (!phrase || !item.meaning.trim() || !item.example.trim()) continue;
+        saveVocabulary({
+          phrase,
+          meaning: item.meaning.trim(),
+          example: item.example.trim(),
+          category: /\s/.test(phrase) ? "expression" : "word",
+          sourceExamples: [content.slice(0, 500)],
+          sourceScenario: scenario,
+          sourceSessionId: sessionId,
+        });
+      }
       const suggestions = Array.isArray(data.suggestions)
         ? data.suggestions.filter((item: unknown): item is string => typeof item === "string" && !!item.trim()).slice(0, 3)
         : [];

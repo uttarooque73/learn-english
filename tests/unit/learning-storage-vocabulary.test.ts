@@ -13,6 +13,25 @@ describe("vocabulary learning status", () => {
     expect(getVocabulary()).toHaveLength(1);
   });
 
+  it("enriches an existing word with conversation examples without creating duplicates", () => {
+    const first = saveVocabulary({ phrase: "follow up", meaning: "take further action", example: "I will follow up tomorrow." });
+    saveVocabulary({
+      phrase: "FOLLOW UP",
+      meaning: "another meaning",
+      example: "Another example.",
+      sourceExamples: ["I will follow up with the team after the meeting."],
+      sourceScenario: "At work",
+      sourceSessionId: "session-1",
+    });
+    const [saved] = getVocabulary();
+    expect(getVocabulary()).toHaveLength(1);
+    expect(saved.id).toBe(first.id);
+    expect(saved.meaning).toBe("take further action");
+    expect(saved.sourceExamples).toEqual(["I will follow up with the team after the meeting."]);
+    expect(saved.sourceScenario).toBe("At work");
+    expect(saved.sourceSessionId).toBe("session-1");
+  });
+
   it("updates status and persists it in the client database cache", () => {
     const word = saveVocabulary({ phrase: "follow up", meaning: "take further action", example: "I will follow up tomorrow." });
     updateVocabularyStatus(word.id, "mastered");
