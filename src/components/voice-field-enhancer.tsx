@@ -82,9 +82,13 @@ export function VoiceFieldEnhancer() {
         recognition.onend = reset;
         try { recognition.start(); } catch { reset(); }
       });
-      const parent = field.parentElement;
+      const wrappingLabel = field.closest("label");
+      // Keep injected controls outside a wrapping label so their text does not
+      // become part of the input's accessible name or break exact label queries.
+      const anchor = wrappingLabel?.parentElement && wrappingLabel.contains(field) ? wrappingLabel : field;
+      const parent = anchor.parentElement;
       if (parent) {
-        parent.insertBefore(button, field.nextSibling);
+        parent.insertBefore(button, anchor.nextSibling);
         controls.set(field, button);
         const listen = document.createElement("button");
         listen.type = "button";
@@ -96,7 +100,7 @@ export function VoiceFieldEnhancer() {
           const input = field as HTMLInputElement | HTMLTextAreaElement;
           const label = input.labels ? Array.from(input.labels).map((item) => item.innerText).join(" ") : "";
           const describedBy = input.getAttribute("aria-describedby");
-          const description = describedBy ? describedBy.split(/\\s+/).map((id) => document.getElementById(id)?.innerText || "").join(" ") : "";
+          const description = describedBy ? describedBy.split(/\s+/).map((id) => document.getElementById(id)?.innerText || "").join(" ") : "";
           const prompt = [label, input.getAttribute("aria-label"), description, input.placeholder].filter(Boolean).join(". ").trim();
           if (!prompt || !("speechSynthesis" in window)) return;
           window.speechSynthesis.cancel();

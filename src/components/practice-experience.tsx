@@ -447,7 +447,10 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           idempotencyKey: `conversation:${sessionId}:${learnerMessageCount}`,
         }).catch(() => undefined);
         setSavedSessions(getSessions());
-        if (learningPreferences?.feedbackTiming === "immediate") {
+        // Read persisted preferences at send time as well as from React state.
+        // The learner can send the first message before async initialization finishes.
+        const currentPreferences = learningPreferences ?? getLearningPreferences();
+        if (currentPreferences.feedbackTiming === "immediate") {
           void requestFeedback(content, assistantText);
         }
       }
