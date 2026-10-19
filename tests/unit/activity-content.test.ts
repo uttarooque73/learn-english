@@ -82,6 +82,6 @@ describe("dynamic learning activity generator", () => {
     await expect(generateLearningActivity({
       activityType: "vocabulary",
       quantity: 3,
-    }, providerReturning(activityFixture(2)))).rejects.toThrow("did not generate the requested number of items");
+    }, providerReturning(activityFixture(2)))).rejects.toThrow("different item count");
   });
 });
