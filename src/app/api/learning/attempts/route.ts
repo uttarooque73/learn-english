@@ -1,29 +1,18 @@
-import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { AdaptiveLearningError } from "@/lib/ai/adaptive-learning";
 import { runMultiAgentEvaluation } from "@/lib/ai/multi-agent-evaluation";
 import { ModelProviderError } from "@/lib/ai/model-provider";
+import { resolveOwnerId, synchronizeOwnerCookie } from "@/lib/request-owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-const OWNER_COOKIE = "speakup_owner";
-
 function ownerFor(request: NextRequest): string {
-  return request.cookies.get(OWNER_COOKIE)?.value ?? randomUUID();
+  return resolveOwnerId(request);
 }
 
 function respond(data: unknown, request: NextRequest, ownerId: string, status = 200): NextResponse {
   const response = NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } });
-  if (!request.cookies.has(OWNER_COOKIE)) {
-    response.cookies.set(OWNER_COOKIE, ownerId, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
-  return response;
+  return synchronizeOwnerCookie(response, request, ownerId);
 }
 
 function errorResponse(error: unknown, request: NextRequest, ownerId: string): NextResponse {

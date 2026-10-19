@@ -1,29 +1,19 @@
-import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
+import { resolveOwnerId, synchronizeOwnerCookie } from "@/lib/request-owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COOKIE_NAME = "speakup_owner";
 const MAX_KEY_LENGTH = 160;
 const MAX_VALUE_LENGTH = 2_000_000;
 
 function ownerFor(request: NextRequest) {
-  return request.cookies.get(COOKIE_NAME)?.value || randomUUID();
+  return resolveOwnerId(request);
 }
 
 function withOwnerCookie(response: NextResponse, request: NextRequest, owner: string) {
-  if (!request.cookies.has(COOKIE_NAME)) {
-    response.cookies.set(COOKIE_NAME, owner, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
-  }
-  return response;
+  return synchronizeOwnerCookie(response, request, owner);
 }
 
 function databaseError(error: unknown, request: NextRequest, owner: string) {
