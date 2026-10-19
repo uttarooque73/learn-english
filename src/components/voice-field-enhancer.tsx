@@ -82,9 +82,13 @@ export function VoiceFieldEnhancer() {
         recognition.onend = reset;
         try { recognition.start(); } catch { reset(); }
       });
-      const parent = field.parentElement;
+      const wrappingLabel = field.closest("label");
+      // Keep injected controls outside a wrapping label so their text does not
+      // become part of the input's accessible name or break exact label queries.
+      const anchor = wrappingLabel?.parentElement && wrappingLabel.contains(field) ? wrappingLabel : field;
+      const parent = anchor.parentElement;
       if (parent) {
-        parent.insertBefore(button, field.nextSibling);
+        parent.insertBefore(button, anchor.nextSibling);
         controls.set(field, button);
         const listen = document.createElement("button");
         listen.type = "button";
