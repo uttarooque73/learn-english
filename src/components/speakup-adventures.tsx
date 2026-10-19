@@ -277,7 +277,7 @@ export function SpeakUpAdventures() {
           <div className={styles.missionFooter}><p>{userTurns < 2 ? "Explore the conversation with at least two replies to unlock mission completion." : completed ? "Mission solved. You can revisit this chapter or continue to the next unlocked location." : "You have explored the scene. Complete the mission to unlock the next destination."}</p><button className={styles.completeButton} type="button" disabled={completed || userTurns < 2 || busy} onClick={completeChapter}>{completed ? "Mission completed ✓" : "Complete mission + " + chapter.reward + " XP"}</button></div>
         </>}
       </section>
-      <div className={styles.bottomRow}><p>Progress is saved in this browser. AI replies use your app's configured provider.</p><button type="button" className={styles.resetButton} onClick={resetAdventure}>Reset adventure</button></div>
+      <div className={styles.bottomRow}><p>Progress is saved in this browser. AI replies use your app&apos;s configured provider.</p><button type="button" className={styles.resetButton} onClick={resetAdventure}>Reset adventure</button></div>
     </div>
   );
 }
