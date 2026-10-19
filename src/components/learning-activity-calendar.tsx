@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { LearningCalendar, CalendarDay } from "@/lib/learning-calendar";
 
 type CalendarResponse = LearningCalendar & { error?: string };
@@ -23,11 +24,10 @@ export function LearningActivityCalendar() {
   const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError("");
     fetch("/api/learning/calendar?month=" + encodeURIComponent(month), { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json() as CalendarResponse;
@@ -38,7 +38,7 @@ export function LearningActivityCalendar() {
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Could not load your learning calendar."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [month]);
+  }, [month, refreshKey]);
 
   const dayMap = useMemo(() => new Map((calendar?.days ?? []).map((day) => [day.date, day])), [calendar]);
   const selectedDay = selectedDate ? dayMap.get(selectedDate) : undefined;
@@ -46,11 +46,13 @@ export function LearningActivityCalendar() {
   const oldestMonth = shiftMonth(currentMonth, -24);
 
   function changeMonth(nextMonth: string) {
+    setLoading(true);
+    setError("");
     setMonth(nextMonth);
     setSelectedDate("");
   }
 
-  if (error) return <section className="section-block"><p role="alert">{error}</p><button type="button" onClick={() => setMonth(month)} style={buttonStyle}>Retry</button></section>;
+  if (error) return <section className="section-block"><p role="alert">{error}</p><button type="button" onClick={() => { setLoading(true); setError(""); setRefreshKey((value) => value + 1); }} style={buttonStyle}>Retry</button></section>;
 
   return (
     <div style={{ display: "grid", gap: 22 }}>
@@ -128,22 +130,22 @@ function SelectedDay({ day }: { day: CalendarDay }) {
 }
 
 const activityColors = ["var(--surface-muted, #f4f3ef)", "#e1eee5", "#b9d8c6", "#79b293", "#34765f"];
-const heroStyle: React.CSSProperties = { background: "linear-gradient(125deg, #173e36, #2c6555)", color: "#fff", borderRadius: 18, padding: "clamp(22px, 4vw, 32px)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" };
-const navButtonStyle: React.CSSProperties = { width: 42, height: 42, borderRadius: 11, border: "1px solid #6b9587", background: "#ffffff12", color: "#fff", fontSize: 22, cursor: "pointer" };
-const summaryGridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12 };
-const summaryCardStyle: React.CSSProperties = { display: "grid", gap: 8, border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: 18 };
-const smallLabelStyle: React.CSSProperties = { fontSize: 10, letterSpacing: ".12em", fontWeight: 800, color: "var(--muted, #68716d)" };
-const metricStyle: React.CSSProperties = { display: "block", fontSize: 27, letterSpacing: "-.04em", marginTop: 6 };
-const mutedStyle: React.CSSProperties = { fontSize: 12, color: "var(--muted, #68716d)" };
-const calendarCardStyle: React.CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 16, padding: "clamp(16px, 3vw, 26px)" };
-const monthHeadingStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 22 };
-const weekGridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "clamp(4px, 1vw, 10px)" };
-const weekDayStyle: React.CSSProperties = { textAlign: "center", fontSize: 12, fontWeight: 750, color: "var(--muted, #68716d)", paddingBottom: 8 };
-const dayButtonStyle: React.CSSProperties = { border: "2px solid transparent", borderRadius: 10, minWidth: 0, aspectRatio: "1 / 1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", fontSize: 13, color: "var(--text, #242a29)" };
-const activityDotStyle: React.CSSProperties = { width: 4, height: 4, borderRadius: 999, background: "#173e36" };
-const legendStyle: React.CSSProperties = { display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 18, fontSize: 11, color: "var(--muted, #68716d)" };
-const legendSwatchStyle: React.CSSProperties = { width: 12, height: 12, borderRadius: 3, display: "inline-block" };
-const detailCardStyle: React.CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 16, padding: "clamp(18px, 3vw, 26px)" };
-const detailGridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 16 };
-const streakRowStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, border: "1px solid var(--line, #d8ded9)", borderRadius: 15, padding: 20, background: "var(--surface, #fff)" };
-const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 10, padding: "11px 14px", background: "#245b4e", color: "#fff", fontWeight: 750, cursor: "pointer" };
+const heroStyle: CSSProperties = { background: "linear-gradient(125deg, #173e36, #2c6555)", color: "#fff", borderRadius: 18, padding: "clamp(22px, 4vw, 32px)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" };
+const navButtonStyle: CSSProperties = { width: 42, height: 42, borderRadius: 11, border: "1px solid #6b9587", background: "#ffffff12", color: "#fff", fontSize: 22, cursor: "pointer" };
+const summaryGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12 };
+const summaryCardStyle: CSSProperties = { display: "grid", gap: 8, border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: 18 };
+const smallLabelStyle: CSSProperties = { fontSize: 10, letterSpacing: ".12em", fontWeight: 800, color: "var(--muted, #68716d)" };
+const metricStyle: CSSProperties = { display: "block", fontSize: 27, letterSpacing: "-.04em", marginTop: 6 };
+const mutedStyle: CSSProperties = { fontSize: 12, color: "var(--muted, #68716d)" };
+const calendarCardStyle: CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 16, padding: "clamp(16px, 3vw, 26px)" };
+const monthHeadingStyle: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 22 };
+const weekGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "clamp(4px, 1vw, 10px)" };
+const weekDayStyle: CSSProperties = { textAlign: "center", fontSize: 12, fontWeight: 750, color: "var(--muted, #68716d)", paddingBottom: 8 };
+const dayButtonStyle: CSSProperties = { border: "2px solid transparent", borderRadius: 10, minWidth: 0, aspectRatio: "1 / 1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", fontSize: 13, color: "var(--text, #242a29)" };
+const activityDotStyle: CSSProperties = { width: 4, height: 4, borderRadius: 999, background: "#173e36" };
+const legendStyle: CSSProperties = { display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 18, fontSize: 11, color: "var(--muted, #68716d)" };
+const legendSwatchStyle: CSSProperties = { width: 12, height: 12, borderRadius: 3, display: "inline-block" };
+const detailCardStyle: CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 16, padding: "clamp(18px, 3vw, 26px)" };
+const detailGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 16 };
+const streakRowStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, border: "1px solid var(--line, #d8ded9)", borderRadius: 15, padding: 20, background: "var(--surface, #fff)" };
+const buttonStyle: CSSProperties = { border: 0, borderRadius: 10, padding: "11px 14px", background: "#245b4e", color: "#fff", fontWeight: 750, cursor: "pointer" };
