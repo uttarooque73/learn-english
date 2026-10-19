@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest";
+type PageKey = "home" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
@@ -21,6 +21,7 @@ const navigation: { key: PageKey; label: string; href: string; icon: string }[] 
   { key: "daily-vocabulary", label: "Daily Vocabulary", href: "/daily-vocabulary", icon: "✦" },
   { key: "progress", label: "My progress", href: "/progress", icon: "↗" },
   { key: "fluency", label: "Fluency exercises", href: "/fluency", icon: "◷" },
+  { key: "pronunciation-coach", label: "Pronunciation Coach", href: "/pronunciation-coach", icon: "🎙" },
   { key: "shadowing", label: "Shadowing & pronunciation", href: "/shadowing", icon: "♫" },
   { key: "settings", label: "Learning preferences", href: "/settings", icon: "⚙" },
 ];
