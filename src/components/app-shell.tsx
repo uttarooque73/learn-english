@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 import { AuthStatus } from "@/components/auth-status";
 
-type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
+type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "account" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
@@ -39,6 +39,7 @@ const navigation: { key: PageKey; label: string; href: string; icon: string }[] 
   { key: "pronunciation-coach", label: "Pronunciation Coach", href: "/pronunciation-coach", icon: "🎙" },
   { key: "shadowing", label: "Shadowing & pronunciation", href: "/shadowing", icon: "♫" },
   { key: "settings", label: "Learning preferences", href: "/settings", icon: "⚙" },
+  { key: "account", label: "Account & security", href: "/account", icon: "♙" },
 ];
 
 export function AppShell({
