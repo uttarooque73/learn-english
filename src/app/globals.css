@@ -1246,3 +1246,13 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .sprint-favorite-count{align-self:stretch;display:flex;align-items:center;justify-content:center;margin-top:12px;padding-top:12px;border-top:1px solid #dfe5d7;color:#78896b;font-size:10px;font-weight:700}
 .sprint-actions button:disabled{cursor:not-allowed;opacity:.6}
 @media(max-width:520px){.sprint-tools{align-items:stretch}.sprint-filter{flex:1}.sprint-filter select{width:100%;min-width:0}.sprint-favorite{align-self:flex-end}}
+
+
+/* Context-aware suggested replies for the AI conversation partner */
+.coach-suggested-replies{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0 4px;padding-top:10px;border-top:1px solid #edf0e9}
+.coach-suggested-replies>span{flex-basis:100%;color:#85877d;font-size:10px;font-weight:700}
+.coach-suggested-reply{max-width:100%;padding:8px 11px;border:1px solid #dfe6d7;border-radius:999px;background:#f7f9f4;color:#4e6544;font:inherit;font-size:12px;line-height:1.4;text-align:left;cursor:pointer;transition:background .15s,border-color .15s}
+.coach-suggested-reply:hover:not(:disabled){border-color:#9eb18e;background:#edf3e7}
+.coach-suggested-reply:focus-visible{outline:2px solid #6f8d5b;outline-offset:2px}
+.coach-suggested-reply:disabled{cursor:not-allowed;opacity:.6}
+@media(max-width:520px){.coach-suggested-reply{font-size:11px;padding:7px 9px}}
