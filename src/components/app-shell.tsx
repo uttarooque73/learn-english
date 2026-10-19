@@ -25,7 +25,7 @@ function ProfileMenu({ onClose, user, onUserChange }: { onClose: () => void; use
     let active = true;
     fetch("/api/auth", { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
-      .then((data) => { if (active && data?.authenticated && data.user) onUserChange(data.user); })
+      .then((data) => { if (active) onUserChange(data?.authenticated && data.user ? data.user : null); })
       .catch(() => { /* Keep the generic workspace fallback if the session cannot be loaded. */ });
     return () => { active = false; };
   }, [onUserChange]);
