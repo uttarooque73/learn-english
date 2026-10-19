@@ -41,13 +41,14 @@ function ProfileMenu({ user, onClose }: { user: CurrentUser | null; onClose: () 
   </div>;
 }
 
-type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "account" | "achievements" | "activity-calendar" | "history" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
+type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "account" | "achievements" | "activity-calendar" | "history" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons" | "grammar-lab";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
   { key: "dashboard", label: "Learning dashboard", href: "/dashboard", icon: "▦" },
   { key: "learning-plan", label: "Daily learning plan", href: "/learning-plan", icon: "✓" },
   { key: "ai-tutor", label: "AI Personal Tutor", href: "/ai-tutor", icon: "✦" },
+  { key: "grammar-lab", label: "Grammar Learning Lab", href: "/grammar-lab", icon: "Aa" },
   { key: "assessment", label: "English assessment", href: "/assessment", icon: "✓" },
   { key: "weakness-to-lessons", label: "Weakness-to-Lesson Plan", href: "/weakness-to-lessons", icon: "✦" },
   { key: "weekly-report", label: "Weekly AI report", href: "/weekly-report", icon: "↗" },
