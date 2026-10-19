@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendTutorTurn, createTutorConversation, getTutorConversation } from "@/lib/ai/tutor-memory";
 import { resolveOwnerId, synchronizeOwnerCookie } from "@/lib/request-owner";
+import { chooseLearningAgent } from "@/lib/ai/learning-agent-router";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -176,6 +177,7 @@ export async function POST(request: Request) {
       ? "This is a dedicated simpler-explanation request. Explain the most recent assistant reply again in simpler English at the selected learner level. Keep the original meaning, use short sentences and familiar words, and include at most one brief example if it helps. Do not add new facts, correct the learner, or ask a follow-up question. Output only the simpler explanation."
       : "";
   const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/+$/, "");
+  const activeAgent = chooseLearningAgent({ message: lastMessage.content, mode, goal: sessionGoal, scenario });
   const model = process.env.OLLAMA_MODEL || "llama3.1:8b";
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -201,7 +203,8 @@ export async function POST(request: Request) {
               "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " + sessionGoalGuidance + " " + sessionDurationGuidance + " " +
               "Do not interrupt with unsolicited grammar lessons. If the learner asks for correction, give one natural correction and a brief explanation. " +
               "For balanced feedback, when the learner makes a meaningful grammar or phrasing error, first respond to the meaning naturally, then add at most one concise, clearly labeled Quick tip with the corrected phrase and a brief reason. Ignore tiny errors that do not affect clarity, and never turn every response into a lesson. For detailed feedback, explain up to two useful corrections. If the learner asks for correction, answer directly and supportively. " +
-              "Do not claim to score proficiency. Selected scenario: " + scenario + ". " + turnGuidance,
+              "Do not claim to score proficiency. Selected scenario: " + scenario + ". " +
+              "DYNAMIC SPECIALIST AGENT: " + activeAgent.name + ". Reason selected: " + activeAgent.reason + ". Specialist instructions: " + activeAgent.instructions + " " + turnGuidance,
           },
           ...promptMessages,
           ...(mode === "follow-up" ? [{
@@ -311,6 +314,8 @@ export async function POST(request: Request) {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       "X-Content-Type-Options": "nosniff",
+      "X-SpeakUp-Agent": activeAgent.name,
+      "X-SpeakUp-Agent-Reason": activeAgent.reason,
       ...(tutorConversationId ? { "X-Conversation-Id": tutorConversationId } : {}),
     },
   });

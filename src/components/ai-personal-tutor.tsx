@@ -47,6 +47,8 @@ export function AiPersonalTutor() {
   const [conversationHistory, setConversationHistory] = useState<Array<{ id: string; title: string; updatedAt: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [activeAgent, setActiveAgent] = useState("Personal Tutor");
+  const [agentReason, setAgentReason] = useState("Your message will be routed to the most relevant specialist.");
   const [wordCount, setWordCount] = useState(0);
   const [sessionCount, setSessionCount] = useState(0);
   const [recording, setRecording] = useState(false);
@@ -137,6 +139,8 @@ export function AiPersonalTutor() {
         const payload = await response.json().catch(() => ({})) as { error?: string };
         throw new Error(payload.error || "The tutor could not respond. Please try again.");
       }
+      setActiveAgent(response.headers.get("X-SpeakUp-Agent") || "Personal Tutor");
+      setAgentReason(response.headers.get("X-SpeakUp-Agent-Reason") || "Your tutor selected the best approach for this message.");
       const returnedConversationId = response.headers.get("X-Conversation-Id");
       if (returnedConversationId) setConversationId(returnedConversationId);
       const reader = response.body.getReader();
@@ -301,6 +305,7 @@ export function AiPersonalTutor() {
       <aside className={styles.sidebar}>
         <div className={styles.panel}><p className={styles.eyebrow}>PERSONALISE PRACTICE</p><h3>Your learning focus</h3><label htmlFor="tutor-goal">Main goal</label><select id="tutor-goal" value={goal} onChange={(event) => setGoal(event.target.value as typeof goal)}>{GOALS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><label htmlFor="tutor-level">English level</label><select id="tutor-level" value={level} onChange={(event) => setLevel(event.target.value as typeof level)}>{LEVELS.map((item) => <option key={item} value={item}>{item}</option>)}</select><label htmlFor="tutor-feedback">Feedback style</label><select id="tutor-feedback" value={feedback} onChange={(event) => setFeedback(event.target.value as typeof feedback)}><option value="balanced">Balanced and encouraging</option><option value="detailed">Detailed explanations</option></select><p className={styles.hint}>Changes apply to your next message.</p></div>
         <div className={styles.panel}><p className={styles.eyebrow}>YOUR LEARNING CONTEXT</p><h3>Building on your work</h3><div className={styles.stat}><strong>{wordCount}</strong><span>saved vocabulary items</span></div><div className={styles.stat}><strong>{sessionCount}</strong><span>saved practice sessions</span></div><p className={styles.hint}>Keep learning connected by saving useful words and practising regularly.</p><label htmlFor="tutor-history">Previous tutor sessions</label><select id="tutor-history" value={conversationId ?? ""} onChange={(event) => void loadTutorConversation(event.target.value)} disabled={busy || !memoryReady}><option value="">Choose a saved session</option>{conversationHistory.map((item) => <option key={item.id} value={item.id}>{item.title || "AI Tutor Session"} · {new Date(item.updatedAt).toLocaleDateString()}</option>)}</select></div>
+        <div className={styles.panel} aria-live="polite" aria-atomic="true"><p className={styles.eyebrow}>DYNAMIC AGENT ROUTER</p><h3>{activeAgent}</h3><p className={styles.hint}>{agentReason}</p><p className={styles.hint}>The specialist is selected for each message using your request, practice goal, and scenario.</p></div>
         <button className={styles.reset} type="button" onClick={resetConversation} disabled={busy || !memoryReady}>Start a fresh tutoring session</button>
       </aside>
     </div>
