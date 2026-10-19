@@ -20,8 +20,6 @@ const QUESTIONS: Question[] = [
 ];
 
 const SKILLS = ["Grammar", "Vocabulary", "Reading"] as const;
-type Skill = typeof SKILLS[number];
-
 function levelFor(score: number) {
   if (score >= 88) return { level: "Advanced", description: "You handle these English tasks confidently. Focus next on nuance, precision, and complex real-world communication." };
   if (score >= 63) return { level: "Intermediate", description: "You have a useful foundation. Target recurring grammar patterns and practise explaining ideas in fuller sentences." };
