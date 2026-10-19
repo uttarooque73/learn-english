@@ -9,7 +9,7 @@ import { getLearningPreferences, saveLearningPreferences, type SpeechRate, type 
 
 type Correction = { original: string; improved: string; reason: string };
 type VocabularyItem = { phrase: string; meaning: string; example: string };
-type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[]; vocabulary?: VocabularyItem[] };
+type Turn = { id: string; role: "user" | "assistant"; content: string; createdAt: string; corrections: Correction[]; vocabulary?: VocabularyItem[]; suggestions?: string[] };
 type Session = { id: string; title: string; scenario: string; difficulty: string; status: string; startedAt: string; updatedAt: string; durationSeconds: number; turnCount?: number; correctionCount?: number; summary?: Record<string, unknown>; turns?: Turn[] };
 type RecognitionResult = { results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }>; resultIndex: number };
 type Recognition = { lang: string; interimResults: boolean; continuous: boolean; onresult: ((event: RecognitionResult) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null; start(): void; stop(): void; abort(): void };
@@ -204,8 +204,7 @@ export function ConversationCoach() {
 
       const feedback = Array.isArray(data.corrections) ? data.corrections as Correction[] : [];
       const vocabulary = Array.isArray(data.vocabulary) ? data.vocabulary as VocabularyItem[] : [];
-      // Save the vocabulary agent's contextual picks automatically. Repeated phrases are
-      // deduplicated by learning-storage while new source sentences are retained for review.
+      // Persist useful vocabulary suggestions from each conversation for later review.
       for (const item of vocabulary) {
         const phrase = item.phrase.trim();
         if (!phrase || !item.meaning.trim() || !item.example.trim()) continue;
@@ -219,8 +218,11 @@ export function ConversationCoach() {
           sourceSessionId: sessionId,
         });
       }
+      const suggestions = Array.isArray(data.suggestions)
+        ? data.suggestions.filter((item: unknown): item is string => typeof item === "string" && !!item.trim()).slice(0, 3)
+        : [];
       const correctedUser = { ...userTurn, corrections: feedback };
-      const assistant = { ...newTurn("assistant", data.reply.trim()), vocabulary };
+      const assistant = { ...newTurn("assistant", data.reply.trim()), vocabulary, suggestions };
       const finalTurns = [...turnsRef.current.slice(0, -1), correctedUser, assistant];
       setTurns(finalTurns); turnsRef.current = finalTurns;
       await persistSession("active", finalTurns);
@@ -342,7 +344,7 @@ export function ConversationCoach() {
       <section className="coach-chat" aria-label="AI conversation">
         <header className="coach-chat-head"><div className="coach-avatar">✦</div><div><strong>SpeakUp conversation coach</strong><p><span className="status-dot"/> {sessionId ? "Session in progress" : "Ready when you are"}</p></div><span className="coach-duration">◷ {formatDuration(elapsed)}</span></header>
         {!sessionId && turns.length === 0 ? <div className="coach-empty"><div className="coach-orb">✦</div><h2>Your English, your moment.</h2><p>Choose a topic and start speaking. I&apos;ll listen, respond naturally, and help you improve without interrupting every sentence.</p><button className="button button-primary" onClick={() => void startSession()}>Let&apos;s talk <span>→</span></button><div className="coach-prompt-chips"><span>Daily conversation</span><span>Work English</span><span>Build confidence</span></div></div> :
-          <div className="coach-messages">{turns.map(turn => <article key={turn.id} className={`coach-message ${turn.role}`}><div className="coach-message-label">{turn.role === "assistant" ? "✦ Your tutor" : "You"}</div><p>{turn.content || (busy ? "Thinking…" : "")}</p>{turn.content && <div className="coach-message-actions"><ListenButton text={turn.content} label="Play sentence" className="coach-mini-button"/>{turn.role === "user" && <button className="coach-mini-button" onClick={() => play(turn.content)}>Repeat your answer</button>}</div>}{turn.corrections?.map((c, i) => <div key={i} className="coach-correction"><span>Try this instead</span><del>{c.original}</del><strong>{c.improved}</strong><small>{c.reason}</small></div>)}{turn.vocabulary?.map((v, i) => <div key={"vocab-" + i} className="coach-correction"><span>Useful expression</span><strong>{v.phrase}</strong><small>{v.meaning}</small><small>Example: {v.example}</small></div>)}</article>)}<div ref={bottomRef}/></div>}
+          <div className="coach-messages">{turns.map(turn => <article key={turn.id} className={`coach-message ${turn.role}`}><div className="coach-message-label">{turn.role === "assistant" ? "✦ Your tutor" : "You"}</div><p>{turn.content || (busy ? "Thinking…" : "")}</p>{turn.content && <div className="coach-message-actions"><ListenButton text={turn.content} label="Play sentence" className="coach-mini-button"/>{turn.role === "user" && <button className="coach-mini-button" onClick={() => play(turn.content)}>Repeat your answer</button>}</div>}{turn.corrections?.map((c, i) => <div key={i} className="coach-correction"><span>Try this instead</span><del>{c.original}</del><strong>{c.improved}</strong><small>{c.reason}</small></div>)}{turn.vocabulary?.map((v, i) => <div key={"vocab-" + i} className="coach-correction"><span>Useful expression</span><strong>{v.phrase}</strong><small>{v.meaning}</small><small>Example: {v.example}</small></div>)}{turn.role === "assistant" && turn.suggestions && turn.suggestions.length > 0 && <div className="coach-suggested-replies" aria-label="Suggested replies"><span>Not sure what to say?</span>{turn.suggestions.map((suggestion, i) => <button key={`${turn.id}-suggestion-${i}`} type="button" className="coach-suggested-reply" onClick={() => setInput(suggestion)} disabled={busy}>{suggestion}</button>)}</div>}</article>)}<div ref={bottomRef}/></div>}
         {sessionId && <div className="coach-composer"><textarea aria-label="Your answer" placeholder={listening ? "Listening… speak naturally" : "Type your answer or use the microphone…"} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} rows={2} disabled={busy}/><div className="coach-composer-actions"><span>Enter to send · Shift + Enter for a new line</span><div><button className={listening ? "coach-mic-button listening" : "coach-mic-button"} onClick={() => listening ? stopListening() : startListening()} disabled={busy} aria-label={listening ? "Stop recording" : "Start voice input"}>{listening ? "■ Stop" : "🎙 Speak"}</button><button className="button button-primary" onClick={() => void send()} disabled={busy || !input.trim()}>{busy ? "Thinking…" : "Send ↑"}</button></div></div></div>}
         {sessionId && <p className="coach-disclaimer">Speech recognition and voice playback depend on your browser and device. You can always type instead.</p>}
       </section>

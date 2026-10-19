@@ -58,6 +58,12 @@ async function runAgent(system: string, user: string, timeoutMs = OLLAMA_TIMEOUT
   } finally { clearTimeout(timer); }
 }
 
+function suggestions(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && !!item.trim())
+    .slice(0, 3).map(item => item.trim().slice(0, 180));
+}
+
 function corrections(value: unknown): Correction[] {
   if (!Array.isArray(value)) return [];
   return value.filter((x): x is Correction => !!x && typeof x === "object"
@@ -94,7 +100,7 @@ export async function POST(request: Request) {
   }).join("\n");
   const latest = messages[messages.length - 1].content.trim();
 
-  const conversationPrompt = `You are the single user-facing English conversation partner in SpeakUp AI. Scenario: ${scenario}. Learner level: ${difficulty}. Continue the role-play naturally, refer to recent context, and ask at most one relevant follow-up question. Keep the response concise and encouraging. Do not turn the response into a grammar lecture. Return JSON with exactly one string field: reply.`;
+  const conversationPrompt = `You are the single user-facing English conversation partner in SpeakUp AI. Scenario: ${scenario}. Learner level: ${difficulty}. Continue the role-play naturally, refer to recent context, and ask at most one relevant follow-up question. Keep the response concise and encouraging. Do not turn the response into a grammar lecture. Return JSON with fields: reply (string) and suggestions (array of exactly 3 short, natural replies the learner could say next). Suggestions must fit the scenario and latest tutor reply, use the learner level, and be varied. Do not include explanations or numbering in suggestions.`;
   const feedbackPrompt = `You are the Language Feedback Agent for an English learner at ${difficulty} level. Review only the learner's latest message. Feedback style: ${feedbackStyle}. Correct only meaningful grammar or word-choice errors; accept valid informal English and regional variation. Never invent an error. Return JSON: {"corrections":[{"original":"exact short excerpt","improved":"corrected version","reason":"brief plain-English explanation"}]}. Return at most 2 corrections; use an empty array if none are needed.`;
   const vocabularyPrompt = `You are the Contextual Vocabulary Agent for an English learner at ${difficulty} level. From the learner's latest message and conversation context, select up to 2 genuinely useful English words, collocations, or expressions to learn. Prefer useful expressions the learner could reuse. Do not repeat trivial words or invent a phrase absent from context unless it is a natural alternative directly related to what they said. Return JSON: {"vocabulary":[{"phrase":"word or expression","meaning":"concise meaning","example":"natural example sentence"}]}. Return an empty array when nothing adds value.`;
 
@@ -123,6 +129,7 @@ Latest learner message: ${latest}`;
   const words = vocabularyResult.status === "fulfilled" ? vocabulary(vocabularyResult.value.vocabulary) : [];
   return NextResponse.json({
     reply: replyValue.trim().slice(0, 4_000),
+    suggestions: suggestions(conversationResult.value.suggestions),
     corrections: feedback,
     vocabulary: words,
     agents: {
