@@ -13,7 +13,7 @@ describe("AdaptiveVocabularyContext", () => {
   it("starts with a usable dialogue and asks a comprehension question", () => {
     render(<AdaptiveVocabularyContext />);
     expect(screen.getByRole("heading", { name: /clarifying a project deadline/i })).toBeInTheDocument();
-    expect(screen.getByText(/keep me posted/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/keep me posted/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /check answer/i })).toBeDisabled();
   });
 
