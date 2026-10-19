@@ -61,7 +61,7 @@ export function ListeningComprehensionLab() {
   const [checked, setChecked] = useState(false);
   const [transcriptVisible, setTranscriptVisible] = useState(false);
   const [notice, setNotice] = useState("");
-  const [speechSupported, setSpeechSupported] = useState(false);
+  const speechSupported = typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
   const [replayCount, setReplayCount] = useState(0);
   const [sessionId] = useState(makeSessionId);
   const [startedAt] = useState(() => new Date().toISOString());
@@ -70,7 +70,6 @@ export function ListeningComprehensionLab() {
   const allAnswered = lesson.questions.every((_, index) => answers[String(index)] !== undefined);
 
   useEffect(() => {
-    setSpeechSupported(typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined");
     void initializeDatabasePersistence().catch(() => undefined);
     return () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); };
   }, []);
