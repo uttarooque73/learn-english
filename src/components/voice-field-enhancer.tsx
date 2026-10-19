@@ -100,7 +100,7 @@ export function VoiceFieldEnhancer() {
           const input = field as HTMLInputElement | HTMLTextAreaElement;
           const label = input.labels ? Array.from(input.labels).map((item) => item.innerText).join(" ") : "";
           const describedBy = input.getAttribute("aria-describedby");
-          const description = describedBy ? describedBy.split(/\\s+/).map((id) => document.getElementById(id)?.innerText || "").join(" ") : "";
+          const description = describedBy ? describedBy.split(/\s+/).map((id) => document.getElementById(id)?.innerText || "").join(" ") : "";
           const prompt = [label, input.getAttribute("aria-label"), description, input.placeholder].filter(Boolean).join(". ").trim();
           if (!prompt || !("speechSynthesis" in window)) return;
           window.speechSynthesis.cancel();
