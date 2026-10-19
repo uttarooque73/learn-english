@@ -170,7 +170,7 @@ export function AppShell({
             <div className="heading-date"><span className="date-icon">◷</span><span>One step at a time</span></div>
           </div>
           {children}
-          {authChecked && currentUser && <DynamicLearningStudio />}
+          {authChecked && currentUser && activePage === "ai-tutor" && <DynamicLearningStudio />}
           <footer className="page-footer"><span>SpeakUp AI</span><span>Practice at your own pace. Progress over perfection.</span></footer>
         </div>
       </main>
