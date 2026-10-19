@@ -113,10 +113,13 @@ export function AppShell({
     const navBounds = nav.getBoundingClientRect();
     const linkBounds = activeLink.getBoundingClientRect();
     const linkTop = nav.scrollTop + linkBounds.top - navBounds.top;
-    nav.scrollTo({
-      top: Math.max(0, linkTop - (nav.clientHeight - activeLink.offsetHeight) / 2),
-      behavior: "auto",
-    });
+    const centeredScrollTop = Math.max(0, linkTop - (nav.clientHeight - activeLink.offsetHeight) / 2);
+    if (typeof nav.scrollTo === "function") {
+      nav.scrollTo({ top: centeredScrollTop, behavior: "auto" });
+    } else {
+      // scrollTo is not implemented by every DOM test environment.
+      nav.scrollTop = centeredScrollTop;
+    }
   }, [activePage, authChecked, currentUser]);
 
   return (
