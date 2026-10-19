@@ -56,11 +56,11 @@ function isChatMessage(value: unknown): value is ChatMessage {
 }
 
 export async function POST(request: Request) {
-  const nextRequest = request instanceof NextRequest ? request : new NextRequest(request);
+  const nextRequest = request instanceof NextRequest ? request : new NextRequest(request.url, { method: request.method, headers: request.headers });
   let body: unknown;
 
   try {
-    body = await nextRequest.json();
+    body = await request.json();
   } catch {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
   }
