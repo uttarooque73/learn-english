@@ -96,7 +96,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       return responseWithSession({
         ok: true,
         message: "Your profile has been updated.",
-        user: { email: account.email, displayName },
+        user: { email: account.email, displayName, createdAt: account.createdAt },
       }, { ...account, displayName });
     }
 
