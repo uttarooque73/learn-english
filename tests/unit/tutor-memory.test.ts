@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ensurePersistenceSchema } from "@/lib/database";
-import { appendTutorTurn, createTutorConversation, deleteTutorConversation, getTutorConversation } from "@/lib/ai/tutor-memory";
+import { appendTutorTurn, createTutorConversation, deleteTutorConversation, getTutorConversation, listTutorConversations } from "@/lib/ai/tutor-memory";
 
 type DatabaseGlobal = typeof globalThis & { speakupDatabase?: Database.Database };
 const databaseGlobal = globalThis as DatabaseGlobal;
@@ -47,6 +47,8 @@ describe("persistent AI tutor memory", () => {
       { role: "assistant", content: "Say: Yesterday I went to work. Use 'went' for the past." },
     ]);
     expect(getTutorConversation("owner-a", conversation.id)?.title).toBe("Yesterday I go to work.");
+    expect(listTutorConversations("owner-a")).toMatchObject([{ id: conversation.id, title: "Yesterday I go to work." }]);
+    expect(listTutorConversations("owner-b")).toEqual([]);
   });
 
   it("does not expose another owner's conversation and limits deletion to its owner", () => {
