@@ -1,9 +1,61 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AuthStatus } from "@/components/auth-status";
+
+type CurrentUser = { displayName: string; email: string };
+
+function ProfileMenu({ onClose }: { onClose: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
+      .then((data) => { if (active && data?.authenticated && data.user) setUser(data.user); })
+      .catch(() => { /* Keep the generic workspace fallback if the session cannot be loaded. */ });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) setOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) { if (event.key === "Escape") setOpen(false); }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => { document.removeEventListener("mousedown", handlePointerDown); document.removeEventListener("keydown", handleKeyDown); };
+  }, [open]);
+
+  async function signOut() {
+    setSigningOut(true);
+    try {
+      const response = await fetch("/api/auth", { method: "DELETE" });
+      if (!response.ok) throw new Error("Unable to sign out.");
+      window.location.assign("/login");
+    } catch { setSigningOut(false); }
+  }
+  const initial = user?.displayName.trim().charAt(0).toUpperCase() || user?.email.trim().charAt(0).toUpperCase() || "U";
+  return (
+    <div className="profile-menu-root" ref={rootRef}>
+      <button className="profile-menu-trigger" type="button" aria-label="Open learning space menu" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span aria-hidden="true">···</span></button>
+      {open && <div className="profile-menu-popover" role="menu" aria-label="Learning space options">
+        <div className="profile-menu-heading"><span className="profile-menu-avatar" aria-hidden="true">{initial}</span><span className="profile-menu-user"><strong>{user?.displayName || "My learning space"}</strong><small>{user?.email || "Personal practice"}</small></span></div>
+        <div className="profile-menu-divider" />
+        <Link href="/account" role="menuitem" className="profile-menu-item" onClick={() => { setOpen(false); onClose(); }}><span aria-hidden="true">♙</span> Account &amp; security</Link>
+        <Link href="/settings" role="menuitem" className="profile-menu-item" onClick={() => { setOpen(false); onClose(); }}><span aria-hidden="true">⚙</span> Learning preferences</Link>
+        <button type="button" role="menuitem" className="profile-menu-item profile-menu-signout" onClick={signOut} disabled={signingOut}><span aria-hidden="true">↪</span> {signingOut ? "Signing out…" : "Sign out"}</button>
+      </div>}
+    </div>
+  );
+}
+
 
 type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "account" | "achievements" | "activity-calendar" | "history" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
 
@@ -105,7 +157,7 @@ export function AppShell({
           <div className="profile-row">
             <div className="avatar">U</div>
             <div className="profile-copy"><strong>My learning space</strong><span>Personal practice</span></div>
-            <span className="profile-menu" aria-hidden="true">···</span>
+            <ProfileMenu onClose={() => setMobileNavOpen(false)} />
           </div>
         </div>
       </aside>
