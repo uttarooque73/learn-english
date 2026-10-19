@@ -74,6 +74,11 @@ export function FloatingEnglishPartner() {
 
   useEffect(() => { messagesRef.current = messages; scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages]);
   useEffect(() => {
+    const openVoiceCoach = () => { setOpen(true); setMinimized(false); };
+    window.addEventListener("speakup:open-voice-coach", openVoiceCoach);
+    return () => window.removeEventListener("speakup:open-voice-coach", openVoiceCoach);
+  }, []);
+  useEffect(() => {
     void fetch("/api/voice-conversations/preferences", { cache: "no-store" })
       .then(async (response) => {
         const data = await response.json() as { sentenceFeedbackEnabled?: boolean; repeatAfterFeedbackEnabled?: boolean };
