@@ -27,7 +27,7 @@ export function AccountSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"profile" | "password" | null>(null);
+  const [busy, setBusy] = useState<"profile" | "password" | "export" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -102,6 +102,33 @@ export function AccountSettings() {
     }
   }
 
+  async function exportLearningData() {
+    setBusy("export");
+    setError("");
+    setNotice("");
+    try {
+      const response = await fetch("/api/account/export", { cache: "no-store" });
+      if (!response.ok) {
+        const data = await response.json() as ApiResponse;
+        throw new Error(data.error || "Could not export your learning data.");
+      }
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "speakup-learning-data.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+      setNotice("Your learning data export is ready.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not export your learning data.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (loading) return <section className="section-block"><p>Loading account details…</p></section>;
   if (!profile) return <section className="section-block"><p role="alert">{error || "Sign in to manage your account."}</p><a className="text-link" href="/login">Go to sign in →</a></section>;
 
@@ -131,6 +158,13 @@ export function AccountSettings() {
           <label style={labelStyle}>Confirm new password<input style={inputStyle} required type="password" minLength={10} maxLength={128} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} /></label>
           <button style={buttonStyle} type="submit" disabled={busy !== null}>{busy === "password" ? "Changing password…" : "Change password"}</button>
         </form>
+      </section>
+
+      <section style={cardStyle}>
+        <p className="eyebrow">YOUR DATA</p>
+        <h2 style={{ marginTop: 6, marginBottom: 8 }}>Export your learning history</h2>
+        <p style={{ color: "var(--muted, #68716d)", marginTop: 0, lineHeight: 1.6 }}>Download a JSON copy of learning records saved to your account. The export is scoped to your account and excludes password hashes and authentication tokens.</p>
+        <button style={buttonStyle} type="button" onClick={exportLearningData} disabled={busy !== null}>{busy === "export" ? "Preparing export…" : "Download my learning data"}</button>
       </section>
 
       {error && <p role="alert" style={messageStyle("#fff0ed", "#a42e2e")}>{error}</p>}
