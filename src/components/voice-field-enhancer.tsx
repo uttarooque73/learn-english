@@ -84,7 +84,11 @@ export function VoiceFieldEnhancer() {
       });
       const parent = field.parentElement;
       if (parent) {
-        parent.insertBefore(button, field.nextSibling);
+        // Keep injected controls outside label elements so they do not change
+        // the field's accessible name (for example, "Paragraph Listen Dictate").
+        const controlHost = parent.tagName === "LABEL" && parent.parentElement ? parent.parentElement : parent;
+        const insertionAnchor = controlHost === parent ? field : parent;
+        controlHost.insertBefore(button, insertionAnchor.nextSibling);
         controls.set(field, button);
         const listen = document.createElement("button");
         listen.type = "button";
@@ -104,7 +108,7 @@ export function VoiceFieldEnhancer() {
           utterance.lang = document.documentElement.lang || "en-US";
           window.speechSynthesis.speak(utterance);
         });
-        parent.insertBefore(listen, button.nextSibling);
+        controlHost.insertBefore(listen, button.nextSibling);
         listenControls.set(field, listen);
       }
     };
