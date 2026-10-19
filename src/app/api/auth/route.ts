@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import {
@@ -23,6 +23,50 @@ type AccountRow = {
   passwordHash: string;
   ownerId: string;
 };
+
+const LOGIN_WINDOW_SECONDS = 15 * 60;
+const LOGIN_MAX_FAILURES = 5;
+
+function emailKey(email: string): string {
+  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+}
+
+function isLoginLocked(email: string, now = Math.floor(Date.now() / 1000)): boolean {
+  const row = getDatabase().prepare(
+    "SELECT locked_until AS lockedUntil, window_started_at AS windowStartedAt FROM auth_login_attempts WHERE email_hash = ?",
+  ).get(emailKey(email)) as { lockedUntil: number; windowStartedAt: number } | undefined;
+  if (!row) return false;
+  if (row.windowStartedAt + LOGIN_WINDOW_SECONDS <= now && row.lockedUntil <= now) {
+    getDatabase().prepare("DELETE FROM auth_login_attempts WHERE email_hash = ?").run(emailKey(email));
+    return false;
+  }
+  return row.lockedUntil > now;
+}
+
+function recordFailedLogin(email: string, now = Math.floor(Date.now() / 1000)): boolean {
+  const key = emailKey(email);
+  const database = getDatabase();
+  const record = database.transaction(() => {
+    const row = database.prepare(
+      "SELECT failed_attempts AS failedAttempts, window_started_at AS windowStartedAt FROM auth_login_attempts WHERE email_hash = ?",
+    ).get(key) as { failedAttempts: number; windowStartedAt: number } | undefined;
+    const withinWindow = Boolean(row && row.windowStartedAt + LOGIN_WINDOW_SECONDS > now);
+    const attempts = withinWindow ? row!.failedAttempts + 1 : 1;
+    const windowStartedAt = withinWindow ? row!.windowStartedAt : now;
+    const lockedUntil = attempts >= LOGIN_MAX_FAILURES ? now + LOGIN_WINDOW_SECONDS : 0;
+    database.prepare(`
+      INSERT INTO auth_login_attempts (email_hash, window_started_at, failed_attempts, locked_until, updated_at)
+      VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ON CONFLICT(email_hash) DO UPDATE SET
+        window_started_at = excluded.window_started_at,
+        failed_attempts = excluded.failed_attempts,
+        locked_until = excluded.locked_until,
+        updated_at = excluded.updated_at
+    `).run(key, windowStartedAt, attempts, lockedUntil);
+    return attempts >= LOGIN_MAX_FAILURES;
+  });
+  return record();
+}
 
 function accountByEmail(email: string): AccountRow | undefined {
   return getDatabase().prepare(`
@@ -123,10 +167,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }, { headers: { "Cache-Control": "no-store" } }), account);
     }
 
+    if (isLoginLocked(email)) {
+      return NextResponse.json(
+        { error: "Too many unsuccessful sign-in attempts. Please wait 15 minutes before trying again." },
+        { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(LOGIN_WINDOW_SECONDS) } },
+      );
+    }
     const account = accountByEmail(email);
     if (!account || !verifyPassword(password, account.passwordSalt, account.passwordHash)) {
-      return NextResponse.json({ error: "Email or password is incorrect." }, { status: 401, headers: { "Cache-Control": "no-store" } });
+      const locked = recordFailedLogin(email);
+      return NextResponse.json({
+        error: locked
+          ? "Too many unsuccessful sign-in attempts. Please wait 15 minutes before trying again."
+          : "Email or password is incorrect.",
+      }, {
+        status: locked ? 429 : 401,
+        headers: { "Cache-Control": "no-store", ...(locked ? { "Retry-After": String(LOGIN_WINDOW_SECONDS) } : {}) },
+      });
     }
+    getDatabase().prepare("DELETE FROM auth_login_attempts WHERE email_hash = ?").run(emailKey(email));
     return applySession(NextResponse.json({
       ok: true,
       user: { email: account.email, displayName: account.displayName },
