@@ -8,6 +8,8 @@ export type AuthSession = { ownerId: string; email: string; displayName: string;
 
 type SessionClaims = { sub: string; email: string; name: string; exp: number };
 
+export function assertAuthConfiguration(): void { secret(); }
+
 function secret(): string {
   const configured = process.env.AUTH_SECRET;
   if (configured && configured.length >= 32) return configured;

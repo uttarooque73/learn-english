@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import type { CSSProperties, FormEvent } from "react";
 
 function LoginForm() {
   const router = useRouter();
@@ -14,7 +15,7 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setBusy(true);
@@ -73,7 +74,7 @@ function LoginForm() {
   );
 }
 
-const fieldStyle: React.CSSProperties = {
+const fieldStyle: CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   border: "1px solid #d8ded9",

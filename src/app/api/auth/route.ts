@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 import {
+  assertAuthConfiguration,
   createSessionToken,
   hashPassword,
   OWNER_COOKIE,
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    assertAuthConfiguration();
     ensurePersistenceSchema();
     const database = getDatabase();
     if (action === "register") {
