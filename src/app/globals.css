@@ -1267,3 +1267,11 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .recommendation-feedback-actions button:disabled{cursor:not-allowed;opacity:.55}
 .recommendation-feedback-message{margin:0;color:#687a5a;font-size:12px;line-height:1.5}
 @media(max-width:520px){.recommendation-feedback-actions button{flex:1}}
+
+/* Shared listening and microphone entry points are available on every route. */
+.global-learning-controls{position:fixed;right:24px;bottom:88px;z-index:79;display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.global-learning-controls .listen-page-control{margin:0;min-height:42px;box-shadow:0 5px 20px rgba(37,39,31,.12)}
+.global-voice-control{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 14px;border:1px solid #dfe4d9;border-radius:10px;background:#fff;color:var(--green-dark);font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 5px 20px rgba(37,39,31,.12)}
+.global-voice-control:hover{background:#f5f8f1;border-color:#b9c8ae}
+.global-voice-control:focus-visible{outline:3px solid #91a987;outline-offset:2px}
+@media(max-width:600px){.global-learning-controls{right:14px;bottom:82px}.global-learning-controls .listen-page-control,.global-voice-control{min-height:40px;padding:9px 12px;font-size:11px}}
