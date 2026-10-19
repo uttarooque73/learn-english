@@ -1,9 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { AuthStatus } from "@/components/auth-status";
+
+type CurrentUser = { displayName: string; email: string };
+
+function userInitial(user: CurrentUser | null): string {
+  return user?.displayName.trim().charAt(0).toLocaleUpperCase() || user?.email.trim().charAt(0).toLocaleUpperCase() || "U";
+}
 
 type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "account" | "achievements" | "activity-calendar" | "history" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
 
@@ -56,6 +62,16 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
+      .then((data) => { if (active) setCurrentUser(data?.authenticated && data.user ? data.user : null); })
+      .catch(() => { if (active) setCurrentUser(null); });
+    return () => { active = false; };
+  }, []);
 
   return (
     <div className="app-frame">
@@ -103,8 +119,8 @@ export function AppShell({
             <Link href="/conversation-coach" className="coach-link">Talk with your AI coach <span>↗</span></Link>
           </div>
           <div className="profile-row">
-            <div className="avatar">U</div>
-            <div className="profile-copy"><strong>My learning space</strong><span>Personal practice</span></div>
+            <div className="avatar" aria-label={currentUser ? `${currentUser.displayName} profile` : "User profile"} title={currentUser?.displayName || "User profile"}>{userInitial(currentUser)}</div>
+            <div className="profile-copy"><strong>{currentUser?.displayName || "My learning space"}</strong><span>{currentUser?.email || "Personal practice"}</span></div>
             <span className="profile-menu" aria-hidden="true">···</span>
           </div>
         </div>
@@ -113,7 +129,7 @@ export function AppShell({
       <main className="main-panel">
         <header className="topbar">
           <div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{title}</strong></div>
-          <div className="topbar-right"><span className="status-pill"><span className="status-dot" /> Local-first learning</span><AuthStatus /><div className="top-avatar">U</div></div>
+          <div className="topbar-right"><span className="status-pill"><span className="status-dot" /> Local-first learning</span><AuthStatus /><div className="top-avatar" aria-label={currentUser ? `${currentUser.displayName} profile` : "User profile"} title={currentUser?.displayName || "User profile"}>{userInitial(currentUser)}</div></div>
         </header>
         <div className="page-content">
           <div className="page-heading">
