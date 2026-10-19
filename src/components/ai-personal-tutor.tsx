@@ -56,13 +56,13 @@ export function AiPersonalTutor() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: "conversation",
+          mode: "tutor",
           scenario: "Free conversation",
           difficulty: level,
           feedbackStyle: feedback,
           sessionGoal: goal,
           messages: [
-            { role: "user", content: "You are my personal English tutor, not just a role-play partner. First address my request, then teach interactively: explain briefly, give one useful example when helpful, and ask me to try or answer one focused question. Correct important mistakes supportively. Adapt your vocabulary and explanations to my level. My current goal is " + goal + ". My saved vocabulary bank has " + wordCount + " items and I have " + sessionCount + " saved practice sessions. Use that context only when relevant. Learner request: " + text },
+            { role: "user", content: "Learner request: " + text + ". My current goal is " + goal + ". My saved vocabulary bank has " + wordCount + " items and I have " + sessionCount + " saved practice sessions; use that context only when relevant." },
           ],
         }),
       });
