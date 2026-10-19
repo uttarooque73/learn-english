@@ -95,10 +95,13 @@ export function SpeakUpAdventures() {
   const completed = progress.completed.includes(chapter.id);
 
   useEffect(() => {
-    setProgress(readProgress());
-    setReady(true);
-    const browser = window as Window & { SpeechRecognition?: new () => { lang: string; interimResults: boolean; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void; stop: () => void }; webkitSpeechRecognition?: new () => { lang: string; interimResults: boolean; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void; stop: () => void } };
-    setVoiceAvailable(Boolean(browser.SpeechRecognition || browser.webkitSpeechRecognition));
+    const timeout = window.setTimeout(() => {
+      setProgress(readProgress());
+      setReady(true);
+      const browser = window as Window & { SpeechRecognition?: new () => { lang: string; interimResults: boolean; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void; stop: () => void }; webkitSpeechRecognition?: new () => { lang: string; interimResults: boolean; onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onerror: (() => void) | null; onend: (() => void) | null; start: () => void; stop: () => void } };
+      setVoiceAvailable(Boolean(browser.SpeechRecognition || browser.webkitSpeechRecognition));
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
