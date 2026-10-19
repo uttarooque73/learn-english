@@ -5,13 +5,14 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor";
+type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
   { key: "dashboard", label: "Learning dashboard", href: "/dashboard", icon: "▦" },
   { key: "learning-plan", label: "Daily learning plan", href: "/learning-plan", icon: "✓" },
   { key: "ai-tutor", label: "AI Personal Tutor", href: "/ai-tutor", icon: "✦" },
+  { key: "assessment", label: "English assessment", href: "/assessment", icon: "✓" },
   { key: "mistake-micro-lessons", label: "Mistake Micro-Lessons", href: "/mistake-micro-lessons", icon: "✎" },
   { key: "sentence-improver", label: "Smart Grammar Improver", href: "/sentence-improver", icon: "Aa" },
   { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
