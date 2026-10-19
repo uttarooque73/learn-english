@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
+import { AccountDeletionSection } from "@/components/account-deletion-section";
 
 type Profile = { email: string; displayName: string; createdAt: string };
 type ApiResponse = { user?: Profile; message?: string; error?: string; ok?: boolean };
@@ -166,6 +167,8 @@ export function AccountSettings() {
         <p style={{ color: "var(--muted, #68716d)", marginTop: 0, lineHeight: 1.6 }}>Download a JSON copy of learning records saved to your account. The export is scoped to your account and excludes password hashes and authentication tokens.</p>
         <button style={buttonStyle} type="button" onClick={exportLearningData} disabled={busy !== null}>{busy === "export" ? "Preparing export…" : "Download my learning data"}</button>
       </section>
+
+      <AccountDeletionSection />
 
       {error && <p role="alert" style={messageStyle("#fff0ed", "#a42e2e")}>{error}</p>}
       {notice && <p role="status" style={messageStyle("#e8f5ed", "#245b4e")}>{notice}</p>}

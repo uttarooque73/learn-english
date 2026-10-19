@@ -4,7 +4,7 @@ An English-speaking practice app built with Next.js, React, and TypeScript. Prac
 
 ## Features
 
-- **AI conversation practice:** guided role-play, custom scenarios, difficulty levels, goals, and optional timed sessions. Five specialist roles personalize each turn: learner context, conversation, language feedback, contextual vocabulary, and session evaluation.
+- **AI conversation practice:** guided role-play, custom scenarios, difficulty levels, goals, and optional timed sessions.
 - **Persistent AI tutor:** conversation history is saved to SQLite per learner, restored when returning, and used as context for follow-up tutoring turns. Learners can switch between recent saved sessions.
 - **Speaking practice:** browser speech input and playback, plus shadowing exercises.
 - **Feedback:** grammar corrections, natural phrasing suggestions, simpler explanations, and adaptive follow-up questions.
@@ -83,10 +83,6 @@ Browser UI
 - **Persistence:** SQLite for sessions, summaries, vocabulary/review metadata, preferences, and custom learning options.
 - **Speech:** Browser speech recognition and synthesis APIs, with text input as a fallback.
 
-
-## Conversation Coach specialist agents
-
-Each `POST /api/conversation-coach/turn` runs the conversation, language-feedback, contextual-vocabulary, and session-evaluator model agents concurrently. A learner-context agent loads only the current owner's saved proficiency, goals, low-mastery skills, recurring mistakes, and due vocabulary reviews; the context is used to personalize prompts and is not shown verbatim to the learner. The evaluator returns a conservative text-based speaking score and actionable feedback, then records idempotent evidence against the session turn when the client supplies its session and turn IDs. Pronunciation is never inferred from text. Failure of a specialist does not block a valid conversation reply, and agent status is included in the API response. The conversation agent remains the only required agent for a successful turn.
 
 ## Adaptive multi-agent learning workflow
 
