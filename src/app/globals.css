@@ -7,12 +7,12 @@ body{margin:0;color:var(--ink);font-family:"DM Sans",Arial,sans-serif;font-size:
 a{color:inherit;text-decoration:none}
 button,input{font:inherit}
 .app-frame{min-height:100vh}
-.sidebar{position:fixed;inset:0 auto 0 0;width:248px;padding:29px 18px 17px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:5}
+.sidebar{position:fixed;inset:0 auto 0 0;width:248px;padding:29px 18px 17px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;z-index:5}
 .brand{display:flex;align-items:center;gap:11px;padding:0 9px 39px}
 .brand-mark{display:grid;place-items:center;width:39px;height:39px;border-radius:13px;background:var(--green);color:white;font-family:Manrope,sans-serif;font-size:27px;font-weight:800;line-height:1}
 .brand-copy{display:flex;flex-direction:column;gap:1px}.brand-copy strong{font-family:Manrope,sans-serif;font-size:20px;letter-spacing:-1.1px}.brand-copy strong span{color:#91a886}.brand-copy small{font-size:8px;font-weight:700;letter-spacing:1.7px;color:#9b9d93}
 .nav-caption,.eyebrow{margin:0;color:#999b90;font-size:9px;font-weight:700;letter-spacing:1.6px}
-.nav-caption{padding:0 13px 13px}.main-nav{display:grid;gap:5px}
+.nav-caption{padding:0 13px 13px;flex-shrink:0}.main-nav{display:grid;gap:5px;flex:1 1 auto;min-height:0;align-content:start;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d8ddd1 transparent;padding-right:3px}
 .nav-link{display:flex;align-items:center;gap:12px;min-height:45px;padding:0 13px;border-radius:10px;color:#777a70;font-size:12px;font-weight:600;transition:background .15s,color .15s}
 .nav-link:hover{background:#f7f7f2;color:var(--ink)}.nav-link.active{background:#edf1e9;color:var(--green-dark);font-weight:700}.nav-icon{display:grid;place-items:center;width:20px;font-size:18px;line-height:1}.nav-link:nth-child(3) .nav-icon{font-size:13px;font-weight:700}.nav-dot{width:6px;height:6px;margin-left:auto;border-radius:50%;background:#b0c2a5}
 .sidebar-bottom{margin-top:auto}.coach-card{padding:18px 15px 16px;border-radius:13px;background:#f4f5ef}.coach-spark{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;background:#e2e9dc;color:var(--green);font-size:16px;margin-bottom:14px}.coach-card strong{font-family:Manrope,sans-serif;font-size:13px}.coach-card p{margin:7px 0 13px;color:#85877c;font-size:11px;line-height:1.7}.coach-link{font-size:11px;font-weight:700;color:var(--green)}.coach-link span{padding-left:5px}
@@ -380,7 +380,7 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
     overflow: visible;
     padding: 7px 0 0;
   }
-  .main-nav.mobile-nav-open { display: flex; }
+  .main-nav.mobile-nav-open { display: flex; max-height: calc(100dvh - 190px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #d8ddd1 transparent; }
   .nav-link {
     flex: 0 0 auto;
     width: 100%;
