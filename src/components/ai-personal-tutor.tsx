@@ -25,6 +25,7 @@ export function AiPersonalTutor() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [memoryReady, setMemoryReady] = useState(false);
+  const [conversationHistory, setConversationHistory] = useState<Array<{ id: string; title: string; updatedAt: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [wordCount, setWordCount] = useState(0);
@@ -47,8 +48,9 @@ export function AiPersonalTutor() {
       try {
         const response = await fetch("/api/tutor-memory", { cache: "no-store" });
         if (!response.ok) throw new Error("Tutor history could not be loaded.");
-        const payload = await response.json() as { conversation?: { id: string; messages: Message[]; goal: string; level: string; feedbackStyle: "balanced" | "detailed" } | null };
+        const payload = await response.json() as { conversation?: { id: string; messages: Message[]; goal: string; level: string; feedbackStyle: "balanced" | "detailed" } | null; conversations?: Array<{ id: string; title: string; updatedAt: string }> };
         if (!active) return;
+        setConversationHistory(payload.conversations ?? []);
         if (payload.conversation) {
           setConversationId(payload.conversation.id);
           setMessages(payload.conversation.messages);
@@ -62,8 +64,9 @@ export function AiPersonalTutor() {
             body: JSON.stringify({ goal, level, feedbackStyle: feedback }),
           });
           if (!created.ok) throw new Error("A tutor session could not be started.");
-          const result = await created.json() as { conversation?: { id: string } };
+          const result = await created.json() as { conversation?: { id: string }; conversations?: Array<{ id: string; title: string; updatedAt: string }> };
           if (active && result.conversation) setConversationId(result.conversation.id);
+          if (active) setConversationHistory(result.conversations ?? []);
         }
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : "Tutor history could not be loaded.");
