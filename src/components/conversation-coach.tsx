@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListenButton } from "@/components/listen-button";
-import { stopSpeaking } from "@/lib/speech-playback";
+import { speakText, stopSpeaking } from "@/lib/speech-playback";
 import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { saveVocabulary } from "@/lib/learning-storage";
 import { getLearningPreferences, saveLearningPreferences, type SpeechRate, type SpeechVoiceGender } from "@/lib/learning-preferences";
@@ -103,15 +103,6 @@ export function ConversationCoach() {
   }, []);
   useEffect(() => { void Promise.resolve().then(() => refreshHistory()); }, [refreshHistory]);
 
-  const availableVoice = useMemo(() => {
-    const preferred = voiceGender === "female"
-      ? voices.filter(v => /samantha|victoria|karen|zira|jenny|aria|ava|susan|hazel|moira|tessa|fiona|allison|female/i.test(v.name))
-      : voiceGender === "male"
-        ? voices.filter(v => /alex|daniel|david|mark|guy|james|fred|tom|oliver|george|thomas|aaron|male/i.test(v.name))
-        : [];
-    return voices.find(v => v.voiceURI === voiceURI) || preferred[0] || voices.find(v => v.lang.toLowerCase() === "en-us") || voices[0];
-  }, [voices, voiceGender, voiceURI]);
-
   const play = useCallback((text: string, resumeListening = false) => {
     const resumeMicrophone = () => {
       if (!resumeListening || !sessionIdRef.current) return;
@@ -126,29 +117,25 @@ export function ConversationCoach() {
       return;
     }
     try {
-      stopSpeaking();
-      const utterance = new SpeechSynthesisUtterance(text);
-      if (availableVoice) { utterance.voice = availableVoice; utterance.lang = availableVoice.lang; }
-      else utterance.lang = "en-US";
-      utterance.rate = speed;
-      utterance.onstart = () => setSpeaking(true);
-      utterance.onend = () => {
+      const started = speakText(text, () => {
         setSpeaking(false);
-        // Resume the microphone after the tutor finishes so the learner can answer hands-free.
         resumeMicrophone();
-      };
-      utterance.onerror = () => {
+      }, undefined, () => setSpeaking(true), () => {
         setSpeaking(false);
-        if (resumeListening) setError("Tutor audio could not play. You can continue the conversation by speaking or typing.");
+        setError("Tutor audio could not play. You can continue the conversation by speaking or typing.");
         resumeMicrophone();
-      };
-      window.speechSynthesis.speak(utterance);
+      });
+      if (!started) {
+        setSpeaking(false);
+        setError("Tutor audio could not play. You can continue the conversation by speaking or typing.");
+        resumeMicrophone();
+      }
     } catch {
       setSpeaking(false);
       setError("Tutor audio could not play. You can continue the conversation by speaking or typing.");
       resumeMicrophone();
     }
-  }, [availableVoice, speed]);
+  }, []);
 
   const persistSession = useCallback(async (status: "active" | "completed" = "active", allTurns = turnsRef.current, targetId = sessionId) => {
     if (!targetId) return;

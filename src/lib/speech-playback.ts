@@ -1,7 +1,7 @@
 import { getLearningPreferences } from "@/lib/learning-preferences";
 
 /** Speak text using the voice and speed saved in Learning preferences. */
-export function speakText(text: string, onEnd?: () => void, rateOverride?: number): boolean {
+export function speakText(text: string, onEnd?: () => void, rateOverride?: number, onStart?: () => void, onError?: () => void): boolean {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
   const cleanText = text.replace(/\s+/g, " ").trim();
   if (!cleanText) return false;
@@ -36,9 +36,10 @@ export function speakText(text: string, onEnd?: () => void, rateOverride?: numbe
   utterance.rate = rateOverride ?? preferences.speechRate;
   // Pitch is a fallback cue when this device has no clearly named voice for the requested style.
   utterance.pitch = preferences.speechVoiceGender === "female" ? (genderMatchedVoice ? 1.05 : 1.2) : preferences.speechVoiceGender === "male" ? (genderMatchedVoice ? 0.95 : 0.82) : 1.05;
+  if (onStart) utterance.onstart = onStart;
   if (onEnd) {
     utterance.onend = onEnd;
-    utterance.onerror = onEnd;
+    utterance.onerror = onError ?? onEnd;
   }
   synthesis.speak(utterance);
   return true;
