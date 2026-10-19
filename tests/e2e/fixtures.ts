@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 // Feature tests must authenticate now that protected pages are actually gated.
 // Create an isolated account per test to keep parallel runs independent.
 const test = base.extend({
+  // Playwright fixture lifecycle uses a parameter named "use"; it is not a React hook.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   page: async ({ page }, use) => {
     await page.goto("/login");
     await page.getByRole("button", { name: "Create an account" }).click();
