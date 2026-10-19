@@ -118,7 +118,6 @@ export function AppShell({
       behavior: "auto",
     });
   }, [activePage, authChecked, currentUser]);
-  }, []);
 
   return (
     <div className="app-frame">
