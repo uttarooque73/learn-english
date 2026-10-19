@@ -100,7 +100,7 @@ export function buildSkillTrends(
       : changePoints >= 4 ? "improving"
         : changePoints <= -4 ? "needs-attention" : "steady";
 
-    const weeklyScores = weekStarts.map((weekStart, index) => {
+    const weeklyScores = weekStarts.map((weekStart) => {
       const weekEnd = new Date(weekStart.getTime() + WEEK_MS);
       const scores = skillAssessments.filter((item) => {
         const time = Date.parse(item.createdAt);
