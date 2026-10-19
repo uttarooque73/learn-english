@@ -27,16 +27,28 @@ describe("AI personal tutor", () => {
 
   it("sends the learner request to the existing chat API and displays the streamed answer", async () => {
     const encoder = new TextEncoder();
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new ReadableStream({
-      start(controller) {
-        controller.enqueue(encoder.encode("Try saying: I will explain the project clearly."));
-        controller.close();
-      },
-    }), { status: 200, headers: { "Content-Type": "text/plain" } })));
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input) === "/api/tutor-memory" && !init?.method) {
+        return new Response(JSON.stringify({ conversation: {
+          id: "f6d0c6a2-6d1e-4df2-8f7b-8b20e7eeb5a1", messages: [],
+          goal: "Speak more confidently", level: "Intermediate", feedbackStyle: "balanced",
+        } }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      if (String(input) === "/api/chat") {
+        return new Response(new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode("Try saying: I will explain the project clearly."));
+            controller.close();
+          },
+        }), { status: 200, headers: { "Content-Type": "text/plain", "X-Conversation-Id": "f6d0c6a2-6d1e-4df2-8f7b-8b20e7eeb5a1" } });
+      }
+      throw new Error("Unexpected fetch: " + String(input));
+    }));
     render(<AiPersonalTutor />);
     const textbox = screen.getByLabelText("Your question or practice response");
+    await waitFor(() => expect(textbox).not.toBeDisabled());
     fireEvent.change(textbox, { target: { value: "Help me explain my work." } });
-    fireEvent.submit(screen.getByLabelText("Your question or practice response").closest("form")!);
+    fireEvent.submit(textbox.closest("form")!);
     await waitFor(() => expect(screen.getByText("Try saying: I will explain the project clearly.")).toBeInTheDocument());
     expect(fetch).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
       method: "POST",
@@ -45,10 +57,20 @@ describe("AI personal tutor", () => {
   });
 
   it("shows an actionable error when the AI service is unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Cannot connect to Ollama." }), { status: 503 })));
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input) === "/api/tutor-memory") {
+        return new Response(JSON.stringify({ conversation: {
+          id: "f6d0c6a2-6d1e-4df2-8f7b-8b20e7eeb5a1", messages: [],
+          goal: "Speak more confidently", level: "Intermediate", feedbackStyle: "balanced",
+        } }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ error: "Cannot connect to Ollama." }), { status: 503 });
+    }));
     render(<AiPersonalTutor />);
-    fireEvent.change(screen.getByLabelText("Your question or practice response"), { target: { value: "Explain past tense." } });
-    fireEvent.submit(screen.getByLabelText("Your question or practice response").closest("form")!);
+    const textbox = screen.getByLabelText("Your question or practice response");
+    await waitFor(() => expect(textbox).not.toBeDisabled());
+    fireEvent.change(textbox, { target: { value: "Explain past tense." } });
+    fireEvent.submit(textbox.closest("form")!);
     expect(await screen.findByRole("alert")).toHaveTextContent("Cannot connect to Ollama.");
   });
 });
