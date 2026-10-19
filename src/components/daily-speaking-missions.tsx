@@ -89,9 +89,11 @@ export function DailySpeakingMissions() {
   }, [history]);
 
   function completeMission() {
-    if (!date || completed) return;
-    const entry: Completion = { date, missionId: mission.id, title: mission.title, reflection: reflection.trim().slice(0, 500), completedAt: new Date().toISOString() };
-    const next = [...history.filter((item) => item.date !== date), entry].slice(-60);
+    if (completed) return;
+    const missionDate = date || localDate();
+    const entry: Completion = { date: missionDate, missionId: mission.id, title: mission.title, reflection: reflection.trim().slice(0, 500), completedAt: new Date().toISOString() };
+    const next = [...history.filter((item) => item.date !== missionDate), entry].slice(-60);
+    setDate(missionDate);
     setHistory(next);
     setCompleted(true);
     setElapsed(false);
