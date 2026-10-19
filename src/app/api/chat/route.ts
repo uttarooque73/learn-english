@@ -67,10 +67,10 @@ export async function POST(request: Request) {
   }
 
   const payload = body as Record<string, unknown>;
-  if (payload.mode !== undefined && payload.mode !== "conversation" && payload.mode !== "follow-up" && payload.mode !== "simplify" && payload.mode !== "reading-discussion" && payload.mode !== "paragraph-generation") {
-    return NextResponse.json({ error: "Mode must be conversation, follow-up, simplify, reading-discussion, or paragraph-generation." }, { status: 400 });
+  if (payload.mode !== undefined && payload.mode !== "conversation" && payload.mode !== "follow-up" && payload.mode !== "simplify" && payload.mode !== "reading-discussion" && payload.mode !== "paragraph-generation" && payload.mode !== "tutor") {
+    return NextResponse.json({ error: "Mode must be conversation, follow-up, simplify, reading-discussion, paragraph-generation, or tutor." }, { status: 400 });
   }
-  const mode = payload.mode === "follow-up" || payload.mode === "simplify" || payload.mode === "reading-discussion" || payload.mode === "paragraph-generation" ? payload.mode : "conversation";
+  const mode = payload.mode === "follow-up" || payload.mode === "simplify" || payload.mode === "reading-discussion" || payload.mode === "paragraph-generation" || payload.mode === "tutor" ? payload.mode : "conversation";
   if (
     !Array.isArray(payload.messages) ||
     payload.messages.length === 0 ||
@@ -85,12 +85,12 @@ export async function POST(request: Request) {
 
   const messages = payload.messages as ChatMessage[];
   const lastMessage = messages[messages.length - 1];
-  const validFinalMessage = mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation"
+  const validFinalMessage = mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation" || mode === "tutor"
     ? lastMessage?.role === "user"
     : lastMessage?.role === "assistant" && messages.some((message) => message.role === "user");
   if (!validFinalMessage) {
     return NextResponse.json(
-      { error: mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation"
+      { error: mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation" || mode === "tutor"
         ? "The last conversation message must be from the user."
         : "This request needs a learner message followed by an assistant reply." },
       { status: 400 },
@@ -134,7 +134,9 @@ export async function POST(request: Request) {
   const topicGuidance = preferredTopics.length
     ? "The learner is interested in these topics when a natural opportunity arises: " + preferredTopics.join(", ") + ". Do not derail the selected role-play to force a topic."
     : "Follow the selected role-play naturally without forcing unrelated topics.";
-  const turnGuidance = mode === "reading-discussion"
+  const turnGuidance = mode === "tutor"
+    ? "TUTOR MODE OUTPUT CONTRACT: Act as a one-to-one English tutor, not a role-play character. Address the learner request directly, explain concepts in clear language at their level, provide one practical example when useful, and end with one focused exercise or question. If they submit a sentence, improve it and briefly explain the most useful correction. Be supportive, accurate, and concise. Never claim a proficiency score."
+    : mode === "reading-discussion"
     ? "READING-DISCUSSION OUTPUT CONTRACT: Generate exactly four concise, natural English sentences about the topic requested in the learner message, with a coherent progression and a question in the final sentence. Adjust grammar and vocabulary to the chosen level. Return only the four sentences, one per line, no preamble, numbering, bullets, feedback, or markdown. Follow this output contract instead of ordinary role-play behavior."
     : mode === "paragraph-generation"
       ? "PARAGRAPH-GENERATION OUTPUT CONTRACT: Write one coherent English practice paragraph of 4 to 7 sentences about the subject requested in the learner message. Match the selected English level and use natural, practical language. Return only the paragraph, with no preamble, title, numbering, bullets, Markdown, or follow-up question."
@@ -163,7 +165,7 @@ export async function POST(request: Request) {
             content:
               "You are SpeakUp, a friendly English conversation coach. Keep the conversation natural and encouraging. " +
               (mode === "reading-discussion" ? "For reading-discussion mode, generate the requested prepared reading text and do not role-play a single live turn. " : mode === "paragraph-generation" ? "For paragraph-generation mode, write the complete paragraph requested and do not role-play a single live turn. " : "Run an interactive role-play, not a lecture: begin in character, take one conversational turn at a time, ") +
-              "and respond to what the learner actually says. Stay in the role-play until the learner asks to stop or switch. " +
+              "and respond to what the learner actually says. " + (mode === "tutor" ? "Stay in tutor mode and guide the learner through practice. " : "Stay in the role-play until the learner asks to stop or switch. ") +
               "Use the selected scenario guidance: " + scenarioGuidance + " " +
               "Adapt to this learner level: " + difficulty + ". " + DIFFICULTY_GUIDES[difficulty] + " " +
               "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " + sessionGoalGuidance + " " + sessionDurationGuidance + " " +
