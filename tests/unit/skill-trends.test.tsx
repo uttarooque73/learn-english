@@ -38,7 +38,7 @@ describe("Speaking skill trends", () => {
     render(<SkillTrends />);
 
     expect(await screen.findByRole("heading", { name: "Speaking skill trends" })).toBeInTheDocument();
-    expect(await screen.findByText("+20 pts")).toBeInTheDocument();
+    expect(await screen.findAllByText("+20 pts")).toHaveLength(6);
     expect(screen.getByText("84")).toBeInTheDocument();
     expect(screen.getByText("Flow & concision")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Grammar scores over time: 58, 78" })).toBeInTheDocument();
