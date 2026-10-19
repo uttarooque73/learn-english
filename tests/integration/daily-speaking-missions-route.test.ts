@@ -80,14 +80,14 @@ describe("daily speaking missions API", () => {
     for (let day = 1; day <= 61; day += 1) {
       await POST(request("http://localhost/api/learning/daily-speaking-missions", ownerA, {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          date: `2026-09-${String(day).padStart(2, "0")}`, missionId: "past-story",
-          title: `Mission ${day}`, reflection: "", completedAt: `2026-09-${String(day).padStart(2, "0")}T10:00:00.000Z`,
-        }),
+        body: JSON.stringify((() => {
+          const date = new Date(Date.UTC(2026, 7, day)).toISOString().slice(0, 10);
+          return { date, missionId: "past-story", title: `Mission ${day}`, reflection: "", completedAt: date + "T10:00:00.000Z" };
+        })()),
       }));
     }
     const history = (await (await GET(request("http://localhost/api/learning/daily-speaking-missions", ownerA))).json()).history;
     expect(history).toHaveLength(60);
-    expect(history[0].date).toBe("2026-09-02");
+    expect(history[0].date).toBe("2026-08-02");
   });
 });
