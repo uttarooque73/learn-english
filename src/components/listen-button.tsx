@@ -32,7 +32,7 @@ export function ListenPageControl() {
     if (!content) return;
     const copy = content.cloneNode(true) as HTMLElement;
     copy.querySelectorAll("button, input, textarea, select, nav, footer, .listen-page-control, .global-learning-controls, .page-heading, .floating-english-panel, .floating-english-trigger").forEach((node) => node.remove());
-    const text = copy.innerText.replace(/\\s+/g, " ").trim();
+    const text = copy.innerText.replace(/\s+/g, " ").trim();
     if (text) setSpeaking(speakText(text, () => setSpeaking(false)));
   }} aria-pressed={speaking} aria-label={speaking ? "Stop reading page" : "Listen to page"} title={speaking ? "Stop reading page" : "Read page content aloud"}>
     <span aria-hidden="true">{speaking ? "■" : "🔊"}</span> {speaking ? "Stop listening" : "Listen to page"}
