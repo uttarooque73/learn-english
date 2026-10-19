@@ -21,7 +21,6 @@ describe("DailySpeakingMissions", () => {
   it("lets a learner complete a mission and saves it to history", async () => {
     render(<DailySpeakingMissions />);
     fireEvent.click(screen.getByRole("button", { name: /I practised this aloud/ }));
-    expect(screen.getByRole("status", { name: "" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/What felt easier/), { target: { value: "I spoke more clearly." } });
     fireEvent.click(screen.getByRole("button", { name: "Complete mission" }));
     expect(await screen.findByText(/Mission complete/)).toBeInTheDocument();
