@@ -87,6 +87,18 @@ export async function POST(request: NextRequest) {
 
   const messages = payload.messages as ChatMessage[];
   const lastMessage = messages[messages.length - 1];
+  const validFinalMessage = mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation" || mode === "tutor"
+    ? lastMessage?.role === "user"
+    : lastMessage?.role === "assistant" && messages.some((message) => message.role === "user");
+  if (!validFinalMessage) {
+    return NextResponse.json(
+      { error: mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation" || mode === "tutor"
+        ? "The last conversation message must be from the user."
+        : "This request needs a learner message followed by an assistant reply." },
+      { status: 400 },
+    );
+  }
+
   let promptMessages = messages;
   let tutorOwnerId: string | null = null;
   let tutorConversationId: string | null = null;
@@ -106,26 +118,14 @@ export async function POST(request: NextRequest) {
     }
     if (!conversation) {
       conversation = createTutorConversation(tutorOwnerId, {
-        goal: typeof payload.sessionGoal === "string" ? payload.sessionGoal : "Speak more confidently",
-        level: typeof payload.difficulty === "string" ? payload.difficulty : "Intermediate",
-        feedbackStyle: typeof payload.feedbackStyle === "string" ? payload.feedbackStyle : "balanced",
+        goal: typeof payload.sessionGoal === "string" && (SESSION_GOALS as readonly string[]).includes(payload.sessionGoal) ? payload.sessionGoal : "Speak more confidently",
+        level: typeof payload.difficulty === "string" && Object.hasOwn(DIFFICULTY_GUIDES, payload.difficulty) ? payload.difficulty : "Intermediate",
+        feedbackStyle: typeof payload.feedbackStyle === "string" && Object.hasOwn(FEEDBACK_GUIDES, payload.feedbackStyle) ? payload.feedbackStyle : "balanced",
       });
     }
     tutorConversationId = conversation.id;
     promptMessages = [...conversation.messages, ...messages].slice(-MAX_MESSAGES);
   }
-  const validFinalMessage = mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation" || mode === "tutor"
-    ? lastMessage?.role === "user"
-    : lastMessage?.role === "assistant" && messages.some((message) => message.role === "user");
-  if (!validFinalMessage) {
-    return NextResponse.json(
-      { error: mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation" || mode === "tutor"
-        ? "The last conversation message must be from the user."
-        : "This request needs a learner message followed by an assistant reply." },
-      { status: 400 },
-    );
-  }
-
   const requestedScenario = typeof payload.scenario === "string" ? payload.scenario.trim().slice(0, 120) : "Free conversation";
   const customValue = payload.customScenario && typeof payload.customScenario === "object"
     ? payload.customScenario as Record<string, unknown>
