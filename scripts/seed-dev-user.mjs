@@ -19,15 +19,15 @@ if (existsSync(localEnvPath)) {
   }
 }
 
-const email = (process.env.DEV_USER_EMAIL || "developer@speakup.local").trim().toLowerCase();
-const password = process.env.DEV_USER_PASSWORD || "SpeakUpLocalDev123!";
-const displayName = (process.env.DEV_USER_NAME || "SpeakUp Developer").trim();
+const email = (process.env.DEV_USER_EMAIL || "umarkhan@speakup.local").trim().toLowerCase();
+const password = process.env.DEV_USER_PASSWORD || "umarkhan";
+const displayName = (process.env.DEV_USER_NAME || "Umar Khan").trim();
 
 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
   throw new Error("DEV_USER_EMAIL must be a valid email address.");
 }
-if (password.length < 10 || password.length > 128) {
-  throw new Error("DEV_USER_PASSWORD must contain between 10 and 128 characters.");
+if (password.length < 1 || password.length > 128) {
+  throw new Error("DEV_USER_PASSWORD must contain between 1 and 128 characters.");
 }
 if (displayName.length < 2 || displayName.length > 60) {
   throw new Error("DEV_USER_NAME must contain between 2 and 60 characters.");
@@ -105,7 +105,7 @@ try {
 
   console.log("Open http://localhost:3000/login to sign in.");
   if (!process.env.DEV_USER_PASSWORD) {
-    console.log("Local-only default password: SpeakUpLocalDev123!");
+    console.log("Local-only default username/password: umarkhan / umarkhan");
     console.log("Set DEV_USER_EMAIL, DEV_USER_PASSWORD, and DEV_USER_NAME in .env.local to customize it.");
   }
 } finally {
