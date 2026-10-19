@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { initializeDatabasePersistence, readPersistedValue, writePersistedValue } from "@/lib/client-persistence";
 import styles from "./speaking-feedback.module.css";
 
 type Category = { score: number; feedback: string };
@@ -13,6 +14,9 @@ type Feedback = {
   practicePrompt: string;
 };
 type Assessment = { feedback: Feedback; metrics: { wordCount: number; durationSeconds: number; wordsPerMinute: number | null }; assessmentType: "transcript" };
+type SavedAssessment = Assessment & { id: string; transcript: string; prompt: string; proficiency: string; createdAt: string };
+const HISTORY_KEY = "speakup:speaking-feedback-history";
+const HISTORY_LIMIT = 10;
 const labels: { key: keyof Feedback["categories"]; label: string }[] = [
   { key: "fluency", label: "Flow & concision" }, { key: "clarity", label: "Clarity" }, { key: "grammar", label: "Grammar" }, { key: "vocabulary", label: "Vocabulary" }, { key: "structure", label: "Structure" },
 ];
@@ -25,6 +29,30 @@ export function SpeakingFeedback() {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<SavedAssessment[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    initializeDatabasePersistence().then(() => {
+      const saved = readPersistedValue(HISTORY_KEY);
+      if (!saved || !active) return;
+      try {
+        const parsed: unknown = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter((item): item is SavedAssessment => Boolean(item && typeof item === "object"
+            && typeof item.id === "string" && typeof item.createdAt === "string" && typeof item.transcript === "string"
+            && item.assessmentType === "transcript" && item.feedback && typeof item.feedback.overallScore === "number"
+            && item.metrics && typeof item.metrics.wordCount === "number")).slice(0, HISTORY_LIMIT);
+          if (active) setHistory(valid);
+        }
+      } catch {
+        // Ignore malformed legacy history instead of breaking the practice page.
+      }
+    }).catch(() => {
+      if (active) setError("Saved feedback history could not be loaded. You can still assess a new response.");
+    });
+    return () => { active = false; };
+  }, []);
 
   async function assess() {
     setLoading(true); setError(""); setAssessment(null);
@@ -37,6 +65,16 @@ export function SpeakingFeedback() {
       const payload = await response.json() as Assessment & { error?: string };
       if (!response.ok || !payload.feedback) throw new Error(payload.error || "Could not assess this response.");
       setAssessment(payload);
+      const entry: SavedAssessment = {
+        ...payload,
+        id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        transcript: transcript.trim(), prompt: prompt.trim(), proficiency, createdAt: new Date().toISOString(),
+      };
+      setHistory((current) => {
+        const next = [entry, ...current].slice(0, HISTORY_LIMIT);
+        writePersistedValue(HISTORY_KEY, JSON.stringify(next));
+        return next;
+      });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not assess this response. Please try again.");
     } finally { setLoading(false); }
@@ -61,6 +99,18 @@ export function SpeakingFeedback() {
         {error && <p className={styles.error} role="alert">{error}</p>}
       </div>
     </section>
+
+    {history.length > 0 && <section className={styles.card} aria-label="Saved speaking feedback history">
+      <div className={styles.head}><div><span className={styles.label}>YOUR PRACTICE HISTORY</span><h3>Previous speaking reviews</h3></div><span className={styles.label}>{history.length} SAVED</span></div>
+      <p className={styles.summary}>Your latest {HISTORY_LIMIT} reviews are saved to your SpeakUp learning space, so you can revisit feedback after refreshing the page.</p>
+      <div className={styles.historyList}>{history.map((item) => <div className={styles.historyItem} key={item.id}>
+        <button className={styles.historyButton} type="button" onClick={() => { setAssessment(item); setTranscript(item.transcript); setPrompt(item.prompt); setProficiency(item.proficiency); setError(""); }}>
+          <span className={styles.historyScore}>{item.feedback.overallScore}<small>/100</small></span>
+          <span className={styles.historyCopy}><strong>{item.prompt || item.transcript.slice(0, 85)}{!item.prompt && item.transcript.length > 85 ? "…" : ""}</strong><small>{new Date(item.createdAt).toLocaleString()} · {item.metrics.wordCount} words · {item.proficiency}</small></span>
+          <span className={styles.historyOpen}>Review ↗</span>
+        </button>
+      </div>)}</div>
+    </section>}
 
     {assessment && <section className={styles.card} aria-live="polite">
       <div className={styles.head}><div><span className={styles.label}>YOUR COACH&apos;S REVIEW</span><h3>Progress, not perfection</h3></div><span className={styles.label}>{assessment.metrics.wordCount} WORDS</span></div>
