@@ -176,7 +176,7 @@ export function ChallengeSimulator() {
         <label className={styles.answerLabel} htmlFor="challenge-answer">YOUR RESPONSE <span>{words} words</span></label>
         <textarea id="challenge-answer" value={answer} onChange={(event) => setAnswer(event.target.value)} disabled={submitted} rows={6} placeholder="Write what you would say in real life. Aim for a clear, confident response…" />
         <div className={styles.actions}>
-          {!running && !submitted && <button type="button" className={styles.primary} onClick={startRound}>Start timed round <span>→</span></button>}
+          {!running && !submitted && <button type="button" className={styles.primary} onClick={() => remaining < challenge.seconds ? setRunning(true) : startRound()}>{remaining < challenge.seconds ? "Resume timer" : "Start timed round"} <span>→</span></button>}
           {running && <button type="button" className={styles.secondary} onClick={() => setRunning(false)}>Pause timer</button>}
           {!submitted && <button type="button" className={styles.primary} disabled={!answer.trim()} onClick={() => void submitAnswer()}>Submit answer <span>↗</span></button>}
           {submitted && <button type="button" className={styles.secondary} onClick={() => chooseChallenge(nextChallenge.id)}>Next challenge →</button>}
