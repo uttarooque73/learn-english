@@ -36,7 +36,7 @@ describe("AI personal tutor", () => {
     render(<AiPersonalTutor />);
     const textbox = screen.getByLabelText("Your question or practice response");
     fireEvent.change(textbox, { target: { value: "Help me explain my work." } });
-    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(screen.getByText("Try saying: I will explain the project clearly.")).toBeInTheDocument());
     expect(fetch).toHaveBeenCalledWith("/api/chat", expect.objectContaining({
       method: "POST",
@@ -48,7 +48,7 @@ describe("AI personal tutor", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Cannot connect to Ollama." }), { status: 503 })));
     render(<AiPersonalTutor />);
     fireEvent.change(screen.getByLabelText("Your question or practice response"), { target: { value: "Explain past tense." } });
-    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Cannot connect to Ollama.");
   });
 });
