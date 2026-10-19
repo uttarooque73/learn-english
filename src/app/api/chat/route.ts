@@ -55,11 +55,12 @@ function isChatMessage(value: unknown): value is ChatMessage {
   );
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
+  const nextRequest = request instanceof NextRequest ? request : new NextRequest(request);
   let body: unknown;
 
   try {
-    body = await request.json();
+    body = await nextRequest.json();
   } catch {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 });
   }
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
   let tutorConversationId: string | null = null;
   let tutorUserMessage: string | null = null;
   if (mode === "tutor") {
-    tutorOwnerId = resolveOwnerId(request);
+    tutorOwnerId = resolveOwnerId(nextRequest);
     tutorUserMessage = lastMessage?.content ?? null;
     const requestedConversationId = typeof payload.conversationId === "string" ? payload.conversationId : "";
     if (requestedConversationId && !/^[0-9a-f-]{36}$/i.test(requestedConversationId)) {
@@ -313,5 +314,5 @@ export async function POST(request: NextRequest) {
       ...(tutorConversationId ? { "X-Conversation-Id": tutorConversationId } : {}),
     },
   });
-  return tutorOwnerId ? synchronizeOwnerCookie(response, request, tutorOwnerId) : response;
+  return tutorOwnerId ? synchronizeOwnerCookie(response, nextRequest, tutorOwnerId) : response;
 }
