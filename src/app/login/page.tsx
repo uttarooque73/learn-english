@@ -42,7 +42,7 @@ function LoginForm() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 480px)", background: "#f6f5f1", color: "#242a29" }}>
+    <main data-voice-controls="ignore" style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 480px)", background: "#f6f5f1", color: "#242a29" }}>
       <section style={{ padding: "clamp(32px, 7vw, 96px)", display: "flex", flexDirection: "column", justifyContent: "space-between", background: "linear-gradient(145deg, #163e36, #245b4e)", color: "#fff" }}>
         <Link href="/" style={{ color: "inherit", textDecoration: "none", fontSize: 24, fontWeight: 800 }}>speakup<span style={{ color: "#f1c66d" }}>.</span></Link>
         <div style={{ maxWidth: 520, padding: "64px 0" }}>
