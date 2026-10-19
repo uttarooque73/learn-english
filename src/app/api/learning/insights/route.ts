@@ -32,6 +32,10 @@ export async function GET(request: NextRequest) {
       FROM learner_skill_scores
       WHERE owner_id = ?
     `).all(ownerId) as CurrentSkillEstimate[];
+    const assessmentCount = database.prepare(`
+      SELECT COUNT(*) AS count FROM skill_assessments
+      WHERE owner_id = ? AND created_at >= ?
+    `).get(ownerId, new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString()) as { count: number };
     const recurringMistakes = database.prepare(`
       SELECT category, occurrence_count AS occurrenceCount, last_seen_at AS lastSeenAt
       FROM learning_mistakes
@@ -45,18 +49,12 @@ export async function GET(request: NextRequest) {
       .filter((skill) => skill.evidenceCount > 0)
       .sort((left, right) => right.mastery - left.mastery)[0] ?? null;
     const focusSkill = skillTrends.find((skill) => skill.evidenceCount > 0) ?? null;
-    const now = Date.now();
-    const assessmentsLast28Days = assessments.filter((item) => {
-      const time = Date.parse(item.createdAt);
-      return Number.isFinite(time) && time >= now - 28 * 24 * 60 * 60 * 1000;
-    }).length;
-
     return respond({
       skillTrends,
       strongestSkill: strongestSkill ? strongestSkill.skillKey : null,
       focusSkill: focusSkill ? focusSkill.skillKey : null,
       activeSkillsCount: skillTrends.filter((skill) => skill.evidenceCount > 0).length,
-      assessmentsLast28Days,
+      assessmentsLast28Days: assessmentCount.count,
       evidenceWindow: "latest 250 saved skill assessments; trends use the last eight UTC weeks",
       recurringMistakes,
     }, request, ownerId);
