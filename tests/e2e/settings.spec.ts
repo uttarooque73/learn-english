@@ -51,7 +51,6 @@ test.describe("Settings page controls", () => {
     await field("Spaced-review interval").selectOption("1.25");
     await page.getByLabel("Learning goal").fill("Speak clearly during technical meetings");
     await page.getByRole("checkbox", { name: /Enable automatically scheduled daily plans/ }).check();
-    await page.getByRole("checkbox", { name: /Adapt activity priorities using saved practice evidence/ }).uncheck();
 
     await page.getByRole("button", { name: "Save learning routine" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Your learning routine was saved to the database." })).toBeVisible();
@@ -62,6 +61,11 @@ test.describe("Settings page controls", () => {
     await expect(field("Spaced-review interval")).toHaveValue("1.25");
     await expect(page.getByLabel("Learning goal")).toHaveValue("Speak clearly during technical meetings");
     await expect(page.getByRole("checkbox", { name: /Enable automatically scheduled daily plans/ })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: /Adapt activity priorities using saved practice evidence/ })).toBeChecked();
+
+    await page.getByRole("checkbox", { name: /Adapt activity priorities using saved practice evidence/ }).uncheck();
+    await page.getByRole("button", { name: "Save learning routine" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Your learning routine was saved to the database." })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: /Adapt activity priorities using saved practice evidence/ })).not.toBeChecked();
   });
 
