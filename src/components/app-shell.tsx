@@ -102,7 +102,10 @@ export function AppShell({
       .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
       .then((data) => { if (active) { setCurrentUser(data?.authenticated && data.user ? data.user : null); setAuthChecked(true); } })
       .catch(() => { if (active) { setCurrentUser(null); setAuthChecked(true); } });
-    useEffect(() => {
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     if (!authChecked || !currentUser) return;
     const nav = navigationRef.current;
     const activeLink = nav?.querySelector<HTMLElement>('.nav-link.active');
@@ -115,8 +118,6 @@ export function AppShell({
       behavior: "auto",
     });
   }, [activePage, authChecked, currentUser]);
-
-  return () => { active = false; };
   }, []);
 
   return (
