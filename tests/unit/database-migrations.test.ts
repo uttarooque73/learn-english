@@ -58,6 +58,7 @@ describe("SQLite schema migrations", () => {
       "014_auth_accounts.sql",
       "015_learning_achievements.sql",
       "016_auth_login_attempts.sql",
+      "017_tutor_conversations.sql",
     ]);
     expect(tableNames).toContain("app_user_data");
     expect(tableNames).toContain("daily_vocabulary_topics");
@@ -83,6 +84,7 @@ describe("SQLite schema migrations", () => {
     expect(tableNames).toContain("voice_conversation_preferences");
     expect(tableNames).toContain("aius_paragraphs");
     expect(tableNames).toContain("aius_reading_attempts");
+    expect(tableNames).toContain("tutor_conversations");
     const paragraphColumns = database.prepare("PRAGMA table_info(aius_paragraphs)").all() as Array<{ name: string }>;
     expect(paragraphColumns.map((column) => column.name)).toContain("writing_feedback_json");
   });
@@ -105,7 +107,7 @@ describe("SQLite schema migrations", () => {
       .get() as { count: number };
 
     expect(saved?.data_value).toBe('{"dailyTarget":15}');
-    expect(migrationCount.count).toBe(15);
+    expect(migrationCount.count).toBe(16);
   });
   it("enforces learner ownership across plan items and practice attempts", () => {
     useTemporaryDatabase();
