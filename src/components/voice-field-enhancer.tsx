@@ -27,6 +27,7 @@ export function VoiceFieldEnhancer() {
     const RecognitionAPI = browser.SpeechRecognition || browser.webkitSpeechRecognition;
     const selector = 'textarea:not([readonly]):not([disabled]), input[type="text"]:not([readonly]):not([disabled]), input:not([type]):not([readonly]):not([disabled])';
     const controls = new WeakMap<Element, HTMLButtonElement>();
+    const listenControls = new WeakMap<Element, HTMLButtonElement>();
     let activeRecognition: Recognition | null = null;
     let activeButton: HTMLButtonElement | null = null;
 
@@ -85,6 +86,26 @@ export function VoiceFieldEnhancer() {
       if (parent) {
         parent.insertBefore(button, field.nextSibling);
         controls.set(field, button);
+        const listen = document.createElement("button");
+        listen.type = "button";
+        listen.className = "inline-listen-control";
+        listen.textContent = "🔊 Listen";
+        listen.setAttribute("aria-label", "Listen to the question or prompt");
+        listen.title = "Read the associated question or prompt aloud";
+        listen.addEventListener("click", () => {
+          const input = field as HTMLInputElement | HTMLTextAreaElement;
+          const label = input.labels ? Array.from(input.labels).map((item) => item.innerText).join(" ") : "";
+          const describedBy = input.getAttribute("aria-describedby");
+          const description = describedBy ? describedBy.split(/\\s+/).map((id) => document.getElementById(id)?.innerText || "").join(" ") : "";
+          const prompt = [label, input.getAttribute("aria-label"), description, input.placeholder].filter(Boolean).join(". ").trim();
+          if (!prompt || !("speechSynthesis" in window)) return;
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(prompt);
+          utterance.lang = document.documentElement.lang || "en-US";
+          window.speechSynthesis.speak(utterance);
+        });
+        parent.insertBefore(listen, button.nextSibling);
+        listenControls.set(field, listen);
       }
     };
 
@@ -95,7 +116,7 @@ export function VoiceFieldEnhancer() {
     return () => {
       observer.disconnect();
       activeRecognition?.stop();
-      document.querySelectorAll(".inline-dictation-control").forEach((button) => button.remove());
+      document.querySelectorAll(".inline-dictation-control, .inline-listen-control").forEach((button) => button.remove());
     };
   }, []);
 
