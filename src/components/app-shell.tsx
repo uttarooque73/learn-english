@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver";
+type PageKey = "home" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
@@ -14,6 +14,7 @@ const navigation: { key: PageKey; label: string; href: string; icon: string }[] 
   { key: "sentence-improver", label: "Smart Grammar Improver", href: "/sentence-improver", icon: "Aa" },
   { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
   { key: "english-quest", label: "English Quest", href: "/english-quest", icon: "🗺" },
+  { key: "challenge-simulator", label: "Real-World Challenges", href: "/challenge-simulator", icon: "🎯" },
   { key: "word-practice", label: "Words & sentences", href: "/word-practice", icon: "Aa" },
   { key: "custom-scenarios", label: "Custom scenarios", href: "/custom-scenarios", icon: "✦" },
   { key: "conversation-coach", label: "AI Conversation Coach", href: "/conversation-coach", icon: "🎙" },
