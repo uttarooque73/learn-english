@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AuthStatus } from "@/components/auth-status";
 
@@ -11,67 +11,15 @@ function userInitial(user: CurrentUser | null): string {
   return user?.displayName.trim().charAt(0).toLocaleUpperCase() || user?.email.trim().charAt(0).toLocaleUpperCase() || "U";
 }
 
-type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "account" | "achievements" | "activity-calendar" | "history" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
+function UserAvatar({ user, className }: { user: CurrentUser | null; className: string }) {
+  return <span className={className} aria-label={user ? `${user.displayName} profile` : "User profile"} title={user?.displayName || "User profile"}>{userInitial(user)}</span>;
+}
 
-const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
-  { key: "home", label: "Overview", href: "/", icon: "⌂" },
-  { key: "dashboard", label: "Learning dashboard", href: "/dashboard", icon: "▦" },
-  { key: "learning-plan", label: "Daily learning plan", href: "/learning-plan", icon: "✓" },
-  { key: "ai-tutor", label: "AI Personal Tutor", href: "/ai-tutor", icon: "✦" },
-  { key: "assessment", label: "English assessment", href: "/assessment", icon: "✓" },
-  { key: "weakness-to-lessons", label: "Weakness-to-Lesson Plan", href: "/weakness-to-lessons", icon: "✦" },
-  { key: "weekly-report", label: "Weekly AI report", href: "/weekly-report", icon: "↗" },
-  { key: "live-speaking-roleplay", label: "Live Speaking Roleplay", href: "/live-speaking-roleplay", icon: "🎙" },
-  { key: "listening-lab", label: "Listening Comprehension Lab", href: "/listening-lab", icon: "♫" },
-  { key: "adaptive-vocabulary", label: "Vocabulary in Context", href: "/adaptive-vocabulary", icon: "Aa" },
-  { key: "daily-speaking-missions", label: "Daily Speaking Missions", href: "/daily-speaking-missions", icon: "🎯" },
-  { key: "speaking-feedback", label: "AI Speaking Feedback", href: "/speaking-feedback", icon: "📊" },
-  { key: "mistake-micro-lessons", label: "Mistake Micro-Lessons", href: "/mistake-micro-lessons", icon: "✎" },
-  { key: "sentence-improver", label: "Smart Grammar Improver", href: "/sentence-improver", icon: "Aa" },
-  { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
-  { key: "english-quest", label: "English Quest", href: "/english-quest", icon: "🗺" },
-  { key: "speakup-adventures", label: "SpeakUp Adventures", href: "/speakup-adventures", icon: "🧭" },
-  { key: "challenge-simulator", label: "Real-World Challenges", href: "/challenge-simulator", icon: "🎯" },
-  { key: "word-practice", label: "Words & sentences", href: "/word-practice", icon: "Aa" },
-  { key: "custom-scenarios", label: "Custom scenarios", href: "/custom-scenarios", icon: "✦" },
-  { key: "conversation-coach", label: "AI Conversation Coach", href: "/conversation-coach", icon: "🎙" },
-  { key: "ai-and-us", label: "AI and Us", href: "/ai-and-us", icon: "Aa" },
-  { key: "vocabulary", label: "Vocabulary", href: "/vocabulary", icon: "Aa" },
-  { key: "smart-vocabulary-revision", label: "Smart Vocabulary Revision", href: "/smart-vocabulary-revision", icon: "↻" },
-  { key: "daily-vocabulary", label: "Daily Vocabulary", href: "/daily-vocabulary", icon: "✦" },
-  { key: "progress", label: "My progress", href: "/progress", icon: "↗" },
-  { key: "fluency", label: "Fluency exercises", href: "/fluency", icon: "◷" },
-  { key: "pronunciation-coach", label: "Pronunciation Coach", href: "/pronunciation-coach", icon: "🎙" },
-  { key: "shadowing", label: "Shadowing & pronunciation", href: "/shadowing", icon: "♫" },
-  { key: "settings", label: "Learning preferences", href: "/settings", icon: "⚙" },
-  { key: "account", label: "Account & security", href: "/account", icon: "♙" },
-  { key: "achievements", label: "Achievements", href: "/achievements", icon: "🏆" },
-  { key: "activity-calendar", label: "Activity calendar", href: "/learning-calendar", icon: "▦" },
-  { key: "history", label: "Learning history", href: "/learning-history", icon: "◷" },
-];
+function ProfileMenu({ onClose, user, onUserChange }: { onClose: () => void; user: CurrentUser | null; onUserChange: (user: CurrentUser | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
-export function AppShell({
-  activePage,
-  title,
-  subtitle,
-  children,
-}: {
-  activePage: PageKey;
-  title: string;
-  subtitle: string;
-  children: ReactNode;
-}) {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/auth", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
-      .then((data) => { if (active) setCurrentUser(data?.authenticated && data.user ? data.user : null); })
-      .catch(() => { if (active) setCurrentUser(null); });
-    return () => { active = false; };
-  }, []);
 
   return (
     <div className="app-frame">
@@ -119,9 +67,9 @@ export function AppShell({
             <Link href="/conversation-coach" className="coach-link">Talk with your AI coach <span>↗</span></Link>
           </div>
           <div className="profile-row">
-            <div className="avatar" aria-label={currentUser ? `${currentUser.displayName} profile` : "User profile"} title={currentUser?.displayName || "User profile"}>{userInitial(currentUser)}</div>
+            <UserAvatar user={currentUser} className="avatar" />
             <div className="profile-copy"><strong>{currentUser?.displayName || "My learning space"}</strong><span>{currentUser?.email || "Personal practice"}</span></div>
-            <span className="profile-menu" aria-hidden="true">···</span>
+            <ProfileMenu onClose={() => setMobileNavOpen(false)} user={currentUser} onUserChange={handleUserChange} />
           </div>
         </div>
       </aside>
@@ -129,7 +77,7 @@ export function AppShell({
       <main className="main-panel">
         <header className="topbar">
           <div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{title}</strong></div>
-          <div className="topbar-right"><span className="status-pill"><span className="status-dot" /> Local-first learning</span><AuthStatus /><div className="top-avatar" aria-label={currentUser ? `${currentUser.displayName} profile` : "User profile"} title={currentUser?.displayName || "User profile"}>{userInitial(currentUser)}</div></div>
+          <div className="topbar-right"><span className="status-pill"><span className="status-dot" /> Local-first learning</span><AuthStatus /><UserAvatar user={currentUser} className="top-avatar" /></div>
         </header>
         <div className="page-content">
           <div className="page-heading">
