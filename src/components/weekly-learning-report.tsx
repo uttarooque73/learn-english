@@ -207,7 +207,7 @@ export function WeeklyLearningReport() {
 
       <section className={styles.panel}>
         <div className={styles.panelHeading}><div><span className={styles.eyebrow}>REPEATED CORRECTIONS</span><h3>Make these changes feel natural</h3></div><span className={styles.count}>{metrics.current.corrections.length} patterns</span></div>
-        {metrics.current.corrections.length ? <div className={styles.corrections}>{metrics.current.corrections.map((item) => <div className={styles.correction} key={item.original + item.improved}><span>{item.original}</span><span aria-hidden="true">→</span><strong>{item.improved}</strong><small>{item.count} occurrence{item.count === 1 ? "" : "s"}</small></div>)}</div> : <p className={styles.muted}>No saved corrections in this week's sessions yet. Keep practising and review session feedback to build this section.</p>}
+        {metrics.current.corrections.length ? <div className={styles.corrections}>{metrics.current.corrections.map((item) => <div className={styles.correction} key={item.original + item.improved}><span>{item.original}</span><span aria-hidden="true">→</span><strong>{item.improved}</strong><small>{item.count} occurrence{item.count === 1 ? "" : "s"}</small></div>)}</div> : <p className={styles.muted}>No saved corrections in this week&apos;s sessions yet. Keep practising and review session feedback to build this section.</p>}
       </section>
 
       <section className={styles.aiPanel}>
