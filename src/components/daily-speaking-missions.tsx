@@ -45,6 +45,7 @@ export function DailySpeakingMissions() {
   const [loadingProgress, setLoadingProgress] = useState(true);
   const [notice, setNotice] = useState("");
   const [elapsed, setElapsed] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const restoreTimeout = window.setTimeout(() => {
@@ -61,6 +62,22 @@ export function DailySpeakingMissions() {
         setNotice("Your browser could not restore saved mission history. You can still practise today.");
       }
     }, 0);
+    void fetch("/api/learning/daily-speaking-missions", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Mission history is unavailable");
+        return await response.json() as { history?: Completion[] };
+      })
+      .then((data) => {
+        if (!Array.isArray(data.history)) return;
+        const valid = data.history.filter((item): item is Completion => Boolean(item && typeof item === "object"
+          && typeof item.date === "string" && typeof item.missionId === "string"
+          && typeof item.title === "string" && typeof item.reflection === "string"
+          && typeof item.completedAt === "string")).slice(-60);
+        setHistory(valid);
+        setCompleted(valid.some((item) => item.date === localDate()));
+        try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(valid)); } catch { /* Server history remains available. */ }
+      })
+      .catch(() => setNotice((current) => current || "Mission history is saved on this device if server sync is unavailable."));
     void fetch("/api/learning/progress", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Progress is unavailable");
@@ -88,8 +105,8 @@ export function DailySpeakingMissions() {
     return count;
   }, [history]);
 
-  function completeMission() {
-    if (completed) return;
+  async function completeMission() {
+    if (completed || saving) return;
     const missionDate = date || localDate();
     const entry: Completion = { date: missionDate, missionId: mission.id, title: mission.title, reflection: reflection.trim().slice(0, 500), completedAt: new Date().toISOString() };
     const next = [...history.filter((item) => item.date !== missionDate), entry].slice(-60);
@@ -98,7 +115,26 @@ export function DailySpeakingMissions() {
     setCompleted(true);
     setElapsed(false);
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
-    catch { setNotice("Mission completed for this session, but browser storage is unavailable."); }
+    catch { setNotice("Mission completed, but browser storage is unavailable."); }
+    setSaving(true);
+    try {
+      const response = await fetch("/api/learning/daily-speaking-missions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      });
+      if (!response.ok) throw new Error("Mission sync failed");
+      const payload = await response.json() as { history?: Completion[] };
+      if (Array.isArray(payload.history)) {
+        const saved = payload.history.slice(-60);
+        setHistory(saved);
+        try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); } catch { /* SQLite remains authoritative. */ }
+      }
+    } catch {
+      setNotice("Mission completed on this device. Server sync failed, so this completion may not appear on another device yet.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return <div className={styles.page}>
@@ -124,7 +160,7 @@ export function DailySpeakingMissions() {
         <button className={styles.primary} type="button" onClick={() => { setElapsed(true); if (typeof window !== "undefined" && "speechSynthesis" in window) { window.speechSynthesis.cancel(); } }} disabled={completed}>I practised this aloud <span aria-hidden="true">→</span></button>
         {elapsed && !completed && <span className={styles.pill} role="status">Nice work. Add a reflection to lock in today&apos;s win.</span>}
       </div>
-      {elapsed && !completed && <div className={styles.controls}><label className={styles.field}>What felt easier, or what will you improve next time? <textarea value={reflection} maxLength={500} onChange={(event) => setReflection(event.target.value)} placeholder="e.g. I explained the idea clearly, but I want to slow down…" /></label><button className={styles.primary} type="button" onClick={completeMission}>Complete mission</button></div>}
+      {elapsed && !completed && <div className={styles.controls}><label className={styles.field}>What felt easier, or what will you improve next time? <textarea value={reflection} maxLength={500} onChange={(event) => setReflection(event.target.value)} placeholder="e.g. I explained the idea clearly, but I want to slow down…" /></label><button className={styles.primary} type="button" onClick={completeMission} disabled={saving}>{saving ? "Saving mission…" : "Complete mission"}</button></div>}
       {completed && <p className={styles.feedback} role="status">Mission complete. Consistency matters more than perfection—come back tomorrow for your next challenge.</p>}
       {notice && <p className={styles.error} role="status">{notice}</p>}
       {loadingProgress && <p className={styles.empty} role="status">Checking your learning signals to personalise future missions…</p>}
