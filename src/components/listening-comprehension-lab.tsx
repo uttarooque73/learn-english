@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { upsertSession, type PracticeSession } from "@/lib/learning-storage";
+import { speakText, stopSpeaking } from "@/lib/speech-playback";
 import styles from "./listening-comprehension-lab.module.css";
 
 type Question = { prompt: string; options: string[]; answer: number; explanation: string };
@@ -71,11 +72,11 @@ export function ListeningComprehensionLab() {
 
   useEffect(() => {
     void initializeDatabasePersistence().catch(() => undefined);
-    return () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); };
+    return () => { stopSpeaking(); };
   }, []);
 
   function selectLesson(id: string) {
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setLessonId(id);
     setAnswers({});
     setChecked(false);
@@ -89,14 +90,17 @@ export function ListeningComprehensionLab() {
       setNotice("Audio playback is not supported in this browser. You can reveal the passage and read it instead.");
       return;
     }
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(lesson.passage);
-    utterance.lang = "en-US";
-    utterance.rate = replayCount > 0 ? 0.88 : 0.96;
-    utterance.onstart = () => setNotice("Playing passage. Listen for the key details before answering.");
-    utterance.onend = () => setNotice("Playback complete. Answer the questions or replay at a slower pace.");
-    utterance.onerror = () => setNotice("Playback stopped. Try replaying, or reveal the transcript.");
-    window.speechSynthesis.speak(utterance);
+    const started = speakText(
+      lesson.passage,
+      () => setNotice("Playback complete. Answer the questions or replay at a slower pace."),
+      replayCount > 0 ? 0.88 : undefined,
+      () => setNotice("Playing passage. Listen for the key details before answering."),
+      () => setNotice("Playback stopped. Try replaying, or reveal the transcript."),
+    );
+    if (!started) {
+      setNotice("Audio playback could not start. Check your browser's speech settings and try again.");
+      return;
+    }
     setReplayCount((count) => count + 1);
   }
 
