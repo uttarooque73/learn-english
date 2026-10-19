@@ -213,7 +213,7 @@ export function ConversationCoach() {
           phrase,
           meaning: item.meaning.trim(),
           example: item.example.trim(),
-          category: /\\s/.test(phrase) ? "expression" : "word",
+          category: /\s/.test(phrase) ? "expression" : "word",
           sourceExamples: [content.slice(0, 500)],
           sourceScenario: scenario,
           sourceSessionId: sessionId,
