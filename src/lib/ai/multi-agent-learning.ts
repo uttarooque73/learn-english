@@ -234,7 +234,7 @@ function buildMultiAgentGraph(checkpointer: SqliteSaver, provider?: ModelProvide
       });
       const plan = await generateDailyLearningPlan(state.ownerId, {
         dailyTargetMinutes: state.dailyTargetMinutes,
-        goal: state.goal || undefined,
+        goal: (state.plannerGoal || state.goal) || undefined,
         generationSource: "ai",
         diagnosticContext: diagnosis,
       }, provider);
