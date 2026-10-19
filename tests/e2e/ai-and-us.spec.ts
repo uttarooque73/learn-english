@@ -9,8 +9,20 @@ test("AI and Us provides discussion and paragraph practice tabs", async ({ page 
     });
   });
   await page.route("**/api/ai-and-us", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ paragraphs: [], attempts: [] }) });
+      return;
+    }
     if (route.request().method() === "POST") {
-      const payload = route.request().postDataJSON() as { kind?: string };
+      const payload = route.request().postDataJSON() as { kind?: string; id?: string; title?: string; text?: string; level?: string };
+      if (payload.kind === "paragraph") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ paragraph: { id: "saved-paragraph", title: payload.title ?? "Practice paragraph", text: payload.text ?? "", level: payload.level ?? "Intermediate", createdAt: "2026-10-19T00:00:00.000Z" } }),
+        });
+        return;
+      }
       if (payload.kind === "feedback") {
         await route.fulfill({
           status: 200,
