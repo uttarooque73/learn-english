@@ -35,18 +35,21 @@ export function ChallengeSimulator() {
   const adaptivePrompt = difficulty === "stretch" ? challenge.prompt + " Add one concrete example and anticipate a likely follow-up question." : difficulty === "warm-up" ? challenge.prompt + " Keep your answer to 2–4 short, clear sentences." : challenge.prompt;
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<SavedProgress>;
-        setProgress({
-          completed: Array.isArray(parsed.completed) ? parsed.completed.filter((id): id is string => typeof id === "string") : [],
-          badges: Array.isArray(parsed.badges) ? parsed.badges.filter((badge): badge is string => typeof badge === "string") : [],
-          bestScores: parsed.bestScores && typeof parsed.bestScores === "object" ? parsed.bestScores as Record<string, number> : {},
-        });
-      }
-    } catch { /* Keep the simulator usable if browser storage is blocked. */ }
-    setReady(true);
+    const timeout = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<SavedProgress>;
+          setProgress({
+            completed: Array.isArray(parsed.completed) ? parsed.completed.filter((id): id is string => typeof id === "string") : [],
+            badges: Array.isArray(parsed.badges) ? parsed.badges.filter((badge): badge is string => typeof badge === "string") : [],
+            bestScores: parsed.bestScores && typeof parsed.bestScores === "object" ? parsed.bestScores as Record<string, number> : {},
+          });
+        }
+      } catch { /* Keep the simulator usable if browser storage is blocked. */ }
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
