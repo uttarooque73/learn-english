@@ -2,6 +2,15 @@ import { randomUUID } from "node:crypto";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 
 export type TutorMessage = { role: "user" | "assistant"; content: string };
+export type TutorConversationSummary = {
+  id: string;
+  title: string;
+  goal: string;
+  level: string;
+  feedbackStyle: string;
+  createdAt: string;
+  updatedAt: string;
+};
 export type TutorConversation = {
   id: string;
   title: string;
@@ -70,6 +79,17 @@ function selectConversation(ownerId: string, conversationId?: string): TutorConv
     FROM tutor_conversations WHERE owner_id = ?
     ORDER BY updated_at DESC, created_at DESC LIMIT 1
   `).get(ownerId) as TutorConversationRow | undefined;
+}
+
+export function listTutorConversations(ownerId: string, limit = 10): TutorConversationSummary[] {
+  ensurePersistenceSchema();
+  const safeLimit = Number.isInteger(limit) ? Math.max(1, Math.min(limit, 20)) : 10;
+  return getDatabase().prepare(`
+    SELECT id, title, goal, level, feedback_style AS feedbackStyle,
+      created_at AS createdAt, updated_at AS updatedAt
+    FROM tutor_conversations WHERE owner_id = ?
+    ORDER BY updated_at DESC, created_at DESC LIMIT ?
+  `).all(ownerId, safeLimit) as TutorConversationSummary[];
 }
 
 export function getTutorConversation(ownerId: string, conversationId?: string): TutorConversation | null {

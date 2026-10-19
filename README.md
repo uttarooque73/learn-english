@@ -5,7 +5,7 @@ An English-speaking practice app built with Next.js, React, and TypeScript. Prac
 ## Features
 
 - **AI conversation practice:** guided role-play, custom scenarios, difficulty levels, goals, and optional timed sessions.
-- **Persistent AI tutor:** conversation history is saved to SQLite per learner, restored when returning, and used as context for follow-up tutoring turns.
+- **Persistent AI tutor:** conversation history is saved to SQLite per learner, restored when returning, and used as context for follow-up tutoring turns. Learners can switch between recent saved sessions.
 - **Speaking practice:** browser speech input and playback, plus shadowing exercises.
 - **Feedback:** grammar corrections, natural phrasing suggestions, simpler explanations, and adaptive follow-up questions.
 - **Vocabulary:** searchable notebook, AI-assisted definitions, flashcards, quizzes, and spaced repetition.
@@ -38,7 +38,8 @@ Configure these server-side environment variables in `.env.local` if needed:
 |---|---|---|
 | `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama service endpoint |
 | `OLLAMA_MODEL` | `llama3.1:8b` | Chat model |
-| `SQLITE_DATABASE_PATH` | `./data/speakup.sqlite` | SQLite database file |\n| `AUTH_SECRET` | — | Required in production: random secret of at least 32 characters for signing sessions |
+| `SQLITE_DATABASE_PATH` | `./data/speakup.sqlite` | SQLite database file |
+| `AUTH_SECRET` | — | Required in production: random secret of at least 32 characters for signing sessions |
 
 Keep these variables server-side; do not prefix them with `NEXT_PUBLIC_`.
 
