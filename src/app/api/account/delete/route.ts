@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, OWNER_COOKIE, verifyPassword, verifySessionToken } from "@/lib/auth";
 import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
@@ -5,7 +6,7 @@ import { ensurePersistenceSchema, getDatabase } from "@/lib/database";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type AccountRow = { ownerId: string; passwordSalt: string; passwordHash: string };
+type AccountRow = { ownerId: string; email: string; passwordSalt: string; passwordHash: string };
 
 function clearAuthCookies(response: NextResponse): NextResponse {
   for (const name of [SESSION_COOKIE, OWNER_COOKIE]) {
@@ -50,7 +51,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     ensurePersistenceSchema();
     const database = getDatabase();
     const account = database.prepare(`
-      SELECT owner_id AS ownerId, password_salt AS passwordSalt, password_hash AS passwordHash
+      SELECT owner_id AS ownerId, email, password_salt AS passwordSalt, password_hash AS passwordHash
       FROM learner_accounts WHERE owner_id = ?
     `).get(session.ownerId) as AccountRow | undefined;
     if (!account || !verifyPassword(password, account.passwordSalt, account.passwordHash)) {
@@ -75,6 +76,8 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
           database.prepare(`DELETE FROM "${name}" WHERE owner_id = ?`).run(account.ownerId);
         }
       }
+      const emailHash = createHash("sha256").update(account.email.trim().toLowerCase()).digest("hex");
+      database.prepare("DELETE FROM auth_login_attempts WHERE email_hash = ?").run(emailHash);
       database.prepare("DELETE FROM learner_accounts WHERE owner_id = ?").run(account.ownerId);
     })();
 
