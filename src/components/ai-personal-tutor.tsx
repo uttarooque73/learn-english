@@ -3,9 +3,28 @@
 import { useEffect, useRef, useState } from "react";
 import { initializeDatabasePersistence } from "@/lib/client-persistence";
 import { getSessions, getVocabulary } from "@/lib/learning-storage";
+import { ListenButton } from "@/components/listen-button";
 import styles from "./ai-personal-tutor.module.css";
 
 type Message = { role: "user" | "assistant"; content: string };
+type SpeechRecognitionResult = { isFinal: boolean; 0: { transcript: string } };
+type SpeechRecognitionEvent = { resultIndex: number; results: ArrayLike<SpeechRecognitionResult> };
+type SpeechRecognitionErrorEvent = { error: string };
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+};
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+};
 const GOALS = [
   { value: "Speak more confidently", label: "Speak confidently" },
   { value: "Improve grammar", label: "Improve grammar" },
@@ -30,6 +49,9 @@ export function AiPersonalTutor() {
   const [error, setError] = useState("");
   const [wordCount, setWordCount] = useState(0);
   const [sessionCount, setSessionCount] = useState(0);
+  const [recording, setRecording] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("");
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,6 +98,11 @@ export function AiPersonalTutor() {
     }
     void restoreTutorMemory();
     return () => { active = false; };
+  }, []);
+
+  useEffect(() => () => {
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -133,6 +160,72 @@ export function AiPersonalTutor() {
     }
   }
 
+
+  function toggleVoiceRecording() {
+    if (recording) {
+      recognitionRef.current?.stop();
+      setRecording(false);
+      setVoiceStatus("Finishing voice input…");
+      return;
+    }
+    const browserWindow = window as SpeechRecognitionWindow;
+    const RecognitionConstructor = browserWindow.SpeechRecognition ?? browserWindow.webkitSpeechRecognition;
+    if (!RecognitionConstructor) {
+      setVoiceStatus("Speech recognition is not supported in this browser. Try Chrome or Edge, or type your message.");
+      return;
+    }
+    try {
+      const recognition = new RecognitionConstructor();
+      recognition.lang = "en-US";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.onresult = (event) => {
+        let finalText = "";
+        let interimText = "";
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const result = event.results[i];
+          if (result.isFinal) finalText += result[0].transcript;
+          else interimText += result[0].transcript;
+        }
+        if (interimText) {
+          setInput(interimText);
+          setVoiceStatus("Listening…");
+        }
+        if (finalText.trim()) {
+          const transcript = finalText.trim();
+          setInput(transcript);
+          setVoiceStatus("Sending your message…");
+          recognitionRef.current = null;
+          setRecording(false);
+          void sendMessage(transcript);
+        }
+      };
+      recognition.onerror = (event) => {
+        setRecording(false);
+        recognitionRef.current = null;
+        setVoiceStatus(event.error === "not-allowed" || event.error === "service-not-allowed"
+          ? "Microphone permission was denied. Allow microphone access in your browser settings."
+          : event.error === "no-speech"
+            ? "No speech detected. Tap the microphone and try again."
+            : "Could not capture speech. Please try again or type your message.");
+      };
+      recognition.onend = () => {
+        if (recognitionRef.current === recognition) {
+          recognitionRef.current = null;
+          setRecording(false);
+          setVoiceStatus((current) => current === "Listening…" ? "Recording stopped. Tap the microphone to try again." : current);
+        }
+      };
+      recognitionRef.current = recognition;
+      setVoiceStatus("Listening… Speak clearly in English.");
+      setRecording(true);
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+      setRecording(false);
+      setVoiceStatus("Could not start the microphone. Check browser permissions and try again.");
+    }
+  }
 
   async function refreshTutorHistory() {
     try {
@@ -194,7 +287,7 @@ export function AiPersonalTutor() {
         </div>
         <div className={styles.messages} aria-live="polite">
           {messages.length === 0 && <div className={styles.starters}><p className={styles.starterTitle}>Try starting with</p>{STARTERS.map((starter) => <button key={starter} type="button" onClick={() => void sendMessage(starter)} disabled={busy || !memoryReady}>{starter}<span aria-hidden="true">↗</span></button>)}</div>}
-          {messages.map((message, index) => <article key={index} className={message.role === "user" ? styles.userMessage : styles.tutorMessage}><span className={styles.messageLabel}>{message.role === "user" ? "YOU" : "YOUR TUTOR"}</span><p>{message.content || (busy ? "Thinking…" : "")}</p></article>)}
+          {messages.map((message, index) => <article key={index} className={message.role === "user" ? styles.userMessage : styles.tutorMessage}><span className={styles.messageLabel}>{message.role === "user" ? "YOU" : "YOUR TUTOR"}</span><p>{message.content || (busy ? "Thinking…" : "")}</p>{message.role === "assistant" && message.content.trim() && <div className={styles.messageActions}><ListenButton text={message.content} label="Listen to tutor response" className={styles.listenResponse} /></div>}</article>)}
           {busy && <p className={styles.status}>Your tutor is preparing a helpful response…</p>}
           {error && <p className={styles.error} role="alert">{error}</p>}
           <div ref={bottomRef} />
@@ -202,7 +295,7 @@ export function AiPersonalTutor() {
         <form className={styles.composer} onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>
           <label className={styles.srOnly} htmlFor="tutor-message">Your question or practice response</label>
           <textarea id="tutor-message" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask your tutor something…" rows={2} maxLength={4000} disabled={busy || !memoryReady} />
-          <div className={styles.composerFooter}><span>{input.length}/4000 · Ask, practise, improve</span><button type="submit" disabled={busy || !memoryReady || !input.trim()}>{busy ? "Working…" : "Send"} <span aria-hidden="true">↑</span></button></div>
+          <div className={styles.composerFooter}><span>{input.length}/4000 · Ask, practise, improve</span><div className={styles.composerActions}><button type="button" className={styles.micButton} onClick={toggleVoiceRecording} disabled={busy || !memoryReady} aria-pressed={recording} aria-label={recording ? "Stop voice recording" : "Record a voice message"} title={recording ? "Stop voice recording" : "Record a voice message"}>{recording ? "■ Stop" : "🎙 Record voice"}</button><button type="submit" disabled={busy || !memoryReady || !input.trim()}>{busy ? "Working…" : "Send"} <span aria-hidden="true">↑</span></button></div></div>{voiceStatus && <p className={styles.voiceStatus} role="status">{voiceStatus}</p>}
         </form>
       </section>
       <aside className={styles.sidebar}>
