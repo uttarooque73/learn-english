@@ -196,7 +196,7 @@ export function WeeklyLearningReport() {
 
       <section className={styles.columns}>
         <article className={styles.panel}>
-          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>WHAT'S WORKING</span><h3>Strengths to keep building</h3></div><span aria-hidden="true">↗</span></div>
+          <div className={styles.panelHeading}><div><span className={styles.eyebrow}>WHAT&apos;S WORKING</span><h3>Strengths to keep building</h3></div><span aria-hidden="true">↗</span></div>
           {metrics.current.strengths.length ? <ul>{metrics.current.strengths.map((item) => <li key={item}>{item}</li>)}</ul> : <p className={styles.muted}>Strengths will appear here when your saved session summaries include feedback.</p>}
         </article>
         <article className={styles.panel}>
