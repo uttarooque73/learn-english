@@ -89,7 +89,7 @@ function stringList(value: unknown, limit = 3): string[] {
   return value.filter((item): item is string => typeof item === "string" && !!item.trim())
     .slice(0, limit).map(item => item.trim().replace(/\s+/g, " ").slice(0, 220));
 }
-function validateEvaluation(value: Record<string, unknown>): SessionEvaluation | null {
+export function validateEvaluation(value: Record<string, unknown>): SessionEvaluation | null {
   if (typeof value.score !== "number" || !Number.isFinite(value.score) || value.score < 0 || value.score > 1
     || typeof value.feedback !== "string" || !value.feedback.trim()) return null;
   return {
