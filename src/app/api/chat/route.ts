@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { appendTutorTurn, createTutorConversation, getTutorConversation } from "@/lib/ai/tutor-memory";
+import { resolveOwnerId } from "@/lib/request-owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,7 +55,7 @@ function isChatMessage(value: unknown): value is ChatMessage {
   );
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   let body: unknown;
 
   try {
@@ -85,6 +87,33 @@ export async function POST(request: Request) {
 
   const messages = payload.messages as ChatMessage[];
   const lastMessage = messages[messages.length - 1];
+  let promptMessages = messages;
+  let tutorOwnerId: string | null = null;
+  let tutorConversationId: string | null = null;
+  let tutorUserMessage: string | null = null;
+  if (mode === "tutor") {
+    tutorOwnerId = resolveOwnerId(request);
+    tutorUserMessage = lastMessage?.content ?? null;
+    const requestedConversationId = typeof payload.conversationId === "string" ? payload.conversationId : "";
+    if (requestedConversationId && !/^[0-9a-f-]{36}$/i.test(requestedConversationId)) {
+      return NextResponse.json({ error: "Invalid tutor conversation id." }, { status: 400 });
+    }
+    let conversation = requestedConversationId
+      ? getTutorConversation(tutorOwnerId, requestedConversationId)
+      : null;
+    if (requestedConversationId && !conversation) {
+      return NextResponse.json({ error: "Tutor conversation not found." }, { status: 404 });
+    }
+    if (!conversation) {
+      conversation = createTutorConversation(tutorOwnerId, {
+        goal: typeof payload.sessionGoal === "string" ? payload.sessionGoal : "Speak more confidently",
+        level: typeof payload.difficulty === "string" ? payload.difficulty : "Intermediate",
+        feedbackStyle: typeof payload.feedbackStyle === "string" ? payload.feedbackStyle : "balanced",
+      });
+    }
+    tutorConversationId = conversation.id;
+    promptMessages = [...conversation.messages, ...messages].slice(-MAX_MESSAGES);
+  }
   const validFinalMessage = mode === "conversation" || mode === "reading-discussion" || mode === "paragraph-generation" || mode === "tutor"
     ? lastMessage?.role === "user"
     : lastMessage?.role === "assistant" && messages.some((message) => message.role === "user");
@@ -173,7 +202,7 @@ export async function POST(request: Request) {
               "For balanced feedback, when the learner makes a meaningful grammar or phrasing error, first respond to the meaning naturally, then add at most one concise, clearly labeled Quick tip with the corrected phrase and a brief reason. Ignore tiny errors that do not affect clarity, and never turn every response into a lesson. For detailed feedback, explain up to two useful corrections. If the learner asks for correction, answer directly and supportively. " +
               "Do not claim to score proficiency. Selected scenario: " + scenario + ". " + turnGuidance,
           },
-          ...messages,
+          ...promptMessages,
           ...(mode === "follow-up" ? [{
             role: "user" as const,
             content: "Ask me one adaptive follow-up question based on my latest answer. Do not answer for me.",
@@ -219,6 +248,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream<Uint8Array>({
     async start(output) {
       let buffer = "";
+      let assistantText = "";
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -234,17 +264,32 @@ export async function POST(request: Request) {
               done?: boolean;
             };
             if (chunk.error) throw new Error(chunk.error);
-            if (chunk.message?.content) output.enqueue(encoder.encode(chunk.message.content));
+            if (chunk.message?.content) {
+              assistantText += chunk.message.content;
+              output.enqueue(encoder.encode(chunk.message.content));
+            }
           }
 
           if (done) {
             if (buffer.trim()) {
               const chunk = JSON.parse(buffer) as { message?: { content?: string }; error?: string };
               if (chunk.error) throw new Error(chunk.error);
-              if (chunk.message?.content) output.enqueue(encoder.encode(chunk.message.content));
+              if (chunk.message?.content) {
+                assistantText += chunk.message.content;
+                output.enqueue(encoder.encode(chunk.message.content));
+              }
             }
             break;
           }
+        }
+        if (mode === "tutor" && tutorOwnerId && tutorConversationId && tutorUserMessage) {
+          appendTutorTurn(tutorOwnerId, tutorConversationId, {
+            userMessage: tutorUserMessage,
+            assistantMessage: assistantText.trim(),
+            goal: sessionGoal,
+            level: difficulty,
+            feedbackStyle,
+          });
         }
         output.close();
       } catch {
@@ -265,6 +310,7 @@ export async function POST(request: Request) {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       "X-Content-Type-Options": "nosniff",
+      ...(tutorConversationId ? { "X-Conversation-Id": tutorConversationId } : {}),
     },
   });
 }
