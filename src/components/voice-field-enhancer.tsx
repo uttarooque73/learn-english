@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { speakText, stopSpeaking } from "@/lib/speech-playback";
 
 /**
  * Adds dictation controls to learner response fields across the app.
@@ -27,7 +28,6 @@ export function VoiceFieldEnhancer() {
     const RecognitionAPI = browser.SpeechRecognition || browser.webkitSpeechRecognition;
     const selector = 'textarea:not([readonly]):not([disabled]), input[type="text"]:not([readonly]):not([disabled]), input:not([type]):not([readonly]):not([disabled])';
     const controls = new WeakMap<Element, HTMLButtonElement>();
-    const listenControls = new WeakMap<Element, HTMLButtonElement>();
     let activeRecognition: Recognition | null = null;
     let activeButton: HTMLButtonElement | null = null;
 
@@ -102,14 +102,11 @@ export function VoiceFieldEnhancer() {
           const describedBy = input.getAttribute("aria-describedby");
           const description = describedBy ? describedBy.split(/\s+/).map((id) => document.getElementById(id)?.innerText || "").join(" ") : "";
           const prompt = [label, input.getAttribute("aria-label"), description, input.placeholder].filter(Boolean).join(". ").trim();
-          if (!prompt || !("speechSynthesis" in window)) return;
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(prompt);
-          utterance.lang = document.documentElement.lang || "en-US";
-          window.speechSynthesis.speak(utterance);
+          if (!prompt) return;
+          stopSpeaking();
+          speakText(prompt);
         });
         parent.insertBefore(listen, button.nextSibling);
-        listenControls.set(field, listen);
       }
     };
 
@@ -120,6 +117,7 @@ export function VoiceFieldEnhancer() {
     return () => {
       observer.disconnect();
       activeRecognition?.stop();
+      stopSpeaking();
       document.querySelectorAll(".inline-dictation-control, .inline-listen-control").forEach((button) => button.remove());
     };
   }, []);
