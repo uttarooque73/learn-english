@@ -40,7 +40,7 @@ export function AdaptiveProgress() {
             </div>)}
           </article>
           <article className="stat-card"><h3>Recurring mistakes</h3>
-            {data.recurringMistakes.length === 0 ? <p>No recurring mistakes have been recorded yet. Saved practice evidence will appear here when available.</p> : <ul>{data.recurringMistakes.map(mistake => <li key={mistake.category}><strong>{mistake.category}</strong> — {mistake.occurrenceCount} occurrences <span className="section-note">(last seen {new Date(mistake.lastSeenAt).toLocaleDateString()})</span></li>)}</ul>}
+            {data.recurringMistakes.length === 0 ? <p>No recurring mistakes have been recorded yet. Saved practice evidence will appear here when available.</p> : <ul>{data.recurringMistakes.map((mistake, index) => <li key={`${mistake.category}-${index}`}><strong>{mistake.category}</strong> — {mistake.occurrenceCount} occurrences <span className="section-note">(last seen {new Date(mistake.lastSeenAt).toLocaleDateString()})</span></li>)}</ul>}
           </article>
         </div>
         <article className="stat-card"><h3>Recent learning plans</h3>
