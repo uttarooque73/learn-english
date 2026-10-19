@@ -36,7 +36,7 @@ describe("POST /api/speaking-feedback", () => {
     vi.stubGlobal("fetch", fetchMock);
     const response = await POST(new Request("http://localhost/api/speaking-feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transcript: "Yesterday I explained our new feature to my teammate.", prompt: "Explain a feature", proficiency: "Intermediate", durationSeconds: 30 }) }));
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ feedback: { overallScore: 82, categories: { clarity: { score: 86 } } }, metrics: { wordCount: 8, durationSeconds: 30, wordsPerMinute: 16 }, assessmentType: "transcript" });
+    await expect(response.json()).resolves.toMatchObject({ feedback: { overallScore: 82, categories: { clarity: { score: 86 } } }, metrics: { wordCount: 9, durationSeconds: 30, wordsPerMinute: 18 }, assessmentType: "transcript" });
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("http://localhost:11434/api/chat");
