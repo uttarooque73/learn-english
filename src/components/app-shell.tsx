@@ -93,13 +93,14 @@ export function AppShell({
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     let active = true;
     fetch("/api/auth", { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
-      .then((data) => { if (active) setCurrentUser(data?.authenticated && data.user ? data.user : null); })
-      .catch(() => { if (active) setCurrentUser(null); });
+      .then((data) => { if (active) { setCurrentUser(data?.authenticated && data.user ? data.user : null); setAuthChecked(true); } })
+      .catch(() => { if (active) { setCurrentUser(null); setAuthChecked(true); } });
     return () => { active = false; };
   }, []);
 
@@ -126,7 +127,7 @@ export function AppShell({
           {mobileNavOpen ? "Close menu" : "Open menu"}
         </button>
         <nav id="main-navigation" className={`main-nav ${mobileNavOpen ? "mobile-nav-open" : ""}`} aria-label="Main navigation">
-          {navigation.map((item) => (
+          {authChecked && currentUser && navigation.map((item) => (
             <Link
               key={item.key}
               className={`nav-link ${activePage === item.key ? "active" : ""}`}
