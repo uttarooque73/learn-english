@@ -447,7 +447,11 @@ export function PracticeExperience({ prompts }: { prompts: Scenario[] }) {
           idempotencyKey: `conversation:${sessionId}:${learnerMessageCount}`,
         }).catch(() => undefined);
         setSavedSessions(getSessions());
-        if (learningPreferences?.feedbackTiming === "immediate") {
+        // Preferences are hydrated asynchronously on mount. Read the saved
+        // preference as a fallback so the first message still gets immediate
+        // feedback instead of silently skipping it while state is null.
+        const activePreferences = learningPreferences ?? getLearningPreferences();
+        if (activePreferences.feedbackTiming === "immediate") {
           void requestFeedback(content, assistantText);
         }
       }
