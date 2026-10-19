@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("speaking feedback page restores saved reviews from persistence", async ({ page }) => {
   const saved = [{
