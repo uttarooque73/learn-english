@@ -42,7 +42,7 @@ describe("evidence-based learning skill trends", () => {
   it("sorts evidence-backed focus skills before estimates with no recorded evidence", () => {
     const trends = buildSkillTrends(assessments, currentSkills, now);
     expect(trends[0]?.skillKey).toBe("speaking");
-    expect(trends.at(-1)?.skillKey).toBe("vocabulary");
+    expect(trends[trends.length - 1]?.skillKey).toBe("vocabulary");
     expect(buildSkillTrends([], [], now)).toEqual([]);
   });
 });
