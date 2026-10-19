@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
 type ActivityType = "conversation" | "vocabulary" | "grammar" | "pronunciation" | "listening" | "fluency" | "real-world-challenge";
 type GeneratedActivity = {
@@ -32,7 +32,7 @@ export function DynamicLearningStudio() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function generate(event: React.FormEvent<HTMLFormElement>) {
+  async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError("");
