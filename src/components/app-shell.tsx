@@ -94,6 +94,7 @@ export function AppShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const navigationRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -126,7 +127,7 @@ export function AppShell({
           <span aria-hidden="true">{mobileNavOpen ? "×" : "☰"}</span>
           {mobileNavOpen ? "Close menu" : "Open menu"}
         </button>
-        <nav id="main-navigation" className={`main-nav ${mobileNavOpen ? "mobile-nav-open" : ""}`} aria-label="Main navigation">
+        <nav ref={navigationRef} id="main-navigation" className={`main-nav ${mobileNavOpen ? "mobile-nav-open" : ""}`} aria-label="Main navigation">
           {authChecked && currentUser && navigation.map((item) => (
             <Link
               key={item.key}
