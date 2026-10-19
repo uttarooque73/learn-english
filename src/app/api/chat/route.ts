@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendTutorTurn, createTutorConversation, getTutorConversation } from "@/lib/ai/tutor-memory";
-import { resolveOwnerId } from "@/lib/request-owner";
+import { resolveOwnerId, synchronizeOwnerCookie } from "@/lib/request-owner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return new Response(stream, {
+  const response = new NextResponse(stream, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
@@ -313,4 +313,5 @@ export async function POST(request: NextRequest) {
       ...(tutorConversationId ? { "X-Conversation-Id": tutorConversationId } : {}),
     },
   });
+  return tutorOwnerId ? synchronizeOwnerCookie(response, request, tutorOwnerId) : response;
 }
