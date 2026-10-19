@@ -1,16 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 import { AuthStatus } from "@/components/auth-status";
 
 type CurrentUser = { displayName: string; email: string };
 
-function ProfileMenu({ onClose }: { onClose: () => void }) {
+function userInitial(user: CurrentUser | null): string {
+  return user?.displayName.trim().charAt(0).toLocaleUpperCase() || user?.email.trim().charAt(0).toLocaleUpperCase() || "U";
+}
+
+function UserAvatar({ user, className }: { user: CurrentUser | null; className: string }) {
+  return <span className={className} aria-label={user ? `${user.displayName} profile` : "User profile"} title={user?.displayName || "User profile"}>{userInitial(user)}</span>;
+}
+
+function ProfileMenu({ onClose, user, onUserChange }: { onClose: () => void; user: CurrentUser | null; onUserChange: (user: CurrentUser | null) => void }) {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<CurrentUser | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -18,10 +25,10 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
     let active = true;
     fetch("/api/auth", { cache: "no-store" })
       .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
-      .then((data) => { if (active && data?.authenticated && data.user) setUser(data.user); })
+      .then((data) => { if (active && data?.authenticated && data.user) onUserChange(data.user); })
       .catch(() => { /* Keep the generic workspace fallback if the session cannot be loaded. */ });
     return () => { active = false; };
-  }, []);
+  }, [onUserChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -50,7 +57,7 @@ function ProfileMenu({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const initial = user?.displayName.trim().charAt(0).toUpperCase() || user?.email.trim().charAt(0).toUpperCase() || "U";
+  const initial = userInitial(user);
 
   return (
     <div className="profile-menu-root" ref={rootRef}>
@@ -141,6 +148,8 @@ export function AppShell({
   children: ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const handleUserChange = useCallback((user: CurrentUser | null) => setCurrentUser(user), []);
 
   return (
     <div className="app-frame">
@@ -188,9 +197,9 @@ export function AppShell({
             <Link href="/conversation-coach" className="coach-link">Talk with your AI coach <span>↗</span></Link>
           </div>
           <div className="profile-row">
-            <div className="avatar">U</div>
-            <div className="profile-copy"><strong>My learning space</strong><span>Personal practice</span></div>
-            <ProfileMenu onClose={() => setMobileNavOpen(false)} />
+            <UserAvatar user={currentUser} className="avatar" />
+            <div className="profile-copy"><strong>{currentUser?.displayName || "My learning space"}</strong><span>{currentUser?.email || "Personal practice"}</span></div>
+            <ProfileMenu onClose={() => setMobileNavOpen(false)} user={currentUser} onUserChange={handleUserChange} />
           </div>
         </div>
       </aside>
@@ -198,7 +207,7 @@ export function AppShell({
       <main className="main-panel">
         <header className="topbar">
           <div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{title}</strong></div>
-          <div className="topbar-right"><span className="status-pill"><span className="status-dot" /> Local-first learning</span><AuthStatus /><div className="top-avatar">U</div></div>
+          <div className="topbar-right"><span className="status-pill"><span className="status-dot" /> Local-first learning</span><AuthStatus /><UserAvatar user={currentUser} className="top-avatar" /></div>
         </header>
         <div className="page-content">
           <div className="page-heading">
