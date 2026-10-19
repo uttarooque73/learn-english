@@ -1,3 +1,4 @@
+import "./sentence-improver.css";
 import { AppShell } from "@/components/app-shell";
 import { SentenceImprover } from "@/components/sentence-improver";
 
