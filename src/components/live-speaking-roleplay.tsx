@@ -216,7 +216,7 @@ export function LiveSpeakingRoleplay() {
         "Give 1-3 specific corrections with brief reasons, preserve the learner's intended meaning, and finish with one small goal.",
         `Scenario: ${scenario.title}; level: ${difficulty}; elapsed time: ${elapsedLabel(elapsed)}.`,
         transcript || "The learner did not provide a spoken or typed answer.",
-      ].join("\n\n");
+      ].join("\n\n").slice(0, 3900);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -271,7 +271,7 @@ export function LiveSpeakingRoleplay() {
           {busy && !feedback && <div className={styles.thinking} aria-live="polite"><span /> Partner is thinking…</div>}
         </div>
         {active && <form className={styles.replyForm} onSubmit={(event) => { event.preventDefault(); void sendAnswer(); }}>
-          <label htmlFor="roleplay-answer">Your answer</label><textarea id="roleplay-answer" rows={3} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Type your answer or use the microphone…" disabled={busy} />
+          <label htmlFor="roleplay-answer">Your answer</label><textarea id="roleplay-answer" rows={3} maxLength={1000} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Type your answer or use the microphone…" disabled={busy} />
           <div className={styles.replyActions}><button type="button" className={styles.secondary} onClick={() => listening ? recognitionRef.current?.stop() : startRecording()} disabled={busy} aria-pressed={listening}>{listening ? "■ Stop recording" : "🎙 Use microphone"}</button><button type="submit" className={styles.primary} disabled={busy || !draft.trim()}>Send answer <span aria-hidden="true">→</span></button></div>
           <p className={styles.hint}>Tip: answer in 1–3 sentences. You can pause and think before replying.</p>
         </form>}
