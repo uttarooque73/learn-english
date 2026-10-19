@@ -1351,3 +1351,27 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 
 /* Daily vocabulary: searchable, paginated all-words library. */
 .daily-vocab-library-section{min-width:0}.daily-vocab-library-total{flex-shrink:0;padding:9px 12px;border-radius:999px;background:#edf1e9;color:#425c40;font-size:11px;font-weight:800;white-space:nowrap}.daily-vocab-library-tools{display:flex;align-items:center;gap:10px;margin:20px 0 12px;padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff}.daily-vocab-library-tools>input{flex:1;min-width:0;min-height:40px;padding:0 12px;border:1px solid #e5e6de;border-radius:8px;outline-color:#91a886}.daily-vocab-library-tools label{display:flex;align-items:center;gap:7px;color:#85877d;font-size:10px;white-space:nowrap}.daily-vocab-library-tools select{min-height:38px;padding:0 9px;border:1px solid #e5e6de;border-radius:8px;background:#fff;color:var(--ink)}.daily-vocab-library-result-meta{margin:12px 0;color:#85877d;font-size:11px}.daily-vocab-library-grid{align-items:stretch}.daily-vocab-library-word-title{display:flex;align-items:center;justify-content:space-between;gap:10px}.daily-vocab-library-word-title h3{margin:13px 0 8px;font-family:Manrope,sans-serif;font-size:21px;letter-spacing:-.5px;overflow-wrap:anywhere}.daily-vocab-library-word-title button{flex-shrink:0}.daily-vocab-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#fff;color:#85877d;font-size:11px}.daily-vocab-pagination>div{display:flex;gap:8px}.daily-vocab-pagination button:disabled{opacity:.45;cursor:not-allowed;transform:none}@media(max-width:600px){.daily-vocab-library-tools{align-items:stretch;flex-wrap:wrap}.daily-vocab-library-tools>input{flex-basis:100%}.daily-vocab-library-tools label{flex:1}.daily-vocab-library-tools label select{flex:1}.daily-vocab-pagination{align-items:flex-start;flex-direction:column}.daily-vocab-pagination>div{width:100%}.daily-vocab-pagination button{flex:1}.daily-vocab-section-heading{gap:10px}}
+
+/* App-wide interaction baseline: consistent focus, disabled and pressed states. */
+button, [role="button"], input[type="button"], input[type="submit"], input[type="reset"] { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, [role="button"]:focus-visible, input[type="button"]:focus-visible, input[type="submit"]:focus-visible, input[type="reset"]:focus-visible { outline: 3px solid #a9bd98; outline-offset: 3px; }
+button:disabled, button[aria-disabled="true"], [role="button"][aria-disabled="true"], input[type="button"]:disabled, input[type="submit"]:disabled, input[type="reset"]:disabled { cursor: not-allowed !important; opacity: .58; transform: none !important; box-shadow: none !important; }
+button:not(:disabled), input[type="button"]:not(:disabled), input[type="submit"]:not(:disabled), input[type="reset"]:not(:disabled) { transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease; }
+button:not(:disabled):active, input[type="button"]:not(:disabled):active, input[type="submit"]:not(:disabled):active, input[type="reset"]:not(:disabled):active { transform: translateY(1px); }
+button[aria-busy="true"] { cursor: progress; }
+button[aria-busy="true"]::before { content: ""; width: 13px; height: 13px; flex: 0 0 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: speakup-spin .7s linear infinite; }
+@keyframes speakup-spin { to { transform: rotate(360deg); } }
+
+/* Notifications stay in the visible viewport, even on long pages. */
+.app-notifications { position: fixed; z-index: 10000; right: max(20px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom)); display: grid; gap: 10px; width: min(420px, calc(100vw - 32px)); pointer-events: none; }
+.app-toast { display: flex; align-items: flex-start; gap: 11px; padding: 15px 14px; border: 1px solid #e3e7dd; border-radius: 13px; background: #fff; color: #25271f; box-shadow: 0 12px 38px rgba(35, 42, 30, .18); pointer-events: auto; animation: speakup-toast-in .2s ease-out; }
+.app-toast-success { border-left: 4px solid #4b8a53; } .app-toast-error { border-left: 4px solid #c34d43; } .app-toast-info { border-left: 4px solid #6d87a6; }
+.app-toast-icon { display: grid; place-items: center; flex: 0 0 25px; width: 25px; height: 25px; border-radius: 50%; background: #eef2e9; color: #425c40; font-weight: 800; }
+.app-toast-error .app-toast-icon { background: #fff0ee; color: #b33d34; }
+.app-toast-copy { flex: 1; min-width: 0; } .app-toast-copy strong { display: block; font-size: 13px; line-height: 1.4; }
+.app-toast-copy p { margin: 4px 0 0; color: #707568; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.app-toast-dismiss { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #73786c; font-size: 20px; cursor: pointer; }
+.app-toast-dismiss:hover { background: #f3f5ef; }
+@keyframes speakup-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 520px) { .app-notifications { right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); width: calc(100vw - 24px); } }
+@media (prefers-reduced-motion: reduce) { .app-toast, button[aria-busy="true"]::before { animation: none; } }
