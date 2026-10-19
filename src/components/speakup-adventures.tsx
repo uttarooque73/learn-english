@@ -127,7 +127,6 @@ export function SpeakUpAdventures() {
     const content = text.trim();
     if (!content || busy || messages.length >= MAX_TURNS) return;
     const nextMessages: Message[] = [...messages, { role: "user", content }];
-    setMessages(nextMessages);
     setInput("");
     setBusy(true);
     setError("");
@@ -260,7 +259,7 @@ export function SpeakUpAdventures() {
           <span className={styles.reward}>✦ {chapter.reward} XP</span>
         </div>
         {!started ? <div className={styles.startCard}><span>🎭</span><h4>Ready to enter the story?</h4><p>Meet {chapter.character}, practise your English, and decide what happens next.</p><button className={styles.primaryButton} type="button" onClick={() => beginChapter()}>Start adventure <span>↗</span></button></div> : <>
-          <div className={styles.chatLog} aria-live="polite" aria-label="Adventure conversation">
+          <div className={styles.chatLog} role="region" aria-live="polite" aria-label="Adventure conversation">
             {messages.map((message, index) => <div key={index} className={styles.message + (message.role === "user" ? " " + styles.playerMessage : "")}><span className={styles.speaker}>{message.role === "user" ? "YOU" : chapter.character.toUpperCase()}</span><p>{message.content || (busy ? "Thinking…" : "")}</p></div>)}
             {busy && <div className={styles.thinking} role="status"><span /> The story is unfolding…</div>}
             <div ref={endRef} />
