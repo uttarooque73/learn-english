@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const redirectMock = vi.fn((url: URL) => ({ type: "redirect", url }));
-const nextMock = vi.fn(() => ({ type: "next" }));
-const jsonMock = vi.fn((body: unknown, init: unknown) => ({ type: "json", body, init }));
+const { redirectMock, nextMock, jsonMock } = vi.hoisted(() => ({
+  redirectMock: vi.fn((url: URL) => ({ type: "redirect", url })),
+  nextMock: vi.fn(() => ({ type: "next" })),
+  jsonMock: vi.fn((body: unknown, init: unknown) => ({ type: "json", body, init })),
+}));
 
 vi.mock("next/server", () => ({
   NextResponse: {
