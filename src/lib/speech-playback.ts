@@ -64,7 +64,7 @@ export function speakText(text: string, onEnd?: () => void, rateOverride?: numbe
   const cleanup = () => {
     if (settled) return;
     settled = true;
-    synthesis.removeEventListener("voiceschanged", onVoicesChanged);
+    synthesis.removeEventListener?.("voiceschanged", onVoicesChanged);
     window.clearTimeout(fallbackTimer);
   };
   const onVoicesChanged = () => {
@@ -89,7 +89,7 @@ export function speakText(text: string, onEnd?: () => void, rateOverride?: numbe
     }
     synthesis.speak(utterance);
   }, 1200);
-  synthesis.addEventListener("voiceschanged", onVoicesChanged);
+  synthesis.addEventListener?.("voiceschanged", onVoicesChanged);
   return true;
 }
 
