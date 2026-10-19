@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 
 type Profile = { email: string; displayName: string; createdAt: string };
 type ApiResponse = { user?: Profile; message?: string; error?: string; ok?: boolean };
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   border: "1px solid var(--line, #d8ded9)",
@@ -17,8 +17,8 @@ const inputStyle: React.CSSProperties = {
   fontSize: 15,
 };
 
-const labelStyle: React.CSSProperties = { display: "grid", gap: 7, fontSize: 14, fontWeight: 650 };
-const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 10, padding: "12px 16px", background: "#245b4e", color: "#fff", fontWeight: 750, cursor: "pointer" };
+const labelStyle: CSSProperties = { display: "grid", gap: 7, fontSize: 14, fontWeight: 650 };
+const buttonStyle: CSSProperties = { border: 0, borderRadius: 10, padding: "12px 16px", background: "#245b4e", color: "#fff", fontWeight: 750, cursor: "pointer" };
 
 export function AccountSettings() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -139,9 +139,9 @@ export function AccountSettings() {
   );
 }
 
-const cardStyle: React.CSSProperties = { background: "var(--surface, #fff)", border: "1px solid var(--line, #d8ded9)", borderRadius: 16, padding: "clamp(18px, 3vw, 28px)" };
-const infoStyle: React.CSSProperties = { display: "grid", gap: 6, borderRadius: 12, background: "var(--surface-muted, #f6f5f1)", padding: 14, minWidth: 0 };
-const mutedStyle: React.CSSProperties = { color: "var(--muted, #68716d)", fontSize: 12 };
-function messageStyle(background: string, color: string): React.CSSProperties {
+const cardStyle: CSSProperties = { background: "var(--surface, #fff)", border: "1px solid var(--line, #d8ded9)", borderRadius: 16, padding: "clamp(18px, 3vw, 28px)" };
+const infoStyle: CSSProperties = { display: "grid", gap: 6, borderRadius: 12, background: "var(--surface-muted, #f6f5f1)", padding: 14, minWidth: 0 };
+const mutedStyle: CSSProperties = { color: "var(--muted, #68716d)", fontSize: 12 };
+function messageStyle(background: string, color: string): CSSProperties {
   return { background, color, borderRadius: 10, padding: 12, margin: 0, fontSize: 14 };
 }
