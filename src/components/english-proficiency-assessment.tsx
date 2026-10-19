@@ -100,9 +100,9 @@ export function EnglishProficiencyAssessment() {
         .map((item) => submitLearningEvidence({
           source: item.skill === "Vocabulary" ? "vocabulary" : "micro_lesson",
           activityType: item.skill.toLowerCase() as "grammar" | "vocabulary",
-          activityRef: \`english-proficiency-assessment:\${item.skill.toLowerCase()}\`,
+          activityRef: `english-proficiency-assessment:${item.skill.toLowerCase()}`,
           skillKey: item.skill.toLowerCase(),
-          responseText: \`Assessment score: \${item.percent}%. Correct: \${item.correct}/\${item.total}. Overall level: \${assessment.level}.\`,
+          responseText: `Assessment score: ${item.percent}%. Correct: ${item.correct}/${item.total}. Overall level: ${assessment.level}.`,
           durationSeconds: 0,
           idempotencyKey: crypto.randomUUID(),
           score: item.percent / 100,
