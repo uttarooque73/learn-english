@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { ListenButton } from "@/components/listen-button";
+import { initializeDatabasePersistence } from "@/lib/client-persistence";
 
 type Difficulty="beginner"|"intermediate"|"advanced";
 type Topic={id:string;name:string;description:string;category:string;instructions:string;difficulty:Difficulty;daily_allocation:number;active:number;created_at:string;updated_at:string;words_presented?:number;words_learned?:number};
@@ -32,7 +33,7 @@ export function DailyVocabulary(){
    }
   }catch(e){setError(e instanceof Error?e.message:"Could not load daily vocabulary.");}finally{setLoading(false)}
  },[]);
- useEffect(()=>{const timer=window.setTimeout(()=>{void load()},0);return()=>window.clearTimeout(timer)},[load]);
+ useEffect(()=>{let active=true;void initializeDatabasePersistence().catch(()=>undefined).finally(()=>{if(active)void load()});return()=>{active=false}},[load]);
  async function mutate(payload:Record<string,unknown>,success?:string){
   setBusy(true);setError("");setNotice("");
   try{const response=await fetch("/api/daily-vocabulary",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});const result=await response.json() as {error?:string};if(!response.ok)throw new Error(result.error||"Could not save changes.");if(success)setNotice(success);await load(selectedDate||undefined);return true}
