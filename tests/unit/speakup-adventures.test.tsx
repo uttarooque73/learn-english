@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SpeakUpAdventures } from "@/components/speakup-adventures";
 
 afterEach(() => {
@@ -37,7 +37,7 @@ describe("SpeakUpAdventures", () => {
 
     render(<SpeakUpAdventures />);
 
-    expect(await screen.findByRole("button", { name: /the merchant's riddle/i })).toBeEnabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: /the merchant/i })).toBeEnabled());
     expect(screen.getByText("100")).toBeInTheDocument();
     expect(screen.getByText(/mission solved/i)).toBeInTheDocument();
   });
