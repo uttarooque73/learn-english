@@ -94,7 +94,7 @@ export function buildSkillTrends(
     const recentAverage = average(recentScores);
     const previousAverage = average(previousScores);
     const changePoints = recentAverage !== null && previousAverage !== null && recentScores.length >= 2 && previousScores.length >= 2
-      ? Math.round((recentAverage - previousAverage) * 100)
+      ? Math.round((recentAverage - previousAverage) * 100 + 1e-8)
       : null;
     const trend: SkillTrend["trend"] = changePoints === null ? "building-baseline"
       : changePoints >= 4 ? "improving"
