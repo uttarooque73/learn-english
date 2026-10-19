@@ -8,6 +8,7 @@ import { getLearningAnalytics } from "@/lib/learning-analytics";
 
 type AdaptivePlanItem = { id: string; position: number; activityType: string; title: string; skillKey: string; durationMinutes: number; priority: number; reason: string; status: "pending" | "in_progress" | "completed" | "skipped" };
 type AdaptivePlan = { id: string; localDate: string; status: string; version: number; totalMinutes: number; items: AdaptivePlanItem[] };
+type GeneratedActivity = { activityType: string; title: string; objective: string; instructions: string; tip: string; items: Array<{ prompt: string; expectedAnswer: string; explanation: string; options: string[]; example: string }> };
 
 function activityHref(activityType: string) {
   if (activityType === "vocabulary") return "/vocabulary";
@@ -47,6 +48,8 @@ export function LearningPlan() {
   const [adaptiveGoal, setAdaptiveGoal] = useState("Improve everyday English communication");
   const [adaptiveLoading, setAdaptiveLoading] = useState(false);
   const [adaptiveError, setAdaptiveError] = useState("");
+  const [generatedActivities, setGeneratedActivities] = useState<Record<string, GeneratedActivity>>({});
+  const [generatingActivityId, setGeneratingActivityId] = useState("");
 
   const refresh = useCallback(() => {
     setWords(getVocabulary());
@@ -138,6 +141,35 @@ export function LearningPlan() {
     }
   }
 
+  async function generatePracticeContent(item: AdaptivePlanItem) {
+    setGeneratingActivityId(item.id);
+    setAdaptiveError("");
+    const activityType = item.activityType === "shadowing" ? "pronunciation"
+      : item.activityType === "grammar" || item.activityType === "vocabulary"
+        || item.activityType === "conversation" || item.activityType === "listening" || item.activityType === "fluency"
+        ? item.activityType : "real-world-challenge";
+    try {
+      const response = await fetch("/api/learning/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activityType,
+          topic: item.title,
+          goal: adaptiveGoal,
+          focusSkill: item.skillKey,
+          quantity: 3,
+        }),
+      });
+      const payload = await response.json() as { activity?: GeneratedActivity; error?: string };
+      if (!response.ok || !payload.activity) throw new Error(payload.error || "Could not generate practice content.");
+      setGeneratedActivities(current => ({ ...current, [item.id]: payload.activity! }));
+    } catch (cause) {
+      setAdaptiveError(cause instanceof Error ? cause.message : "Could not generate practice content.");
+    } finally {
+      setGeneratingActivityId("");
+    }
+  }
+
   async function updateAdaptiveItem(item: AdaptivePlanItem, status: AdaptivePlanItem["status"]) {
     setAdaptiveError("");
     try {
@@ -200,7 +232,25 @@ export function LearningPlan() {
               <h3>{item.title}</h3>
               <p>{item.reason}</p>
               <p className="section-note">Focus: {item.skillKey} · {item.status.replace("_", " ")}</p>
-              <Link className="text-link" href={activityHref(item.activityType)}>Start activity <span>→</span></Link>
+              <div className="review-actions">
+                <Link className="text-link" href={activityHref(item.activityType)}>Start activity <span>→</span></Link>
+                <button type="button" disabled={generatingActivityId === item.id} onClick={() => void generatePracticeContent(item)}>
+                  {generatingActivityId === item.id ? "Generating…" : generatedActivities[item.id] ? "Generate new practice" : "Generate fresh practice"}
+                </button>
+              </div>
+              {generatedActivities[item.id] && <section className="generated-practice" aria-label={generatedActivities[item.id].title}>
+                <h4>{generatedActivities[item.id].title}</h4>
+                <p>{generatedActivities[item.id].objective}</p>
+                <p>{generatedActivities[item.id].instructions}</p>
+                {generatedActivities[item.id].items.map((practice, index) => <details key={`${item.id}-${index}`}>
+                  <summary>{index + 1}. {practice.prompt}</summary>
+                  {practice.example && <p><strong>Example:</strong> {practice.example}</p>}
+                  {practice.options.length > 0 && <ul>{practice.options.map((option, optionIndex) => <li key={optionIndex}>{option}</li>)}</ul>}
+                  <p><strong>Suggested answer:</strong> {practice.expectedAnswer}</p>
+                  <p><strong>Why:</strong> {practice.explanation}</p>
+                </details>)}
+                <p className="section-note">{generatedActivities[item.id].tip}</p>
+              </section>}
             </article>
           ))}</div>}
       </section>
