@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { getDatabase } from "@/lib/database";
 
 export const SESSION_COOKIE = "speakup_session";
 export const OWNER_COOKIE = "speakup_owner";
@@ -62,7 +63,7 @@ export function verifySessionToken(token: string | undefined | null): AuthSessio
       typeof claims.email !== "string" || typeof claims.name !== "string" ||
       typeof claims.exp !== "number" || claims.exp <= Math.floor(Date.now() / 1000)
     ) return null;
-    return { ownerId: claims.sub, email: claims.email, displayName: claims.name, expiresAt: claims.exp };
+    // Signed tokens are stateless, so also require a live account record. Deleting an\n    // account then revokes every previously issued token, including copied tokens.\n    const account = getDatabase().prepare(\n      "SELECT 1 AS active FROM learner_accounts WHERE owner_id = ?",\n    ).get(claims.sub);\n    if (!account) return null;\n\n    return { ownerId: claims.sub, email: claims.email, displayName: claims.name, expiresAt: claims.exp };
   } catch {
     return null;
   }
