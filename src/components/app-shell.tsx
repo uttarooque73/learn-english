@@ -102,7 +102,21 @@ export function AppShell({
       .then((response) => response.ok ? response.json() as Promise<{ authenticated?: boolean; user?: CurrentUser }> : null)
       .then((data) => { if (active) { setCurrentUser(data?.authenticated && data.user ? data.user : null); setAuthChecked(true); } })
       .catch(() => { if (active) { setCurrentUser(null); setAuthChecked(true); } });
-    return () => { active = false; };
+    useEffect(() => {
+    if (!authChecked || !currentUser) return;
+    const nav = navigationRef.current;
+    const activeLink = nav?.querySelector<HTMLElement>('.nav-link.active');
+    if (!nav || !activeLink) return;
+    const navBounds = nav.getBoundingClientRect();
+    const linkBounds = activeLink.getBoundingClientRect();
+    const linkTop = nav.scrollTop + linkBounds.top - navBounds.top;
+    nav.scrollTo({
+      top: Math.max(0, linkTop - (nav.clientHeight - activeLink.offsetHeight) / 2),
+      behavior: "auto",
+    });
+  }, [activePage, authChecked, currentUser]);
+
+  return () => { active = false; };
   }, []);
 
   return (
