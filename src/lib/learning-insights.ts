@@ -130,5 +130,5 @@ export function buildSkillTrends(
     });
   }
 
-  return trends.sort((left, right) => left.mastery - right.mastery || right.evidenceCount - left.evidenceCount || left.skillKey.localeCompare(right.skillKey));
+  return trends.sort((left, right) => Number(right.evidenceCount > 0) - Number(left.evidenceCount > 0) || left.mastery - right.mastery || right.evidenceCount - left.evidenceCount || left.skillKey.localeCompare(right.skillKey));
 }
