@@ -47,18 +47,20 @@ export function DailySpeakingMissions() {
   const [elapsed, setElapsed] = useState(false);
 
   useEffect(() => {
-    const today = localDate();
-    setDate(today);
-    try {
-      const stored: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
-      if (Array.isArray(stored)) {
-        const valid = stored.filter((item): item is Completion => Boolean(item && typeof item === "object" && typeof item.date === "string" && typeof item.missionId === "string" && typeof item.title === "string" && typeof item.reflection === "string" && typeof item.completedAt === "string")).slice(-60);
-        setHistory(valid);
-        setCompleted(valid.some((item) => item.date === today));
+    const restoreTimeout = window.setTimeout(() => {
+      const today = localDate();
+      setDate(today);
+      try {
+        const stored: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
+        if (Array.isArray(stored)) {
+          const valid = stored.filter((item): item is Completion => Boolean(item && typeof item === "object" && typeof item.date === "string" && typeof item.missionId === "string" && typeof item.title === "string" && typeof item.reflection === "string" && typeof item.completedAt === "string")).slice(-60);
+          setHistory(valid);
+          setCompleted(valid.some((item) => item.date === today));
+        }
+      } catch {
+        setNotice("Your browser could not restore saved mission history. You can still practise today.");
       }
-    } catch {
-      setNotice("Your browser could not restore saved mission history. You can still practise today.");
-    }
+    }, 0);
     void fetch("/api/learning/progress", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Progress is unavailable");
@@ -70,6 +72,7 @@ export function DailySpeakingMissions() {
       })
       .catch(() => setNotice((current) => current || "Using a daily mission while your learning history is unavailable."))
       .finally(() => setLoadingProgress(false));
+    return () => window.clearTimeout(restoreTimeout);
   }, []);
 
   const mission = useMemo(() => chooseMission(date || "2026-01-01", skills, mistakes), [date, skills, mistakes]);
@@ -106,7 +109,7 @@ export function DailySpeakingMissions() {
     </section>
 
     <section className={styles.card} aria-labelledby="today-mission">
-      <div className={styles.sectionHead}><div><span className={styles.label}>TODAY'S SPEAKING MISSION{date ? ` · ${date}` : ""}</span><h3 id="today-mission">Your next confident conversation starts here</h3></div><span className={styles.pill}>{completed ? "Completed today" : `${mission.duration} minute mission`}</span></div>
+      <div className={styles.sectionHead}><div><span className={styles.label}>TODAY&apos;S SPEAKING MISSION{date ? ` · ${date}` : ""}</span><h3 id="today-mission">Your next confident conversation starts here</h3></div><span className={styles.pill}>{completed ? "Completed today" : `${mission.duration} minute mission`}</span></div>
       <span className={styles.label}>{mission.category.toUpperCase()} · FOCUS: {mission.focus.toUpperCase()}</span>
       <h2 className={styles.missionTitle}>{mission.title}</h2><p className={styles.description}>{mission.description}</p>
       <div className={styles.plan}>
@@ -117,7 +120,7 @@ export function DailySpeakingMissions() {
       <p className={styles.description}><strong>Stretch goal:</strong> {mission.stretch}</p>
       <div className={styles.controls}>
         <button className={styles.primary} type="button" onClick={() => { setElapsed(true); if (typeof window !== "undefined" && "speechSynthesis" in window) { window.speechSynthesis.cancel(); } }} disabled={completed}>I practised this aloud <span aria-hidden="true">→</span></button>
-        {elapsed && !completed && <span className={styles.pill} role="status">Nice work. Add a reflection to lock in today's win.</span>}
+        {elapsed && !completed && <span className={styles.pill} role="status">Nice work. Add a reflection to lock in today&apos;s win.</span>}
       </div>
       {elapsed && !completed && <div className={styles.controls}><label className={styles.field}>What felt easier, or what will you improve next time? <textarea value={reflection} maxLength={500} onChange={(event) => setReflection(event.target.value)} placeholder="e.g. I explained the idea clearly, but I want to slow down…" /></label><button className={styles.primary} type="button" onClick={completeMission}>Complete mission</button></div>}
       {completed && <p className={styles.feedback} role="status">Mission complete. Consistency matters more than perfection—come back tomorrow for your next challenge.</p>}
@@ -127,7 +130,7 @@ export function DailySpeakingMissions() {
 
     <section className={styles.card}>
       <div className={styles.sectionHead}><div><span className={styles.label}>YOUR PRACTICE HISTORY</span><h3>Small wins add up</h3></div><span className={styles.pill}>{history.length}/60 saved</span></div>
-      {history.length === 0 ? <p className={styles.empty}>Your completed missions will appear here. Try today's prompt and save a short reflection to begin your history.</p> : <div className={styles.history}>{[...history].reverse().slice(0, 7).map((item) => <div className={styles.historyRow} key={item.date}><span className={styles.historyIcon} aria-hidden="true">✓</span><div><strong>{item.title}</strong><span>{item.date}{item.reflection ? ` · “${item.reflection}”` : " · Practised aloud"}</span></div></div>)}</div>}
+      {history.length === 0 ? <p className={styles.empty}>Your completed missions will appear here. Try today&apos;s prompt and save a short reflection to begin your history.</p> : <div className={styles.history}>{[...history].reverse().slice(0, 7).map((item) => <div className={styles.historyRow} key={item.date}><span className={styles.historyIcon} aria-hidden="true">✓</span><div><strong>{item.title}</strong><span>{item.date}{item.reflection ? ` · “${item.reflection}”` : " · Practised aloud"}</span></div></div>)}</div>}
     </section>
   </div>;
 }
