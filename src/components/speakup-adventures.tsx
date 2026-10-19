@@ -105,7 +105,7 @@ export function SpeakUpAdventures() {
   }, []);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    endRef.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
 
   function persist(next: SavedProgress) {
