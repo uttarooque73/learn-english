@@ -117,7 +117,7 @@ export async function generateLearningActivity(
   ].join("\n");
   const generated = await provider.generateJson(prompt, isGeneratedLearningActivity, 60_000);
   if (generated.items.length !== input.quantity) {
-    throw new Error("The model did not generate the requested number of items. Please retry.");
+    throw new Error("The model returned a different item count. Please retry.");
   }
   return {
     activityType: input.activityType,
