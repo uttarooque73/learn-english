@@ -28,7 +28,7 @@ describe("ConversationCoach", () => {
     const synthesis = {
       cancel: vi.fn(),
       speak: vi.fn((utterance: SpeechSynthesisUtterance) => spoken.push(utterance)),
-      getVoices: vi.fn(() => []),
+      getVoices: vi.fn(() => [{ name: "Test English voice", lang: "en-US", voiceURI: "test-en-US" } as SpeechSynthesisVoice]),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     };
