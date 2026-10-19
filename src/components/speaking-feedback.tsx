@@ -63,7 +63,7 @@ export function SpeakingFeedback() {
     </section>
 
     {assessment && <section className={styles.card} aria-live="polite">
-      <div className={styles.head}><div><span className={styles.label}>YOUR COACH'S REVIEW</span><h3>Progress, not perfection</h3></div><span className={styles.label}>{assessment.metrics.wordCount} WORDS</span></div>
+      <div className={styles.head}><div><span className={styles.label}>YOUR COACH&apos;S REVIEW</span><h3>Progress, not perfection</h3></div><span className={styles.label}>{assessment.metrics.wordCount} WORDS</span></div>
       <p className={styles.summary}>{assessment.feedback.summary}</p>
       <div className={styles.metrics}>{labels.map(({ key, label }) => { const item = assessment.feedback.categories[key]; return <div className={styles.metric} key={key}><div className={styles.metricTop}><span>{label}</span><strong>{item.score}</strong></div><div className={styles.track} aria-label={`${label} score ${item.score} out of 100`}><div className={styles.bar} style={{ width: `${item.score}%` }} /></div><p>{item.feedback}</p></div>; })}</div>
       <div className={styles.columns}><div><h4 className={styles.listTitle}>What you did well</h4><ul className={styles.list}>{assessment.feedback.strengths.map((item, index) => <li key={index}>{item}</li>)}</ul></div><div><h4 className={styles.listTitle}>Try this next</h4><ul className={styles.list}>{assessment.feedback.improvements.map((item, index) => <li key={index}>{item}</li>)}</ul></div></div>
