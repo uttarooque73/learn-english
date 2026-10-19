@@ -32,6 +32,7 @@ export function ChallengeSimulator() {
   const words = answer.trim() ? answer.trim().split(/\s+/).length : 0;
   const score = Math.max(0, Math.min(100, Math.round(Math.min(words, 45) * 1.1 + (answer.match(/[.!?]/g)?.length ?? 0) * 3 + (answer.match(/\b(because|for example|therefore|however|first|next|result|impact|suggest|understand)\b/gi)?.length ?? 0) * 4)));
   const earnedBadge = score >= 75 ? "Clear Communicator" : "Challenge Starter";
+  const adaptivePrompt = difficulty === "stretch" ? challenge.prompt + " Add one concrete example and anticipate a likely follow-up question." : difficulty === "warm-up" ? challenge.prompt + " Keep your answer to 2–4 short, clear sentences." : challenge.prompt;
 
   useEffect(() => {
     try {
@@ -108,7 +109,7 @@ export function ChallengeSimulator() {
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ learnerMessage: answer.trim(), assistantMessage: "Real-world challenge: " + challenge.title + ". Situation: " + challenge.prompt + ". Communication goal: " + challenge.goal + ". Give feedback on the learner's English response." }),
+        body: JSON.stringify({ learnerMessage: answer.trim(), assistantMessage: "Real-world challenge: " + challenge.title + ". Situation: " + adaptivePrompt + ". Communication goal: " + challenge.goal + ". Give feedback on the learner's English response." }),
       });
       const result = await response.json() as Feedback & { error?: string };
       if (!response.ok) throw new Error(result.error || "AI feedback is temporarily unavailable.");
@@ -166,7 +167,7 @@ export function ChallengeSimulator() {
         </div>
         <div className={styles.progressTrack}><span style={{ width: Math.min(100, ((challenge.seconds - remaining) / challenge.seconds) * 100) + "%" }} /></div>
         <div className={styles.scenario}>
-          <span className={styles.sceneLabel}>THE SITUATION</span><p>{challenge.prompt}</p>
+          <span className={styles.sceneLabel}>THE SITUATION · {difficulty.toUpperCase().replace("-", " ")}</span><p>{adaptivePrompt}</p>
           <div className={styles.goal}><strong>Your communication goal</strong><span>{challenge.goal}</span></div>
         </div>
         <label className={styles.answerLabel} htmlFor="challenge-answer">YOUR RESPONSE <span>{words} words</span></label>
