@@ -168,7 +168,7 @@ export function buildLearningHistory(
       id: "vocabulary:" + row.id,
       kind: "vocabulary",
       title: "Vocabulary review",
-      description: "Reviewed “" + row.vocabularyRef.slice(0, 120) + "” and recorded recall.",
+      description: /^[0-9a-f-]{30,}$/i.test(row.vocabularyRef) ? "Reviewed a saved vocabulary item and recorded recall." : "Reviewed “" + row.vocabularyRef.slice(0, 120) + "” and recorded recall.",
       occurredAt: row.createdAt,
       href: "/smart-vocabulary-revision",
       details: [

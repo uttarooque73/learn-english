@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { LearningHistoryItem, LearningHistoryKind } from "@/lib/learning-history";
 
 type HistoryResponse = { items?: LearningHistoryItem[]; error?: string };
@@ -121,30 +122,30 @@ export function LearningHistory() {
   );
 }
 
-const heroStyle: React.CSSProperties = { background: "linear-gradient(125deg, #173e36, #2c6555)", color: "#fff", borderRadius: 18, padding: "clamp(22px, 4vw, 32px)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" };
-const heroLinkStyle: React.CSSProperties = { background: "#f2ce7b", color: "#173e36", textDecoration: "none", padding: "12px 15px", borderRadius: 10, fontWeight: 800, fontSize: 13, whiteSpace: "nowrap" };
-const summaryGridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12 };
-const summaryCardStyle: React.CSSProperties = { display: "grid", gap: 8, border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: 18 };
-const smallLabelStyle: React.CSSProperties = { fontSize: 10, letterSpacing: ".12em", fontWeight: 800, color: "var(--muted, #68716d)" };
-const metricStyle: React.CSSProperties = { fontSize: 27, letterSpacing: "-.04em" };
-const mutedStyle: React.CSSProperties = { fontSize: 12, color: "var(--muted, #68716d)" };
-const filtersCardStyle: React.CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: 18 };
-const filtersGridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 };
-const labelStyle: React.CSSProperties = { display: "grid", gap: 7, fontSize: 13, fontWeight: 700 };
-const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid var(--line, #d8ded9)", borderRadius: 9, padding: "11px 12px", background: "var(--surface, #fff)", color: "inherit", fontSize: 14 };
-const filterFooterStyle: React.CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 14, flexWrap: "wrap" };
-const resetButtonStyle: React.CSSProperties = { border: "1px solid var(--line, #d8ded9)", borderRadius: 8, background: "transparent", padding: "7px 10px", cursor: "pointer", fontSize: 12 };
-const emptyStyle: React.CSSProperties = { textAlign: "center", border: "1px dashed var(--line, #d8ded9)", borderRadius: 15, padding: 36 };
-const entryStyle: React.CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: "clamp(14px, 2.5vw, 20px)" };
-const entryTopStyle: React.CSSProperties = { display: "flex", alignItems: "flex-start", gap: 13 };
-const kindIconStyle: React.CSSProperties = { width: 42, height: 42, borderRadius: 12, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 19 };
-const titleRowStyle: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" };
-const kindBadgeStyle: React.CSSProperties = { borderRadius: 999, padding: "4px 7px", fontSize: 10, textTransform: "capitalize", fontWeight: 800 };
-const metaRowStyle: React.CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", fontSize: 11, color: "var(--muted, #68716d)" };
-const expandButtonStyle: React.CSSProperties = { width: 32, height: 32, flexShrink: 0, border: "1px solid var(--line, #d8ded9)", borderRadius: 9, background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18 };
-const detailsStyle: React.CSSProperties = { borderTop: "1px solid var(--line, #d8ded9)", marginTop: 16, paddingTop: 16, paddingLeft: 55 };
-const continueLinkStyle: React.CSSProperties = { display: "inline-block", marginTop: 12, color: "#34765f", fontSize: 13, fontWeight: 750, textDecoration: "none" };
-const loadMoreStyle: React.CSSProperties = { border: "1px solid var(--line, #d8ded9)", borderRadius: 10, padding: 12, background: "var(--surface, #fff)", cursor: "pointer", color: "inherit", fontWeight: 700 };
-const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 10, padding: "11px 14px", background: "#245b4e", color: "#fff", fontWeight: 750, cursor: "pointer" };
+const heroStyle: CSSProperties = { background: "linear-gradient(125deg, #173e36, #2c6555)", color: "#fff", borderRadius: 18, padding: "clamp(22px, 4vw, 32px)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, flexWrap: "wrap" };
+const heroLinkStyle: CSSProperties = { background: "#f2ce7b", color: "#173e36", textDecoration: "none", padding: "12px 15px", borderRadius: 10, fontWeight: 800, fontSize: 13, whiteSpace: "nowrap" };
+const summaryGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(155px, 1fr))", gap: 12 };
+const summaryCardStyle: CSSProperties = { display: "grid", gap: 8, border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: 18 };
+const smallLabelStyle: CSSProperties = { fontSize: 10, letterSpacing: ".12em", fontWeight: 800, color: "var(--muted, #68716d)" };
+const metricStyle: CSSProperties = { fontSize: 27, letterSpacing: "-.04em" };
+const mutedStyle: CSSProperties = { fontSize: 12, color: "var(--muted, #68716d)" };
+const filtersCardStyle: CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: 18 };
+const filtersGridStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 };
+const labelStyle: CSSProperties = { display: "grid", gap: 7, fontSize: 13, fontWeight: 700 };
+const inputStyle: CSSProperties = { width: "100%", boxSizing: "border-box", border: "1px solid var(--line, #d8ded9)", borderRadius: 9, padding: "11px 12px", background: "var(--surface, #fff)", color: "inherit", fontSize: 14 };
+const filterFooterStyle: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 14, flexWrap: "wrap" };
+const resetButtonStyle: CSSProperties = { border: "1px solid var(--line, #d8ded9)", borderRadius: 8, background: "transparent", padding: "7px 10px", cursor: "pointer", fontSize: 12 };
+const emptyStyle: CSSProperties = { textAlign: "center", border: "1px dashed var(--line, #d8ded9)", borderRadius: 15, padding: 36 };
+const entryStyle: CSSProperties = { border: "1px solid var(--line, #d8ded9)", background: "var(--surface, #fff)", borderRadius: 14, padding: "clamp(14px, 2.5vw, 20px)" };
+const entryTopStyle: CSSProperties = { display: "flex", alignItems: "flex-start", gap: 13 };
+const kindIconStyle: CSSProperties = { width: 42, height: 42, borderRadius: 12, flexShrink: 0, display: "grid", placeItems: "center", fontSize: 19 };
+const titleRowStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" };
+const kindBadgeStyle: CSSProperties = { borderRadius: 999, padding: "4px 7px", fontSize: 10, textTransform: "capitalize", fontWeight: 800 };
+const metaRowStyle: CSSProperties = { display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", fontSize: 11, color: "var(--muted, #68716d)" };
+const expandButtonStyle: CSSProperties = { width: 32, height: 32, flexShrink: 0, border: "1px solid var(--line, #d8ded9)", borderRadius: 9, background: "transparent", color: "inherit", cursor: "pointer", fontSize: 18 };
+const detailsStyle: CSSProperties = { borderTop: "1px solid var(--line, #d8ded9)", marginTop: 16, paddingTop: 16, paddingLeft: 55 };
+const continueLinkStyle: CSSProperties = { display: "inline-block", marginTop: 12, color: "#34765f", fontSize: 13, fontWeight: 750, textDecoration: "none" };
+const loadMoreStyle: CSSProperties = { border: "1px solid var(--line, #d8ded9)", borderRadius: 10, padding: 12, background: "var(--surface, #fff)", cursor: "pointer", color: "inherit", fontWeight: 700 };
+const buttonStyle: CSSProperties = { border: 0, borderRadius: 10, padding: "11px 14px", background: "#245b4e", color: "#fff", fontWeight: 750, cursor: "pointer" };
 const kindIcon: Record<LearningHistoryKind, string> = { practice: "◷", assessment: "✦", vocabulary: "Aa" };
 const kindBackground: Record<LearningHistoryKind, string> = { practice: "#fbe8d9", assessment: "#ece6fb", vocabulary: "#e1f1e8" };

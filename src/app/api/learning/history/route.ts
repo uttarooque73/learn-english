@@ -13,8 +13,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ensurePersistenceSchema();
     const database = getDatabase();
     const practices = database.prepare(`
-      SELECT id, activity_type AS activityType, activity_ref AS activityRef,
-        result_json AS resultJson, response_json AS responseJson,
+      SELECT id, activity_type AS activityType, result_json AS resultJson,
         duration_seconds AS durationSeconds, created_at AS createdAt, completed_at AS completedAt
       FROM practice_attempts
       WHERE owner_id = ? AND completed_at IS NOT NULL
