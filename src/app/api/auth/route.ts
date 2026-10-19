@@ -133,8 +133,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
     return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
   }
-  if (password.length < 10 || password.length > 128) {
-    return NextResponse.json({ error: "Password must be between 10 and 128 characters." }, { status: 400 });
+  if (password.length === 0 || password.length > 128 || (action === "register" && password.length < 10)) {
+    return NextResponse.json({
+      error: action === "register"
+        ? "Password must be between 10 and 128 characters."
+        : "Enter your password (maximum 128 characters).",
+    }, { status: 400 });
   }
 
   try {
