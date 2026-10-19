@@ -95,6 +95,7 @@ export function AppShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const navigationRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -104,6 +105,23 @@ export function AppShell({
       .catch(() => { if (active) { setCurrentUser(null); setAuthChecked(true); } });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!authChecked || !currentUser) return;
+    const nav = navigationRef.current;
+    const activeLink = nav?.querySelector<HTMLElement>('.nav-link.active');
+    if (!nav || !activeLink) return;
+    const navBounds = nav.getBoundingClientRect();
+    const linkBounds = activeLink.getBoundingClientRect();
+    const linkTop = nav.scrollTop + linkBounds.top - navBounds.top;
+    const centeredScrollTop = Math.max(0, linkTop - (nav.clientHeight - activeLink.offsetHeight) / 2);
+    if (typeof nav.scrollTo === "function") {
+      nav.scrollTo({ top: centeredScrollTop, behavior: "auto" });
+    } else {
+      // scrollTo is not implemented by every DOM test environment.
+      nav.scrollTop = centeredScrollTop;
+    }
+  }, [activePage, authChecked, currentUser]);
 
   return (
     <div className="app-frame">
@@ -127,7 +145,7 @@ export function AppShell({
           <span aria-hidden="true">{mobileNavOpen ? "×" : "☰"}</span>
           {mobileNavOpen ? "Close menu" : "Open menu"}
         </button>
-        <nav id="main-navigation" className={`main-nav ${mobileNavOpen ? "mobile-nav-open" : ""}`} aria-label="Main navigation">
+        <nav ref={navigationRef} id="main-navigation" className={`main-nav ${mobileNavOpen ? "mobile-nav-open" : ""}`} aria-label="Main navigation">
           {authChecked && currentUser && navigation.map((item) => (
             <Link
               key={item.key}
