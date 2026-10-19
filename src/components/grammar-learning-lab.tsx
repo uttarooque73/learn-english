@@ -22,7 +22,7 @@ const KEY="speakup:grammar-lab:progress:v1";
 function readProgress():P{try{const v=JSON.parse(localStorage.getItem(KEY)||"null");if(v&&typeof v==="object")return{done:Array.isArray(v.done)?v.done.filter((x:string)=>lessons.some(l=>l.id===x)):[],scores:v.scores&&typeof v.scores==="object"?v.scores:{},attempts:Number.isFinite(v.attempts)?Math.max(0,v.attempts):0};}catch{}return{done:[],scores:{},attempts:0};}
 export function GrammarLearningLab(){
 const [progress,setProgress]=useState<P>({done:[],scores:{},attempts:0}),[id,setId]=useState("nouns"),[answers,setAnswers]=useState<Record<number,number>>({}),[checked,setChecked]=useState(false),[level,setLevel]=useState("All levels");
-useEffect(()=>{setProgress(readProgress());return()=>stopSpeaking();},[]);
+useEffect(()=>{queueMicrotask(()=>setProgress(readProgress()));return()=>stopSpeaking();},[]);
 useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify(progress));}catch{}},[progress]);
 const lesson=lessons.find(l=>l.id===id)||lessons[0], list=lessons.filter(l=>level==="All levels"||l.level===level), score=lesson.qs.filter((q,i)=>answers[i]===q.answer).length;
 function selectLesson(next:string){stopSpeaking();setId(next);setAnswers({});setChecked(false);}
