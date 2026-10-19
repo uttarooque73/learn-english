@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { ListenPageControl } from "@/components/listen-button";
 
-type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary";
+type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions";
 
 const navigation: { key: PageKey; label: string; href: string; icon: string }[] = [
   { key: "home", label: "Overview", href: "/", icon: "⌂" },
@@ -17,6 +17,7 @@ const navigation: { key: PageKey; label: string; href: string; icon: string }[] 
   { key: "live-speaking-roleplay", label: "Live Speaking Roleplay", href: "/live-speaking-roleplay", icon: "🎙" },
   { key: "listening-lab", label: "Listening Comprehension Lab", href: "/listening-lab", icon: "♫" },
   { key: "adaptive-vocabulary", label: "Vocabulary in Context", href: "/adaptive-vocabulary", icon: "Aa" },
+  { key: "daily-speaking-missions", label: "Daily Speaking Missions", href: "/daily-speaking-missions", icon: "🎯" },
   { key: "mistake-micro-lessons", label: "Mistake Micro-Lessons", href: "/mistake-micro-lessons", icon: "✎" },
   { key: "sentence-improver", label: "Smart Grammar Improver", href: "/sentence-improver", icon: "Aa" },
   { key: "practice", label: "Practice room", href: "/practice", icon: "◉" },
