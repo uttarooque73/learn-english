@@ -3,6 +3,7 @@ import "./globals.css";
 import { PreferenceInitializer } from "@/components/preference-initializer";
 import { VocabularySelectionTool } from "@/components/vocabulary-selection-tool";
 import { FloatingEnglishPartner } from "@/components/floating-english-partner";
+import { GlobalLearningControls } from "@/components/listen-button";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body><PreferenceInitializer /><VocabularySelectionTool />{children}<FloatingEnglishPartner /></body>
+      <body><PreferenceInitializer /><VocabularySelectionTool />{children}<GlobalLearningControls /><FloatingEnglishPartner /></body>
     </html>
   );
 }

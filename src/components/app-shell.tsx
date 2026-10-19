@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { ListenPageControl } from "@/components/listen-button";
 import { AuthStatus } from "@/components/auth-status";
 
 type PageKey = "home" | "dashboard" | "practice" | "word-practice" | "custom-scenarios" | "conversation-coach" | "vocabulary" | "daily-vocabulary" | "progress" | "fluency" | "shadowing" | "pronunciation-coach" | "ai-and-us" | "settings" | "account" | "achievements" | "activity-calendar" | "history" | "learning-plan" | "mistake-micro-lessons" | "english-quest" | "sentence-improver" | "challenge-simulator" | "speakup-adventures" | "smart-vocabulary-revision" | "ai-tutor" | "assessment" | "weekly-report" | "live-speaking-roleplay" | "listening-lab" | "adaptive-vocabulary" | "daily-speaking-missions" | "speaking-feedback" | "weakness-to-lessons";
@@ -121,7 +120,6 @@ export function AppShell({
             <div><p className="eyebrow">YOUR ENGLISH JOURNEY</p><h1>{title}</h1><p className="page-subtitle">{subtitle}</p></div>
             <div className="heading-date"><span className="date-icon">◷</span><span>One step at a time</span></div>
           </div>
-          <ListenPageControl />
           {children}
           <footer className="page-footer"><span>SpeakUp AI</span><span>Practice at your own pace. Progress over perfection.</span></footer>
         </div>
