@@ -32,6 +32,7 @@ export function LearningHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -41,14 +42,14 @@ export function LearningHistory() {
         if (!response.ok) throw new Error(data.error || "Could not load learning history.");
         return data;
       })
-      .then((data) => { if (active) setItems(data.items ?? []); })
+      .then((data) => { if (active) { setItems(data.items ?? []); setNow(Date.now()); } })
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Could not load learning history."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [refreshKey]);
 
   const filtered = useMemo(() => {
-    const cutoff = time === "all" ? 0 : Date.now() - Number(time) * 24 * 60 * 60 * 1000;
+    const cutoff = time === "all" ? 0 : now - Number(time) * 24 * 60 * 60 * 1000;
     const needle = query.trim().toLocaleLowerCase();
     return items.filter((item) => {
       if (kind !== "all" && item.kind !== kind) return false;
@@ -56,7 +57,7 @@ export function LearningHistory() {
       if (needle && ![item.title, item.description, ...item.details].join(" ").toLocaleLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [items, kind, time, query]);
+  }, [items, kind, time, query, now]);
 
   const counts = useMemo(() => ({
     practice: items.filter((item) => item.kind === "practice").length,
