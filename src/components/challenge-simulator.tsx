@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./challenge-simulator.module.css";
 
 const CHALLENGES = [
@@ -32,6 +32,7 @@ export function ChallengeSimulator() {
   const words = answer.trim() ? answer.trim().split(/\s+/).length : 0;
   const score = Math.max(0, Math.min(100, Math.round(Math.min(words, 45) * 1.1 + (answer.match(/[.!?]/g)?.length ?? 0) * 3 + (answer.match(/\b(because|for example|therefore|however|first|next|result|impact|suggest|understand)\b/gi)?.length ?? 0) * 4)));
   const earnedBadge = score >= 75 ? "Clear Communicator" : "Challenge Starter";
+  const submitRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     try {
@@ -54,20 +55,13 @@ export function ChallengeSimulator() {
       if (value <= 1) {
         window.clearInterval(timer);
         setRunning(false);
+        submitRef.current();
         return 0;
       }
       return value - 1;
     }), 1000);
     return () => window.clearInterval(timer);
   }, [running, submitted]);
-
-  useEffect(() => {
-    if (remaining === 0 && running) {
-      setRunning(false);
-      void submitAnswer(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remaining, running]);
 
   function persist(next: SavedProgress) {
     setProgress(next);
@@ -127,6 +121,8 @@ export function ChallengeSimulator() {
       setLoadingFeedback(false);
     }
   }
+
+  submitRef.current = () => { void submitAnswer(true); };
 
   function replayImproved() {
     if (feedback?.correctedSentence) setAnswer(feedback.correctedSentence);
