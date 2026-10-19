@@ -75,8 +75,10 @@ function suggestions(value: unknown): string[] {
 function corrections(value: unknown): Correction[] {
   if (!Array.isArray(value)) return [];
   return value.filter((x): x is Correction => !!x && typeof x === "object"
-    && typeof x.original === "string" && typeof x.improved === "string" && typeof x.reason === "string")
-    .slice(0, 3).map(x => ({ original: x.original.slice(0, 500), improved: x.improved.slice(0, 500), reason: x.reason.slice(0, 400) }));
+    && typeof x.original === "string" && !!x.original.trim()
+    && typeof x.improved === "string" && !!x.improved.trim()
+    && typeof x.reason === "string" && !!x.reason.trim())
+    .slice(0, 3).map(x => ({ original: x.original.trim().slice(0, 500), improved: x.improved.trim().slice(0, 500), reason: x.reason.trim().slice(0, 400) }));
 }
 function vocabulary(value: unknown): VocabularyItem[] {
   if (!Array.isArray(value)) return [];
