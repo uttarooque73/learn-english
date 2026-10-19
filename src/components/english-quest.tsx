@@ -60,7 +60,7 @@ export function EnglishQuest() {
 
   const quest = useMemo(() => QUESTS.find((item) => item.id === questId) ?? QUESTS[0], [questId]);
   const round: Round = quest.rounds[roundIndex];
-  const words = useMemo(() => answer.toLowerCase().match(/[a-z']+/g) ?? [], [answer]);
+  const words = useMemo<string[]>(() => answer.toLowerCase().match(/[a-z']+/g) ?? [], [answer]);
   const usedKeywords = (round.words as readonly string[]).filter((word) => words.includes(word));
   const wordCount = words.length;
   const earnedPoints = Math.min(100, Math.min(50, wordCount * 2) + usedKeywords.length * 10 + (wordCount >= 25 ? 10 : 0));
