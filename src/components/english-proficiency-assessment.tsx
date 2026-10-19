@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import styles from "./english-proficiency-assessment.module.css";
+import { submitLearningEvidence } from "@/lib/learning-evidence-client";
 
 type Question = { id: number; skill: "Grammar" | "Vocabulary" | "Reading"; prompt: string; options: string[]; answer: number; explanation: string };
 type Answer = { questionId: number; selected: number };
@@ -89,7 +90,26 @@ export function EnglishProficiencyAssessment() {
         setFeedback(result);
       }
       result += decoder.decode();
-      setFeedback(result.trim() || "Your score is ready. Review the skill breakdown and begin with the recommended practice.");
+      const finalFeedback = result.trim() || "Your score is ready. Review the skill breakdown and begin with the recommended practice.";
+      setFeedback(finalFeedback);
+
+      // Persist objective assessment scores through the existing, owner-scoped evidence pipeline.
+      // Reading remains visible in this assessment but is not mapped to a different skill.
+      const assessmentEvidence = skillScores
+        .filter((item) => item.skill === "Grammar" || item.skill === "Vocabulary")
+        .map((item) => submitLearningEvidence({
+          source: item.skill === "Vocabulary" ? "vocabulary" : "micro_lesson",
+          activityType: item.skill.toLowerCase() as "grammar" | "vocabulary",
+          activityRef: `english-proficiency-assessment:${item.skill.toLowerCase()}`,
+          skillKey: item.skill.toLowerCase(),
+          responseText: `Assessment score: ${item.percent}%. Correct: ${item.correct}/${item.total}. Overall level: ${assessment.level}.`,
+          durationSeconds: 0,
+          idempotencyKey: crypto.randomUUID(),
+          score: item.percent / 100,
+          confidence: 0.6,
+          feedback: finalFeedback.slice(0, 1200),
+        }));
+      await Promise.allSettled(assessmentEvidence);
       setPhase("results");
     } catch (cause) {
       setFeedbackError(cause instanceof Error ? cause.message : "Could not generate your report. Please try again.");
