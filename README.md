@@ -13,6 +13,7 @@ An English-speaking practice app built with Next.js, React, and TypeScript. Prac
 - **Progress:** session summaries, practice streaks, activity metrics, and micro-lessons based on recurring corrections.
 - **Personalization:** learning preferences, custom practice options, speaking speed, and accessible display settings.
 - **Persistence:** SQLite-backed learning data with browser localStorage as a client cache.
+- **Data portability:** signed-in learners can download an owner-scoped JSON export of saved learning records from Account & Security; authentication secrets are excluded.
 
 ## Requirements
 
