@@ -48,7 +48,7 @@ function buildRecommendations(progress: Progress): Lesson[] {
         : "No direct skill score yet";
     const score = skill?.mastery;
     return { ...LESSONS[key], score, evidence, priority: (score === undefined ? 50 : 100 - score) + mistakeCount * 4 + (key === "speaking" && progress.recentAttempts.some((item) => item.activityType.toLowerCase().includes("speaking")) ? 3 : 0) };
-  }).sort((a, b) => b.priority - a.priority).map(({ priority: _priority, ...lesson }) => lesson);
+  }).sort((a, b) => b.priority - a.priority).map((lesson) => ({ key: lesson.key, title: lesson.title, reason: lesson.reason, action: lesson.action, href: lesson.href, icon: lesson.icon, score: lesson.score, evidence: lesson.evidence }));
 }
 
 export function WeaknessToLessonRecommendations() {
@@ -87,7 +87,7 @@ export function WeaknessToLessonRecommendations() {
         <div><p className={styles.eyebrow}>EVIDENCE-LED PRACTICE</p><h2>A plan built around your learning gaps</h2><p>Recommendations are ranked from saved skill mastery and recurring mistakes. As you complete more assessments, this list can become more specific.</p></div>
         <div className={styles.stat}><strong>{progress?.skills.length ?? 0}</strong><span>saved skill scores</span></div>
       </section>
-      {!hasEvidence && <section className={styles.empty}><span aria-hidden="true">✦</span><div><h3>Your learning picture is just getting started</h3><p>There isn't enough saved assessment evidence to identify a personal weakness yet. Start with an assessment or complete a practice activity; we won't invent scores or pretend a generic suggestion is a measured weakness.</p><Link className="button button-primary" href="/assessment">Take English assessment</Link></div></section>}
+      {!hasEvidence && <section className={styles.empty}><span aria-hidden="true">✦</span><div><h3>Your learning picture is just getting started</h3><p>There isn&apos;t enough saved assessment evidence to identify a personal weakness yet. Start with an assessment or complete a practice activity; we won&apos;t invent scores or pretend a generic suggestion is a measured weakness.</p><Link className="button button-primary" href="/assessment">Take English assessment</Link></div></section>}
       <div className={styles.grid}>
         {lessons.map((lesson, index) => (
           <article className={styles.card} key={lesson.key}>
