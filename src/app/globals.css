@@ -1236,3 +1236,13 @@ html.speakup-reduced-motion *,html.speakup-reduced-motion *::before,html.speakup
 .sprint-score>p{margin:14px 0 0;color:#818779;font-size:9px;line-height:1.6}
 @media(max-width:760px){.speaking-sprint{grid-template-columns:1fr}.sprint-score{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:10px;padding:15px 20px;border-left:0;border-top:1px solid #e5e8dd}.sprint-trophy{grid-row:span 2;margin:0}.sprint-score-label{grid-column:2}.sprint-score>strong{grid-column:3;grid-row:1/3;margin:0}.sprint-score-caption{grid-column:2}.sprint-xp{grid-column:1/-1;margin-top:12px;padding-top:10px}.sprint-score>p{display:none}}
 @media(max-width:520px){.sprint-main{padding:20px 17px 17px}.sprint-heading-row{align-items:flex-start}.sprint-heading-row h2{font-size:20px}.sprint-timer{min-width:78px;padding:8px}.sprint-timer strong{font-size:19px}.sprint-prompt{padding:13px}.sprint-actions{gap:8px}}
+
+/* Speaking sprint topic filters and saved prompts */
+.sprint-tools{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin:16px 0 0}
+.sprint-filter{display:grid;gap:6px;color:#85877d;font-size:9px;font-weight:700;letter-spacing:.3px}
+.sprint-filter select{max-width:100%;min-width:180px;min-height:34px;padding:0 10px;border:1px solid #e2e6dc;border-radius:8px;background:#fff;color:#475643;font-size:10px;font-weight:600}
+.sprint-favorite{min-height:34px;padding:0 11px;border:1px solid #e2e6dc;border-radius:8px;background:#fff;color:#63735a;font-size:10px;font-weight:700;cursor:pointer}
+.sprint-favorite:hover,.sprint-favorite.is-favorite{border-color:#d9e4c9;background:#f0f4e9;color:#405b36}
+.sprint-favorite-count{align-self:stretch;display:flex;align-items:center;justify-content:center;margin-top:12px;padding-top:12px;border-top:1px solid #dfe5d7;color:#78896b;font-size:10px;font-weight:700}
+.sprint-actions button:disabled{cursor:not-allowed;opacity:.6}
+@media(max-width:520px){.sprint-tools{align-items:stretch}.sprint-filter{flex:1}.sprint-filter select{width:100%;min-width:0}.sprint-favorite{align-self:flex-end}}
