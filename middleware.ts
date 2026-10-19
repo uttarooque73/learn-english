@@ -11,7 +11,6 @@ async function hasValidSession(token: string | undefined): Promise<boolean> {
   try {
     const [payload, signature, extra] = token.split(".");
     if (!payload || !signature || extra) return false;
-
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       "raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"],
@@ -19,8 +18,7 @@ async function hasValidSession(token: string | undefined): Promise<boolean> {
     const normalizedSignature = signature.replace(/-/g, "+").replace(/_/g, "/")
       .padEnd(Math.ceil(signature.length / 4) * 4, "=");
     const signatureBytes = Uint8Array.from(atob(normalizedSignature), (char) => char.charCodeAt(0));
-    const valid = await crypto.subtle.verify("HMAC", key, signatureBytes, encoder.encode(payload));
-    if (!valid) return false;
+    if (!await crypto.subtle.verify("HMAC", key, signatureBytes, encoder.encode(payload))) return false;
 
     const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/")
       .padEnd(Math.ceil(payload.length / 4) * 4, "=");
