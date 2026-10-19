@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { AuthStatus } from "@/components/auth-status";
+import { DynamicLearningStudio } from "@/components/dynamic-learning-studio";
 
 type CurrentUser = { displayName: string; email: string };
 
@@ -169,6 +170,7 @@ export function AppShell({
             <div className="heading-date"><span className="date-icon">◷</span><span>One step at a time</span></div>
           </div>
           {children}
+          {authChecked && currentUser && <DynamicLearningStudio />}
           <footer className="page-footer"><span>SpeakUp AI</span><span>Practice at your own pace. Progress over perfection.</span></footer>
         </div>
       </main>
