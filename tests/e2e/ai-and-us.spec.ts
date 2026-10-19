@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("AI and Us provides discussion and paragraph practice tabs", async ({ page }) => {
   await page.route("**/api/chat", async (route) => {
