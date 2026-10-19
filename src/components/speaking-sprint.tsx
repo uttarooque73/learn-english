@@ -36,27 +36,22 @@ export function SpeakingSprint() {
 
   useEffect(() => {
     if (!running) return;
-    const interval = window.setInterval(() => {
-      setSecondsLeft((remaining) => {
-        if (remaining <= 1) {
-          window.clearInterval(interval);
-          setRunning(false);
-          setCompleted((previous) => {
-            const next = previous + 1;
-            try {
-              window.localStorage.setItem(COMPLETIONS_KEY, String(next));
-            } catch {
-              // Completion is still counted for this session.
-            }
-            return next;
-          });
-          return 0;
+    if (secondsLeft <= 0) {
+      setRunning(false);
+      setCompleted((previous) => {
+        const next = previous + 1;
+        try {
+          window.localStorage.setItem(COMPLETIONS_KEY, String(next));
+        } catch {
+          // Completion is still counted for this session.
         }
-        return remaining - 1;
+        return next;
       });
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [running]);
+      return;
+    }
+    const timeout = window.setTimeout(() => setSecondsLeft((remaining) => remaining - 1), 1000);
+    return () => window.clearTimeout(timeout);
+  }, [running, secondsLeft]);
 
   function chooseAnotherPrompt() {
     setRunning(false);
