@@ -14,7 +14,7 @@ vi.mock("next/server", () => ({
   },
 }));
 
-import { proxy } from "../../proxy";
+import { proxy } from "../../src/proxy";
 
 function makeRequest(path: string, session?: string) {
   const url = new URL(path, "http://localhost:3000");
