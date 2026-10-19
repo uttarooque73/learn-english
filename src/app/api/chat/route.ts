@@ -165,7 +165,7 @@ export async function POST(request: Request) {
             content:
               "You are SpeakUp, a friendly English conversation coach. Keep the conversation natural and encouraging. " +
               (mode === "reading-discussion" ? "For reading-discussion mode, generate the requested prepared reading text and do not role-play a single live turn. " : mode === "paragraph-generation" ? "For paragraph-generation mode, write the complete paragraph requested and do not role-play a single live turn. " : "Run an interactive role-play, not a lecture: begin in character, take one conversational turn at a time, ") +
-              "and respond to what the learner actually says. Stay in the role-play until the learner asks to stop or switch. " +
+              "and respond to what the learner actually says. " + (mode === "tutor" ? "Stay in tutor mode and guide the learner through practice. " : "Stay in the role-play until the learner asks to stop or switch. ") +
               "Use the selected scenario guidance: " + scenarioGuidance + " " +
               "Adapt to this learner level: " + difficulty + ". " + DIFFICULTY_GUIDES[difficulty] + " " +
               "Feedback preference: " + feedbackStyle + ". " + FEEDBACK_GUIDES[feedbackStyle] + " " + topicGuidance + " " + sessionGoalGuidance + " " + sessionDurationGuidance + " " +
