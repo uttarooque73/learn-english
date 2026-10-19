@@ -45,6 +45,17 @@ Configure these server-side environment variables in `.env.local` if needed:
 
 Keep these variables server-side; do not prefix them with `NEXT_PUBLIC_`.
 
+## Local development login
+
+Running `npm run dev` automatically seeds a development account in the configured SQLite database if it does not already exist. Open [http://localhost:3000/login](http://localhost:3000/login) and use:
+
+- Username: `umarkhan`
+- Password: `umarkhan`
+
+The seeder is idempotent: it preserves an existing account and never resets its password on restart. The username `umarkhan` maps to the local-only account email `umarkhan@speakup.local`. To customize the account, set `DEV_USER_EMAIL`, `DEV_USER_PASSWORD`, and `DEV_USER_NAME` in `.env.local`. You can also run it manually with `npm run seed:dev-user`.
+
+This convenience is for local development only. The script refuses to run when `NODE_ENV=production`; do not reuse the sample credentials in any deployed environment.
+
 ## Data and privacy notes
 
 - The app creates its SQLite schema on first use. The database directory must be writable and stored on persistent disk.
