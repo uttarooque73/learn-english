@@ -4,6 +4,7 @@ import { DailyGoalCard } from "@/components/daily-goal-card";
 import { AdaptiveProgress } from "@/components/adaptive-progress";
 import { NextLessonRecommendation } from "@/components/next-lesson-recommendation";
 import { MistakeMicroLessons } from "@/components/mistake-micro-lessons";
+import { LearningSkillTrends } from "@/components/learning-skill-trends";
 
 export default function DashboardPage() {
   return (
@@ -19,6 +20,7 @@ export default function DashboardPage() {
       <section className="section-block">
         <NextLessonRecommendation />
       </section>
+      <LearningSkillTrends />
       <AdaptiveProgress />
       <MistakeMicroLessons />
     </AppShell>

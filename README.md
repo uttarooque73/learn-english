@@ -8,6 +8,7 @@ An English-speaking practice app built with Next.js, React, and TypeScript. Prac
 - **Persistent AI tutor:** conversation history is saved to SQLite per learner, restored when returning, and used as context for follow-up tutoring turns. Learners can switch between recent saved sessions.
 - **Speaking practice:** browser speech input and playback, plus shadowing exercises.
 - **Feedback:** grammar corrections, natural phrasing suggestions, simpler explanations, and adaptive follow-up questions.
+- **Learning insights:** evidence-based skill trends, eight-week score history, recent-vs-previous period comparisons, and recurring-mistake focus areas.
 - **Vocabulary:** searchable notebook, AI-assisted definitions, flashcards, quizzes, and spaced repetition.
 - **Progress:** session summaries, practice streaks, activity metrics, and micro-lessons based on recurring corrections.
 - **Personalization:** learning preferences, custom practice options, speaking speed, and accessible display settings.
