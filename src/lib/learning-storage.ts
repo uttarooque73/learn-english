@@ -11,6 +11,10 @@ export type SavedVocabulary = {
   lastReviewedAt?: string;
   nextReviewAt?: string;
   reviewCount?: number;
+  /** Short learner utterances that provide real conversation context for this item. */
+  sourceExamples?: string[];
+  sourceScenario?: string;
+  sourceSessionId?: string;
 };
 
 export type VocabularyStatus = "learning" | "familiar" | "mastered";
@@ -72,8 +76,28 @@ export function saveVocabulary(item: Omit<SavedVocabulary, "id" | "savedAt">): S
   const items = getVocabulary();
   const normalized = item.phrase.trim().toLocaleLowerCase();
   const existing = items.find((entry) => entry.phrase.trim().toLocaleLowerCase() === normalized);
-  if (existing) return existing;
-  const saved: SavedVocabulary = { ...item, status: "learning", id: createId(), savedAt: new Date().toISOString() };
+  if (existing) {
+    const incomingExamples = (item.sourceExamples ?? []).map((example) => example.trim().slice(0, 500)).filter(Boolean);
+    const sourceExamples = [...new Set([...(existing.sourceExamples ?? []), ...incomingExamples])].slice(-5);
+    const enriched: SavedVocabulary = {
+      ...existing,
+      ...(sourceExamples.length ? { sourceExamples } : {}),
+      ...(item.sourceScenario ? { sourceScenario: item.sourceScenario.slice(0, 120) } : {}),
+      ...(item.sourceSessionId ? { sourceSessionId: item.sourceSessionId.slice(0, 120) } : {}),
+    };
+    if (JSON.stringify(enriched) !== JSON.stringify(existing)) {
+      writeList(VOCABULARY_KEY, items.map((entry) => entry.id === existing.id ? enriched : entry));
+      return enriched;
+    }
+    return existing;
+  }
+  const saved: SavedVocabulary = {
+    ...item,
+    sourceExamples: item.sourceExamples?.map((example) => example.trim().slice(0, 500)).filter(Boolean).slice(-5),
+    sourceScenario: item.sourceScenario?.slice(0, 120),
+    sourceSessionId: item.sourceSessionId?.slice(0, 120),
+    status: "learning", id: createId(), savedAt: new Date().toISOString(),
+  };
   writeList(VOCABULARY_KEY, [saved, ...items]);
   return saved;
 }
