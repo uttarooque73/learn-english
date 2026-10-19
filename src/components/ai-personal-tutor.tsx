@@ -124,11 +124,44 @@ export function AiPersonalTutor() {
       }
       answer += decoder.decode();
       setMessages([...nextMessages, { role: "assistant", content: answer.trim() || "Let's try that again. Could you rephrase your request?" }]);
+      await refreshTutorHistory();
     } catch (cause) {
       setMessages(nextMessages);
       setError(cause instanceof Error ? cause.message : "Something went wrong. Please try again.");
     } finally {
       setBusy(false);
+    }
+  }
+
+
+  async function refreshTutorHistory() {
+    try {
+      const response = await fetch("/api/tutor-memory", { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = await response.json() as { conversations?: Array<{ id: string; title: string; updatedAt: string }> };
+      setConversationHistory(payload.conversations ?? []);
+    } catch {
+      // Keep the current conversation usable if refreshing the history list fails.
+    }
+  }
+
+  async function loadTutorConversation(id: string) {
+    if (busy || !id) return;
+    setError("");
+    try {
+      const response = await fetch("/api/tutor-memory?id=" + encodeURIComponent(id), { cache: "no-store" });
+      const payload = await response.json() as {
+        conversation?: { id: string; messages: Message[]; goal: string; level: string; feedbackStyle: "balanced" | "detailed" } | null;
+        error?: string;
+      };
+      if (!response.ok || !payload.conversation) throw new Error(payload.error || "That tutor session could not be loaded.");
+      setConversationId(payload.conversation.id);
+      setMessages(payload.conversation.messages);
+      if (GOALS.some((item) => item.value === payload.conversation?.goal)) setGoal(payload.conversation.goal as typeof goal);
+      if (LEVELS.includes(payload.conversation.level as typeof level)) setLevel(payload.conversation.level as typeof level);
+      setFeedback(payload.conversation.feedbackStyle);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "That tutor session could not be loaded.");
     }
   }
 
@@ -141,9 +174,10 @@ export function AiPersonalTutor() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ goal, level, feedbackStyle: feedback }),
       });
-      const payload = await response.json() as { conversation?: { id: string }; error?: string };
+      const payload = await response.json() as { conversation?: { id: string }; conversations?: Array<{ id: string; title: string; updatedAt: string }>; error?: string };
       if (!response.ok || !payload.conversation) throw new Error(payload.error || "A fresh tutor session could not be started.");
       setConversationId(payload.conversation.id);
+      setConversationHistory(payload.conversations ?? []);
       setMessages([]);
       setInput("");
     } catch (cause) {
@@ -173,7 +207,7 @@ export function AiPersonalTutor() {
       </section>
       <aside className={styles.sidebar}>
         <div className={styles.panel}><p className={styles.eyebrow}>PERSONALISE PRACTICE</p><h3>Your learning focus</h3><label htmlFor="tutor-goal">Main goal</label><select id="tutor-goal" value={goal} onChange={(event) => setGoal(event.target.value as typeof goal)}>{GOALS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select><label htmlFor="tutor-level">English level</label><select id="tutor-level" value={level} onChange={(event) => setLevel(event.target.value as typeof level)}>{LEVELS.map((item) => <option key={item} value={item}>{item}</option>)}</select><label htmlFor="tutor-feedback">Feedback style</label><select id="tutor-feedback" value={feedback} onChange={(event) => setFeedback(event.target.value as typeof feedback)}><option value="balanced">Balanced and encouraging</option><option value="detailed">Detailed explanations</option></select><p className={styles.hint}>Changes apply to your next message.</p></div>
-        <div className={styles.panel}><p className={styles.eyebrow}>YOUR LEARNING CONTEXT</p><h3>Building on your work</h3><div className={styles.stat}><strong>{wordCount}</strong><span>saved vocabulary items</span></div><div className={styles.stat}><strong>{sessionCount}</strong><span>saved practice sessions</span></div><p className={styles.hint}>Keep learning connected by saving useful words and practising regularly.</p></div>
+        <div className={styles.panel}><p className={styles.eyebrow}>YOUR LEARNING CONTEXT</p><h3>Building on your work</h3><div className={styles.stat}><strong>{wordCount}</strong><span>saved vocabulary items</span></div><div className={styles.stat}><strong>{sessionCount}</strong><span>saved practice sessions</span></div><p className={styles.hint}>Keep learning connected by saving useful words and practising regularly.</p><label htmlFor="tutor-history">Previous tutor sessions</label><select id="tutor-history" value={conversationId ?? ""} onChange={(event) => void loadTutorConversation(event.target.value)} disabled={busy || !memoryReady}><option value="">Choose a saved session</option>{conversationHistory.map((item) => <option key={item.id} value={item.id}>{item.title || "AI Tutor Session"} · {new Date(item.updatedAt).toLocaleDateString()}</option>)}</select></div>
         <button className={styles.reset} type="button" onClick={resetConversation} disabled={busy || !memoryReady}>Start a fresh tutoring session</button>
       </aside>
     </div>
