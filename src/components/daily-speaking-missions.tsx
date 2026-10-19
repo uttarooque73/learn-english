@@ -22,6 +22,12 @@ function localDate() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
+function mergeHistory(local: Completion[], remote: Completion[]): Completion[] {
+  const byDate = new Map<string, Completion>();
+  for (const item of [...local, ...remote]) byDate.set(item.date, item);
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-60);
+}
+
 function dailyIndex(date: string) {
   return [...date].reduce((sum, char) => sum + char.charCodeAt(0), 0) % MISSIONS.length;
 }
@@ -73,9 +79,18 @@ export function DailySpeakingMissions() {
           && typeof item.date === "string" && typeof item.missionId === "string"
           && typeof item.title === "string" && typeof item.reflection === "string"
           && typeof item.completedAt === "string")).slice(-60);
-        setHistory(valid);
-        setCompleted(valid.some((item) => item.date === localDate()));
-        try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(valid)); } catch { /* Server history remains available. */ }
+        let cached: Completion[] = [];
+        try {
+          const parsed: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
+          if (Array.isArray(parsed)) cached = parsed.filter((item): item is Completion => Boolean(item && typeof item === "object"
+            && typeof item.date === "string" && typeof item.missionId === "string"
+            && typeof item.title === "string" && typeof item.reflection === "string"
+            && typeof item.completedAt === "string"));
+        } catch { /* Ignore malformed local cache and use server history. */ }
+        const merged = mergeHistory(cached, valid);
+        setHistory(merged);
+        setCompleted(merged.some((item) => item.date === localDate()));
+        try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged)); } catch { /* Server history remains available. */ }
       })
       .catch(() => setNotice((current) => current || "Mission history is saved on this device if server sync is unavailable."));
     void fetch("/api/learning/progress", { cache: "no-store" })
@@ -126,7 +141,7 @@ export function DailySpeakingMissions() {
       if (!response.ok) throw new Error("Mission sync failed");
       const payload = await response.json() as { history?: Completion[] };
       if (Array.isArray(payload.history)) {
-        const saved = payload.history.slice(-60);
+        const saved = mergeHistory(history, payload.history);
         setHistory(saved);
         try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(saved)); } catch { /* SQLite remains authoritative. */ }
       }
