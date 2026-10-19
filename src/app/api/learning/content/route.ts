@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         retryable: error.code === "timeout" || error.code === "provider_unavailable",
       }, request, ownerId, status);
     }
-    if (error instanceof Error && /supported|quantity|too long|requested number/i.test(error.message)) {
+    if (error instanceof Error && /supported|quantity|too long|different item count/i.test(error.message)) {
       return respond({ error: error.message, code: "invalid_input" }, request, ownerId, 400);
     }
     return respond({
