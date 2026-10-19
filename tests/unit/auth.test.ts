@@ -1,10 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { createSessionToken, hashPassword, verifyPassword, verifySessionToken } from "@/lib/auth";
 
 const originalSecret = process.env.AUTH_SECRET;
 process.env.AUTH_SECRET = "test-secret-that-is-long-enough-for-auth-tests";
 
-afterEach(() => {
+afterAll(() => {
   if (originalSecret === undefined) delete process.env.AUTH_SECRET;
   else process.env.AUTH_SECRET = originalSecret;
 });
