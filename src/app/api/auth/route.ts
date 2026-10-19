@@ -121,7 +121,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const payload = body as Record<string, unknown>;
   const action = payload.action;
-  const email = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const identifier = typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
+  const email = action === "login" && /^[a-z0-9_-]{1,32}$/.test(identifier)
+    ? `${identifier}@speakup.local`
+    : identifier;
   const password = typeof payload.password === "string" ? payload.password : "";
 
   if (action !== "login" && action !== "register") {
