@@ -1,8 +1,12 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EnglishProficiencyAssessment } from "@/components/english-proficiency-assessment";
 
 describe("English proficiency assessment", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
   it("runs the quiz and displays skill results with AI feedback", async () => {
     const encoder = new TextEncoder();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(new ReadableStream({
