@@ -108,7 +108,7 @@ export function VoiceFieldEnhancer() {
           utterance.lang = document.documentElement.lang || "en-US";
           window.speechSynthesis.speak(utterance);
         });
-        controlHost.insertBefore(listen, button.nextSibling);
+        parent.insertBefore(listen, button.nextSibling);
         listenControls.set(field, listen);
       }
     };
