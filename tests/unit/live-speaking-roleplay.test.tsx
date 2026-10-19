@@ -9,7 +9,7 @@ const { initializeDatabasePersistence, upsertSession } = vi.hoisted(() => ({
 
 vi.mock("@/lib/client-persistence", () => ({ initializeDatabasePersistence }));
 vi.mock("@/lib/learning-storage", () => ({ upsertSession }));
-vi.mock("@/components/listen-button", () => ({ ListenButton: ({ text, label }: { text: string; label: string }) => <button type="button" aria-label={label}>{text}</button> }));
+vi.mock("@/components/listen-button", () => ({ ListenButton: ({ label }: { text: string; label: string }) => <button type="button" aria-label={label}>Listen</button> }));
 
 afterEach(() => {
   cleanup();
