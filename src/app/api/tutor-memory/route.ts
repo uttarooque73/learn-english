@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createTutorConversation, deleteTutorConversation, getTutorConversation } from "@/lib/ai/tutor-memory";
+import { createTutorConversation, deleteTutorConversation, getTutorConversation, listTutorConversations } from "@/lib/ai/tutor-memory";
 import { resolveOwnerId, synchronizeOwnerCookie } from "@/lib/request-owner";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     if (id !== undefined && (!/^[0-9a-f-]{36}$/i.test(id))) {
       return respond({ error: "Invalid conversation id." }, request, ownerId, 400);
     }
-    return respond({ conversation: getTutorConversation(ownerId, id) }, request, ownerId);
+    return respond({ conversation: getTutorConversation(ownerId, id), conversations: listTutorConversations(ownerId) }, request, ownerId);
   } catch {
     return respond({ error: "Tutor history is temporarily unavailable." }, request, ownerId, 503);
   }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   const feedbackStyle = typeof payload.feedbackStyle === "string" && FEEDBACK_STYLES.has(payload.feedbackStyle) ? payload.feedbackStyle : "balanced";
   try {
     const conversation = createTutorConversation(ownerId, { goal, level, feedbackStyle });
-    return respond({ conversation }, request, ownerId, 201);
+    return respond({ conversation, conversations: listTutorConversations(ownerId) }, request, ownerId, 201);
   } catch {
     return respond({ error: "A new tutor session could not be created." }, request, ownerId, 503);
   }
@@ -61,7 +61,9 @@ export async function DELETE(request: NextRequest) {
   }
   try {
     const deleted = deleteTutorConversation(ownerId, id);
-    return respond(deleted ? { deleted: true } : { error: "Conversation not found." }, request, ownerId, deleted ? 200 : 404);
+    return respond(deleted
+      ? { deleted: true, conversations: listTutorConversations(ownerId) }
+      : { error: "Conversation not found." }, request, ownerId, deleted ? 200 : 404);
   } catch {
     return respond({ error: "Tutor history could not be deleted." }, request, ownerId, 503);
   }
