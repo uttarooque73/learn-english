@@ -22,7 +22,7 @@ describe("AdaptiveVocabularyContext", () => {
     fireEvent.click(screen.getByRole("button", { name: /send her updates when there is new information/i }));
     fireEvent.click(screen.getByRole("button", { name: /check answer/i }));
     expect(screen.getByText(/exactly right/i)).toBeInTheDocument();
-    expect(screen.getByText(/keep me posted means to continue telling someone/i)).toBeInTheDocument();
+    expect(screen.getByText(/means to continue telling someone about progress/i)).toBeInTheDocument();
     expect(screen.getByText(/your turn/i)).toBeInTheDocument();
   });
 
