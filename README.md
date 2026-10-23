@@ -1,135 +1,153 @@
 # SpeakUp AI
 
-An English-speaking practice app built with Next.js, React, and TypeScript. Practice conversations with a local Ollama model, improve grammar and vocabulary, rehearse speaking, and track learning progress.
+<p align="center">
+  <strong>Practice English with an AI tutor that adapts to you.</strong><br />
+  Conversations, grammar feedback, vocabulary revision, speaking practice, and progress tracking in one learning workspace.
+</p>
 
-## Features
+<p align="center">
+  <a href="https://github.com/uttarooque73/learn-english/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-green.svg" /></a>
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" />
+  <img alt="React" src="https://img.shields.io/badge/React-19-149eca?logo=react" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript" />
+  <img alt="AI powered by Ollama" src="https://img.shields.io/badge/AI-Ollama-222222" />
+</p>
 
-- **AI conversation practice:** guided role-play, custom scenarios, difficulty levels, goals, and optional timed sessions.
-- **Persistent AI tutor:** conversation history is saved to SQLite per learner, restored when returning, and used as context for follow-up tutoring turns. Learners can switch between recent saved sessions.
-- **Speaking practice:** browser speech input and playback, plus shadowing exercises.
-- **Feedback:** grammar corrections, natural phrasing suggestions, simpler explanations, and adaptive follow-up questions.
-- **Learning insights:** evidence-based skill trends, eight-week score history, recent-vs-previous period comparisons, and recurring-mistake focus areas.
-- **Vocabulary:** searchable notebook, AI-assisted definitions, flashcards, quizzes, and spaced repetition.
-- **Progress:** session summaries, practice streaks, activity metrics, and micro-lessons based on recurring corrections.
-- **Personalization:** learning preferences, custom practice options, speaking speed, and accessible display settings.
-- **Persistence:** SQLite-backed learning data with browser localStorage as a client cache.
-- **Data portability:** signed-in learners can download an owner-scoped JSON export of saved learning records from Account & Security; authentication secrets are excluded.
+---
 
-## Requirements
+## ✨ What is SpeakUp AI?
 
-- Node.js 20.9 or newer
+SpeakUp AI is an English-learning web app built with **Next.js, React, and TypeScript**. It combines AI-guided practice with saved learning history, adaptive recommendations, and progress insights—so learners can practise consistently and focus on areas that need attention.
+
+## 🚀 Features
+
+| Area | What you can do |
+| --- | --- |
+| 🗣️ **AI conversation tutor** | Practise guided conversations, role-play real-life scenarios, set goals, adjust difficulty, and use timed sessions. |
+| 📝 **Grammar & writing feedback** | Understand mistakes, see more natural phrasing, get simpler explanations, and answer adaptive follow-up questions. |
+| 🎧 **Speaking & listening** | Use browser speech input and playback, practise shadowing, and work with text when speech features are unavailable. |
+| 📚 **Vocabulary builder** | Maintain a searchable vocabulary notebook, review flashcards, take quizzes, and use spaced repetition. |
+| 📈 **Learning insights** | Review skill trends, an eight-week score history, period comparisons, and recurring mistakes. |
+| 🎯 **Adaptive learning plans** | Generate plans using saved skill estimates, recent attempts, recurring mistakes, and vocabulary reviews due. |
+| 🔁 **Persistent learning history** | Save conversations, summaries, practice attempts, preferences, and vocabulary data in SQLite. |
+| 🏆 **Progress & motivation** | Track practice streaks, activity, session summaries, and micro-lessons based on recurring corrections. |
+| 🔐 **Account & data portability** | Use account-scoped learning data and download an owner-scoped JSON export of learning records. Authentication secrets are excluded from exports. |
+
+## 🧰 Tech stack
+
+- **Web app:** Next.js App Router, React, TypeScript
+- **AI provider:** Ollama with a configurable model
+- **Agent workflows:** LangGraph with SQLite-backed checkpoints
+- **Persistence:** SQLite, with browser `localStorage` used as a client cache
+- **Speech:** Browser speech recognition and speech synthesis APIs
+- **Testing:** Vitest, Testing Library, and Playwright
+- **Quality checks:** ESLint, TypeScript checks, production build, and GitHub Actions
+
+## ⚡ Quick start
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) **20.9 or newer**
 - npm
 - [Ollama](https://ollama.com/download) for AI features
 
-## Quick start
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/uttarooque73/learn-english.git
 cd learn-english
 npm install
+```
+
+### 2. Configure environment
+
+```bash
 cp .env.example .env.local
+```
+
+Review the values in `.env.local`. The app uses these server-side variables when configured:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama service endpoint |
+| `OLLAMA_MODEL` | `llama3.1:8b` | Chat model to use |
+| `SQLITE_DATABASE_PATH` | `./data/speakup.sqlite` | SQLite database path |
+| `AUTH_SECRET` | — | In production, a random secret of at least 32 characters for signing sessions |
+
+Keep secrets server-side. **Do not** prefix secret environment variables with `NEXT_PUBLIC_`.
+
+### 3. Start Ollama and the app
+
+```bash
 ollama pull llama3.1:8b
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open **http://localhost:3000** in your browser.
 
-Configure these server-side environment variables in `.env.local` if needed:
+## 🔑 Local development account
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434` | Ollama service endpoint |
-| `OLLAMA_MODEL` | `llama3.1:8b` | Chat model |
-| `SQLITE_DATABASE_PATH` | `./data/speakup.sqlite` | SQLite database file |
-| `AUTH_SECRET` | — | Required in production: random secret of at least 32 characters for signing sessions |
+The development command seeds a local account if one does not already exist. Visit **http://localhost:3000/login** and use:
 
-Keep these variables server-side; do not prefix them with `NEXT_PUBLIC_`.
+- **Username:** `umarkhan`
+- **Password:** `umarkhan`
 
-## Local development login
+The seeder preserves an existing account and does not reset its password on restart. The username maps to the local-only email `umarkhan@speakup.local`.
 
-Running `npm run dev` automatically seeds a development account in the configured SQLite database if it does not already exist. Open [http://localhost:3000/login](http://localhost:3000/login) and use:
-
-- Username: `umarkhan`
-- Password: `umarkhan`
-
-The seeder is idempotent: it preserves an existing account and never resets its password on restart. The username `umarkhan` maps to the local-only account email `umarkhan@speakup.local`. To customize the account, set `DEV_USER_EMAIL`, `DEV_USER_PASSWORD`, and `DEV_USER_NAME` in `.env.local`. You can also run it manually with `npm run seed:dev-user`.
-
-This convenience is for local development only. The script refuses to run when `NODE_ENV=production`; do not reuse the sample credentials in any deployed environment.
-
-## Data and privacy notes
-
-- The app creates its SQLite schema on first use. The database directory must be writable and stored on persistent disk.
-- Existing `speakup:*` browser data is imported into SQLite once when persistence is first connected, then removed from localStorage. The client uses a synchronous in-memory cache backed by SQLite.
-- Learners can register and sign in. Signed-in learning data is scoped to the verified account session; anonymous learning data remains scoped to an HTTP-only browser-owner cookie until an account is created.
-- Serverless or ephemeral filesystems may lose the SQLite database after restart or redeployment.
-- AI features require Ollama. Speech recognition and playback depend on browser/OS support and microphone permissions; browser speech recognition may use a browser-vendor service.
-- Pronunciation assessment can use the optional self-hosted OpenPronounce companion service. Without it, transcript comparison is approximate. Shadowing word matching does not assess phonemes, cadence, or intonation.
-
-## Development commands
+To customize the seeded account, set `DEV_USER_EMAIL`, `DEV_USER_PASSWORD`, and `DEV_USER_NAME` in `.env.local`, or run:
 
 ```bash
-npm run dev
-npm run lint
-npm run typecheck
-npm test
-npm run test:coverage
-npm run build
-npm run test:e2e
+npm run seed:dev-user
 ```
 
-GitHub Actions runs lint, type checks, unit/integration tests with coverage, a production build, and Playwright UI tests on pushes to `main` and pull requests targeting `main`.
+> **Security note:** This account is for local development only. The seed script refuses to run when `NODE_ENV=production`. Never use the sample credentials in a deployed environment.
 
-## Architecture
+## 🧠 How the learning workflows work
 
-```text
-Browser UI
-  ├── localStorage (client cache)
-  └── Next.js Route Handlers (/api/*)
-        ├── Ollama (streaming AI responses)
-        └── SQLite (/api/persistence)
-```
+SpeakUp AI uses checkpointed LangGraph workflows for daily learning plans and submitted practice attempts. These workflows coordinate existing domain services; not every learner-facing feature is a separate autonomous agent.
 
-- **UI and server:** Next.js App Router, React, TypeScript.
-- **AI:** Ollama with a configurable local model.
-- **Persistence:** SQLite for sessions, summaries, vocabulary/review metadata, preferences, and custom learning options.
-- **Speech:** Browser speech recognition and synthesis APIs, with text input as a fallback.
-
-
-## Adaptive multi-agent learning workflow
-
-The daily-plan and submitted-attempt paths use checkpointed LangGraph workflows. They reuse the existing learning pages and domain services; not every learning feature is a separate autonomous agent.
-
-### Daily plan graph
+### Daily learning plan
 
 `POST /api/learning/plan` invokes `runMultiAgentLearningWorkflow` in `src/lib/ai/multi-agent-learning.ts`.
 
-1. **Context loader** reads the learner profile, saved skill estimates, recurring mistakes, due vocabulary reviews, and recent attempt scores from SQLite.
-2. **Diagnostic agent** prioritizes skills only from saved evidence and records its confidence and reasons.
-3. **Conditional vocabulary-review agent** runs when overdue vocabulary reviews exist; otherwise the graph skips that node.
-4. **Practice planner agent** asks the configured Ollama provider for a bounded plan and receives the diagnostic as a prioritization hint. Deterministic policy and validated saved evidence remain authoritative.
-5. **Progress analyst** summarizes the plan and its evidence-backed priorities.
+1. **Context loader** gathers the learner profile, saved skill estimates, recurring mistakes, due vocabulary reviews, and recent attempt scores.
+2. **Diagnostic agent** prioritizes skills based on saved evidence and records its confidence and reasons.
+3. **Vocabulary-review agent** runs when vocabulary reviews are overdue; otherwise, that step is skipped.
+4. **Practice planner** uses the configured Ollama provider to propose a bounded plan, guided by the diagnostic.
+5. **Progress analyst** summarizes the plan and its evidence-based priorities.
 
-The response keeps the existing `plan` field and adds `workflow.runId`, `workflow.diagnosis`, `workflow.summary`, and `workflow.agents`.
+The response retains the existing `plan` field and adds `workflow.runId`, `workflow.diagnosis`, `workflow.summary`, and `workflow.agents`.
 
-### Attempt evaluation graph
+### Practice-attempt evaluation
 
-`POST /api/learning/attempts` invokes `runMultiAgentEvaluation` in `src/lib/ai/multi-agent-evaluation.ts`. The evaluation agent delegates to the existing validated evaluator and persists the attempt/evidence; the progress analyst returns a concise score/confidence summary. Repeated submissions continue to use the attempt idempotency key.
+`POST /api/learning/attempts` invokes `runMultiAgentEvaluation` in `src/lib/ai/multi-agent-evaluation.ts`. The workflow uses the existing validated evaluator, persists the attempt and evidence, and returns a concise score/confidence summary. Attempt idempotency keys protect against repeated submissions.
 
-### Persistence and operation
+### Try the workflow
 
-- LangGraph checkpoints use the SQLite checkpoint saver configured with `SQLITE_DATABASE_PATH`.
-- Workflow metadata is stored in the owner-scoped `agent_runs` table. Run status and duration are recorded without storing raw answers in workflow metadata.
-- Open `http://localhost:3000/learning-plan`, enter a learning goal, and generate a plan to run the planning graph. Completing a real practice item through the attempts API runs the evaluation graph.
-- Existing conversation, vocabulary, grammar/micro-lesson, shadowing/pronunciation, listening, and fluency pages remain the learner-facing practice experiences. They are activity destinations, not claimed to be independent specialist agents yet.
-- Tests use an injected deterministic model provider, so graph and checkpoint tests do not require a live Ollama server.
+1. Start the app and sign in.
+2. Open **http://localhost:3000/learning-plan**.
+3. Enter a learning goal and generate a plan.
+4. Complete a practice item to exercise the attempt-evaluation workflow.
 
-## Durable adaptive-learning worker
+Tests use an injected deterministic model provider, so workflow and checkpoint tests do not require a running Ollama server.
 
-The adaptive planner uses a SQLite-backed job queue. Jobs have idempotency keys, bounded retries, per-attempt history, and expiring leases, so a process restart does not silently discard queued work.
+## ⏱️ Optional: durable adaptive-learning worker
 
-1. Set `LEARNING_WORKER_SECRET` on the app server to a randomly generated secret of at least 32 characters. Set the same value only in the trusted worker/scheduler host environment; never expose it as a `NEXT_PUBLIC_*` variable.
-2. Enable daily planning for a learner through `PATCH /api/learning/schedule` with their browser session and a JSON body such as `{"scheduleEnabled":true,"timezone":"Asia/Kolkata","dailyTargetMinutes":20,"goal":"Speak more confidently" }`.
-3. Start the worker loop on a trusted machine with the app's URL and secret configured:
+The adaptive planner can use a SQLite-backed job queue with idempotency keys, bounded retries, attempt history, and expiring leases.
+
+1. Set `LEARNING_WORKER_SECRET` on the app server to a random secret of at least 32 characters. Keep it out of client-side variables.
+2. Enable a learner's daily plan through `PATCH /api/learning/schedule`, using their authenticated browser session and a JSON body such as:
+
+   ```json
+   {
+     "scheduleEnabled": true,
+     "timezone": "Asia/Kolkata",
+     "dailyTargetMinutes": 20,
+     "goal": "Speak more confidently"
+   }
+   ```
+
+3. Configure the trusted worker host:
 
    ```bash
    export LEARNING_WORKER_URL="https://your-app.example/api/learning/worker"
@@ -137,25 +155,73 @@ The adaptive planner uses a SQLite-backed job queue. Jobs have idempotency keys,
    bash scripts/learning-worker-loop.sh
    ```
 
-4. Schedule `bash scripts/trigger-learning-scheduler.sh` once daily using cron or your hosting scheduler. It enqueues jobs for enabled learners in their saved time zones. The worker loop claims and processes queued jobs.
-5. Check worker health at `GET /api/learning/worker` and trigger the scheduler at `POST /api/learning/scheduler`. Both endpoints require `Authorization: Bearer <LEARNING_WORKER_SECRET>`.
+4. Schedule `bash scripts/trigger-learning-scheduler.sh` daily using cron or your hosting scheduler.
+5. Check worker health with `GET /api/learning/worker` or trigger scheduling with `POST /api/learning/scheduler`. Both endpoints require `Authorization: Bearer <LEARNING_WORKER_SECRET>`.
 
-For a local cron entry, run the scheduler at a quiet hour (for example, 00:05 server time) and keep the worker loop managed by systemd, Docker, or another process supervisor. SQLite must live on persistent storage shared by the app and worker; do not run this queue on an ephemeral or multi-host filesystem without a supported SQLite locking model.
+For production, keep the worker process supervised and store SQLite on persistent storage shared by the app and worker. Do not use this queue on ephemeral or multi-host storage unless its SQLite locking behavior is supported.
 
-## Adaptive policy controls
+## ⚙️ Adaptive policy controls
 
-Evidence-based skill weighting and spaced-repetition intervals are versioned and recorded with each generated plan. Learners can inspect/update their per-owner policy through `GET/PATCH /api/learning/adaptation` and pause daily scheduling through `PATCH /api/learning/schedule`. Set `LEARNING_ADAPTATION_ENABLED=false` on the server to disable evidence-based ranking globally and fall back to neutral skill weights; saved evidence remains intact.
+Evidence-based skill weights and spaced-repetition intervals are versioned and recorded with each generated plan.
 
-## License
+- Use `GET/PATCH /api/learning/adaptation` to inspect or update an owner's policy.
+- Use `PATCH /api/learning/schedule` to pause daily scheduling.
+- Set `LEARNING_ADAPTATION_ENABLED=false` on the server to disable evidence-based ranking globally. Saved evidence remains intact.
 
-This project is licensed under the [MIT License](./LICENSE). You may use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the project, subject to the license conditions. The copyright and permission notice must be included with copies or substantial portions of the software. The software is provided "as is", without warranty of any kind. See the [LICENSE](./LICENSE) file for the full text.
+## 🛠️ Development
 
-Copyright (c) 2026 Umarkhan.
+### Useful commands
 
-### Contributions
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local development server |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Check TypeScript types |
+| `npm test` | Run unit and integration tests |
+| `npm run test:coverage` | Run tests with coverage |
+| `npm run test:e2e` | Run Playwright end-to-end tests |
+| `npm run build` | Create a production build |
 
-Contributions are welcome. By submitting a contribution, you agree that it may be distributed under this project's MIT License unless a different arrangement is agreed to in writing. Please avoid committing secrets, real learner data, local SQLite databases, or production credentials.
+GitHub Actions is configured to run linting, type checks, tests with coverage, a production build, and Playwright UI tests on pushes to `main` and pull requests targeting `main`.
 
-### Third-party software and services
+### Architecture at a glance
 
-This repository depends on third-party packages and may integrate with external software such as Ollama and browser speech services. Those components remain subject to their own licenses and terms. The MIT license for this repository does not relicense third-party dependencies, models, or services; review their terms separately before redistributing or deploying them.
+```text
+Browser
+  ├── React / Next.js UI
+  ├── localStorage (client cache)
+  └── Next.js Route Handlers (/api/*)
+        ├── Ollama (AI responses)
+        ├── SQLite (learning data and workflow checkpoints)
+        └── Adaptive-learning job queue
+```
+
+## 🔒 Data, privacy & deployment notes
+
+- SQLite schema is created on first use. Its directory must be writable and stored on persistent storage.
+- Existing `speakup:*` browser data is imported into SQLite once when persistence is first connected, then removed from `localStorage`.
+- Signed-in learning data is scoped to the verified account session. Anonymous learning data is scoped to an HTTP-only browser-owner cookie until an account is created.
+- Serverless or ephemeral filesystems may lose the SQLite database after restart or redeployment.
+- Speech recognition and playback depend on browser/OS support and microphone permissions. Browser speech recognition may use a browser-vendor service.
+- The optional self-hosted OpenPronounce companion service can support pronunciation assessment. Without it, transcript comparison is approximate; shadowing word matching does not assess phonemes, cadence, or intonation.
+- Do not commit secrets, real learner data, local SQLite databases, or production credentials.
+
+## 🤝 Contributing
+
+Contributions, bug reports, and thoughtful suggestions are welcome.
+
+1. Check existing issues and pull requests before starting substantial work.
+2. Create a focused branch for your change.
+3. Add or update tests when behavior changes.
+4. Run the relevant checks before opening a pull request.
+5. Never include secrets or real user data in commits.
+
+By submitting a contribution, you agree that it may be distributed under this project's MIT License unless a different arrangement is agreed to in writing.
+
+## 📄 License
+
+Released under the **MIT License**. You may use, modify, distribute, and use this project commercially, subject to the license conditions. Include the copyright and permission notice with copies or substantial portions of the software.
+
+Copyright © 2026 Umarkhan. See [`LICENSE`](./LICENSE) for the full license text.
+
+Third-party packages, AI models, and external services remain subject to their own licenses and terms. The repository's MIT License does not change those terms.
