@@ -145,3 +145,17 @@ For a local cron entry, run the scheduler at a quiet hour (for example, 00:05 se
 ## Adaptive policy controls
 
 Evidence-based skill weighting and spaced-repetition intervals are versioned and recorded with each generated plan. Learners can inspect/update their per-owner policy through `GET/PATCH /api/learning/adaptation` and pause daily scheduling through `PATCH /api/learning/schedule`. Set `LEARNING_ADAPTATION_ENABLED=false` on the server to disable evidence-based ranking globally and fall back to neutral skill weights; saved evidence remains intact.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE). You may use, copy, modify, merge, publish, distribute, sublicense, and sell copies of the project, subject to the license conditions. The copyright and permission notice must be included with copies or substantial portions of the software. The software is provided "as is", without warranty of any kind. See the [LICENSE](./LICENSE) file for the full text.
+
+Copyright (c) 2026 Umarkhan.
+
+### Contributions
+
+Contributions are welcome. By submitting a contribution, you agree that it may be distributed under this project's MIT License unless a different arrangement is agreed to in writing. Please avoid committing secrets, real learner data, local SQLite databases, or production credentials.
+
+### Third-party software and services
+
+This repository depends on third-party packages and may integrate with external software such as Ollama and browser speech services. Those components remain subject to their own licenses and terms. The MIT license for this repository does not relicense third-party dependencies, models, or services; review their terms separately before redistributing or deploying them.
